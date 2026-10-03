@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Mubarrat.Fonts.OpenType.Diagnostics/Mubarrat.Fonts.OpenType.Diagnostics.csproj" Id="17f781b0-a7bb-42e9-8043-ecb1091abd88" />
+  <Project Path="Mubarrat.Fonts.OpenType/Mubarrat.Fonts.OpenType.csproj" />
+  <Project Path="Mubarrat.Fonts.Tests/Mubarrat.Fonts.Tests.csproj" />
+</Solution>

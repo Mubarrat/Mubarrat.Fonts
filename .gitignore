@@ -1,0 +1,79 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# JetBrains Rider / ReSharper
+.idea/
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# VS Code local workspace state
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Test output
+TestResults/
+*.trx
+
+# Code coverage
+coverage/
+*.coverage
+*.coveragexml
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/
+
+# MSBuild / build logs
+*.binlog
+
+# Generated documentation
+docs/_site/
+docfx/_site/
+
+# Local development files
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Local secrets / certificates
+*.pfx
+*.p12
+*.key
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# Crash dumps
+*.dmp
+*.mdmp
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local tool caches
+.cache/
+.nuget/

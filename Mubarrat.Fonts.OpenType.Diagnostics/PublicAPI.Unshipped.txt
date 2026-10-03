@@ -1,0 +1,512 @@
+﻿#nullable enable
+Mubarrat.Fonts.OpenType.Diagnostics.AnalysisOptions
+Mubarrat.Fonts.OpenType.Diagnostics.AnalysisOptions.AnalysisOptions() -> void
+Mubarrat.Fonts.OpenType.Diagnostics.AnalysisOptions.Apply(string! ruleId, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity defaultSeverity) -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity?
+Mubarrat.Fonts.OpenType.Diagnostics.AnalysisOptions.Overrides.get -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity?>>!
+Mubarrat.Fonts.OpenType.Diagnostics.AnalysisOptions.Reset(string! ruleId) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.AnalysisOptions.ResetAll() -> void
+Mubarrat.Fonts.OpenType.Diagnostics.AnalysisOptions.SetSeverity(string! ruleId, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity? severity) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvarTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvarTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvtTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvtTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LtshTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LtshTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.<Clone>$() -> Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic!
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Arguments.get -> object?[]!
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Arguments.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Deconstruct(out Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor! Descriptor, out Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity Severity, out object?[]! Arguments, out Mubarrat.Fonts.OpenType.Primitives.Tag? Table, out string? Field, out Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan? Span) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Descriptor.get -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Descriptor.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Diagnostic(Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor! Descriptor, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity Severity, object?[]! Arguments, Mubarrat.Fonts.OpenType.Primitives.Tag? Table = null, string? Field = null, Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan? Span = null) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Equals(Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic? other) -> bool
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Field.get -> string?
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Field.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Id.get -> string!
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Message.get -> string!
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Severity.get -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Severity.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Span.get -> Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan?
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Span.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Table.get -> Mubarrat.Fonts.OpenType.Primitives.Tag?
+Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Table.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag.Add(Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic! diagnostic) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag.AddRange(System.Collections.Generic.IEnumerable<Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic!>! diagnostics) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag.Count.get -> int
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag.DiagnosticBag() -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic!>!
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory.Compatibility = 3 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory.Consistency = 2 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory.Performance = 4 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory.Specification = 1 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory.Structure = 0 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.<Clone>$() -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Category.get -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Category.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Create(object?[]! arguments, Mubarrat.Fonts.OpenType.Primitives.Tag? table = null, string? field = null, Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan? span = null) -> Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic!
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Deconstruct(out string! Id, out string! Title, out Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity DefaultSeverity, out Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory Category, out string! MessageFormat, out string? Description) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.DefaultSeverity.get -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.DefaultSeverity.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Description.get -> string?
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Description.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.DiagnosticDescriptor(string! Id, string! Title, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity DefaultSeverity, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticCategory Category, string! MessageFormat, string? Description = null) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Equals(Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor? other) -> bool
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Id.get -> string!
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Id.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.MessageFormat.get -> string!
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.MessageFormat.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Title.get -> string!
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Title.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity.Error = 0 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity.Information = 2 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity.Verbose = 3 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity
+Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity.Warning = 1 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticSeverity
+Mubarrat.Fonts.OpenType.Diagnostics.FontAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.FontAnalyzer.Add(Mubarrat.Fonts.OpenType.Diagnostics.IFontAnalyzer! analyzer) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.FontAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face) -> System.Collections.Generic.IReadOnlyList<Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic!>!
+Mubarrat.Fonts.OpenType.Diagnostics.FontAnalyzer.FontAnalyzer(Mubarrat.Fonts.OpenType.Diagnostics.AnalysisOptions? options = null) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.FontAnalyzer.Options.get -> Mubarrat.Fonts.OpenType.Diagnostics.AnalysisOptions!
+Mubarrat.Fonts.OpenType.Diagnostics.IFontAnalyzer
+Mubarrat.Fonts.OpenType.Diagnostics.IFontAnalyzer.Analyze(Mubarrat.Fonts.OpenType.FontFace! face, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.Deconstruct(out long Offset, out int Length) -> void
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.End.get -> long
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.Equals(Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan other) -> bool
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.Length.get -> int
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.Length.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.Offset.get -> long
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.Offset.init -> void
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.SourceSpan() -> void
+Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.SourceSpan(long Offset, int Length) -> void
+override Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.Equals(object? obj) -> bool
+override Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.GetHashCode() -> int
+override Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.ToString() -> string!
+override Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.Equals(object? obj) -> bool
+override Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.GetHashCode() -> int
+override Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.ToString() -> string!
+override Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.GetHashCode() -> int
+override Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.ToString() -> string!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvarTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvarTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvtTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvtTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LtshTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LtshTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.AnalyzeAgainstMaxp(Mubarrat.Fonts.OpenType.Tables.PostTable! post, Mubarrat.Fonts.OpenType.Tables.MaxpTable! maxp, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.AnalyzeAgainstMaxp(Mubarrat.Fonts.OpenType.Tables.Vertical.VorgTable! vorg, Mubarrat.Fonts.OpenType.Tables.MaxpTable! maxp, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticBag! bag) -> void
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer.Instance.get -> Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer!
+static Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.operator !=(Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic? left, Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic? right) -> bool
+static Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic.operator ==(Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic? left, Mubarrat.Fonts.OpenType.Diagnostics.Diagnostic? right) -> bool
+static Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.operator !=(Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor? left, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor? right) -> bool
+static Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor.operator ==(Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor? left, Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor? right) -> bool
+static Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.operator !=(Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan left, Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan right) -> bool
+static Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.operator ==(Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan left, Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan right) -> bool
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.AxisCountMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.FromCoordinatesNotIncreasing -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.IdentityMap -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.MinorVersionNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.ReservedNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.SegmentMapEndInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.SegmentMapStartInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.SegmentMapTooShort -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.AvarTableAnalyzer.ToCoordinatesNotMonotonic -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.AllGlyphsEmpty -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.CidFontNameConflict -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.FdSelectIndexOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.FontMatrixArity -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.FontMatrixNotInvertible -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.GlyphCountMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.LocalSubrsWithoutPrivate -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.MissingVariationStore -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.NegativeFontScale -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.SingleFontDictNoFdSelect -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.SubrCountHigh -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.UnexpectedVariationStore -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Cff2TableAnalyzer.VsIndexOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.AllGlyphsEmpty -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.CharsetNotSpecified -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.CharsetSidOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.CidKeyedFont -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.EncodingPresent -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.FdSelectIndexOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.FontBBoxArity -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.FontBBoxInverted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.GlyphCountMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.MissingFdArray -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.MissingFdSelect -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.MissingPrivateDict -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.PostScriptNameMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CffTableAnalyzer.SubrCountHigh -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvarTableAnalyzer.CvtTableMissing -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvarTableAnalyzer.EmptyStore -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvarTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvarTableAnalyzer.MinorVersionNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvarTableAnalyzer.ReservedBitsSet -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvtTableAnalyzer.AllZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvtTableAnalyzer.Empty -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvtTableAnalyzer.ExtremeValues -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvtTableAnalyzer.MissingForHintedFont -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.CvtTableAnalyzer.MissingForVariableFont -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer.CannotBeResignedDeclared -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer.EmptySignature -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer.FlagsReservedBits -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer.MultipleSignatures -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer.NoSignatures -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer.SignatureBlockLengthMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.DsigTableAnalyzer.SignatureFormatUnknown -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.Empty -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.FunctionCountExceedsMaxp -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.InstructionCountHigh -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.NestedFdef -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.NoFunctionDefinitions -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.UnbalancedFunctions -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.UndefinedFunctionDef -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FpgmTableAnalyzer.UnknownOpcode -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.AxisCountZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.AxisNameIdOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.AxisRangeEqual -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.AxisRangeInverted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.AxisSizeTooSmall -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.DuplicateAxisTag -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.HiddenAxis -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.InstanceCoordinateOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.InstanceCountZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.InstancePostScriptNameIdOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.InstanceSizeInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.InstanceSubfamilyNameIdOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.FvarTableAnalyzer.MinorVersionNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.BehaviorMissingGridFit -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.BehaviorMissingSmoothing -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.DuplicateMaxPpem -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.NoRanges -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.RangesUnsorted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.ReservedBehaviorBits -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.TerminalRangeMissing -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.Version0OnlyBitsInVersion0 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.VersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GaspTableAnalyzer.VeryLargeNumberOfRanges -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.BboxInverted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.ComponentConflictingOffsetMode -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.ComponentConflictingTransformFlags -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.ComponentCycle -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.ComponentGlyphIndexOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.ComponentReservedFlags -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.ComponentRoundXYWithoutXY -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.ContourNegativePointCount -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GlyfTableAnalyzer.GlyphCountMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer.AxisCountMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer.GlyphCountMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer.MinorVersionNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer.NoVariations -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.GvarTableAnalyzer.UnreferencedSharedTuple -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.AllWidthsZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.DuplicatePixelSize -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.MaxWidthInconsistent -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.NoRecords -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.RecordsNotSorted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.SizeDeviceRecordHasPadding -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.SizeDeviceRecordNotAligned -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HdmxTableAnalyzer.TablePresentWithoutNonlinearFlag -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.BoundingBoxEmpty -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.BoundingBoxInverted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.BoundingBoxZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.CreatedBeforeEpoch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.CreatedInFuture -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.FontDirectionHintOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.FontRevisionZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.GlyphDataFormatInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.IndexToLocFormatInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.LowestRecPPEMZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.MagicMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.MinorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.ModifiedBeforeCreated -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.ReservedFlagBitsSet -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.ReservedMacStyleBitsSet -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.UnitsPerEmNotPowerOfTwo -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HeadTableAnalyzer.UnitsPerEmOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.AdvanceWidthMaxZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.AscenderBelowDescender -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.CaretSlopeBothZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.CaretSlopeRiseZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.ItalicCaretDeclared -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.LineGapNegative -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.MetricDataFormatInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.MetricsUnpopulated -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.NumberOfHMetricsZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.ReservedFieldsNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HheaTableAnalyzer.VersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer.AllAdvanceWidthsZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer.AllLeftSideBearingsZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer.CountMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer.FullyExpandedMetrics -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer.NotdefZeroAdvance -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer.SingleLongMetric -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HmtxTableAnalyzer.UniformAdvanceWidths -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer.MapTooShort -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer.MinorVersionNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer.NoMaps -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer.RegionListEmpty -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.HvarTableAnalyzer.StoreEmpty -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.AllSubtablesNonHorizontal -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.ClassTableUnsorted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.DuplicatePair -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.EmptyKerningArray -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.KernInCffFont -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.MinimumWithoutHorizontal -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.OverrideAndMinimumConflict -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.PairsNotSorted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.RowWidthTooSmall -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.SubtableReservedBits -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.SubtableVersionNotZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.KernTableAnalyzer.UnknownSubtableFormat -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer.EmptyGlyphsPresent -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer.FirstOffsetNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer.LastOffsetMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer.OffsetArrayLongerThanGlyphs -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer.OffsetsNotMonotonic -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LocaTableAnalyzer.ShortFormatTooLarge -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LtshTableAnalyzer.AllGylphsLinear -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LtshTableAnalyzer.SomeGylphsNonLinear -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LtshTableAnalyzer.TablePresentWithoutNonlinearFlag -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LtshTableAnalyzer.ThresholdBelowSmallestRecPpem -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.LtshTableAnalyzer.ThresholdZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.ComponentDepthZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.MaxZonesInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.MaxZonesOne -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.NoHinting -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.NoOutlineMaxima -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.NumGlyphsOne -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.NumGlyphsZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MaxpTableAnalyzer.TwilightPointsWithoutZone -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.DataLengthMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.DuplicateTag -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.EmptyDlng -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.EmptySlng -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.FlagsNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.InvalidTagCharacters -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.LanguageTagWithWhitespace -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.NoDataMaps -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.ReservedNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.MetaTableAnalyzer.UnregisteredTagPresent -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.DuplicateKey -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.EmptyRequiredString -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.MissingCopyright -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.MissingFamily -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.MissingFullName -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.MissingLicense -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.MissingPostScript -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.MissingSubfamily -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.MissingTypographicFamily -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.MissingVersionString -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.NoMacRoman -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.NoWindowsUnicode -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.PostScriptInvalidChars -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.PostScriptTooLong -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.NameTableAnalyzer.RecordsUnsorted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.AscenderBelowDescender -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.BoldAndRegularSet -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.CapHeightZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.CharRangeInverted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.FsSelectionReservedBits -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.FsTypeNoEmbeddingPermissions -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.FsTypeReservedBits -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.ItalicAndObliqueSet -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.NoStyleBitsSet -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.StrikeoutNegativeSize -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.StrikeoutZeroSizeWithPosition -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.SubscriptSizeNegative -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.SuperscriptSizeNegative -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.TypoMetricsNotPreferred -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.UnicodeRangeAllZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.VendorIdInvalidChars -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.VendorIdUnknown -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.VersionTooOld -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.WeightClassOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.WidthClassOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.WinMetricsLargerThanTypo -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.WinMetricsZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.Os2TableAnalyzer.XHeightZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.EmptyFileName -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.EmptyTypeface -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.FileNameWrongLength -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.MinorVersionNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.NonUnicodeIndexingDeclared -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.ReservedNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.StrokeWeightOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.VendorCodeZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PcltTableAnalyzer.WidthTypeOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.FixedPitchMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.FixedPitchSet -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.GlyphNameDuplicate -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.GlyphNameInvalidChars -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.ItalicAngleMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.ItalicAngleNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.MemoryFieldsPopulated -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.MinMemGreaterThanMax -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.NoGlyphNames -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.NumGlyphsMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.UnderlineThicknessNegative -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.UnderlineThicknessZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PostTableAnalyzer.Version25Deprecated -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer.Empty -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer.FunctionDefinitionInPrep -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer.InstructionDefCountExceedsMaxp -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer.StorageExceedsMaxp -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer.UnbalancedInstructionDefs -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.PrepTableAnalyzer.UnknownOpcode -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.AxisIndexOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.AxisNameIdOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.AxisOrderingNotSorted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.AxisSizeTooSmall -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.DesignAxesMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.DuplicateAxisIndexInFormat4 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.DuplicateAxisTag -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.ElidedFallbackNameIdMissing -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.ElidedFallbackNameIdOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.ExtraStatAxis -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.LinkedValueNameIdOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.MinorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.MissingFvarAxis -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.NominalOutsideRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.RangeInverted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.StatTableAnalyzer.ValueNameIdOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.DefaultRatioRangeMissing -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.DuplicateYPelHeight -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.GroupStartGreaterThanEnd -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.NoRatioRanges -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.NumRecsMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.RatioRangesUnsorted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.RatioYRangeInverted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.RecordOutOfGroupBounds -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.RecordsUnsorted -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VdmxTableAnalyzer.YMaxLessThanYMin -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.AdvanceHeightMaxNegative -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.AscenderBelowDescender -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.CaretSlopeBothZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.CaretSlopeSuggestsHorizontal -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.HorizontalCaret -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.LineGapNonZeroInV10 -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.MetricDataFormatInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.NumberOfVMetricsExceedsGlyphs -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.NumberOfVMetricsZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.ReservedFieldsNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.Version10Deprecated -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VheaTableAnalyzer.VersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer.AdvanceHeightMaxMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer.AllAdvanceHeightsZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer.AllTopSideBearingsZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer.FullyExpandedMetrics -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer.MinTopSideBearingMismatch -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer.SingleLongMetric -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VmtxTableAnalyzer.UniformAdvanceHeights -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.AllGlyphsListed -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.ExcessiveEntries -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.GlyphIndexOutOfRange -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.MinorVersionNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.PresentInTrueTypeFont -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.RecordsNotIncreasing -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.RedundantEntries -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VorgTableAnalyzer.VertOriginYZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer.MajorVersionInvalid -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer.MinorVersionNonZero -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer.MissingVhea -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer.MissingVmtx -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer.NoMaps -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+static readonly Mubarrat.Fonts.OpenType.Diagnostics.Analyzers.VvarTableAnalyzer.StoreEmpty -> Mubarrat.Fonts.OpenType.Diagnostics.DiagnosticDescriptor!
+~override Mubarrat.Fonts.OpenType.Diagnostics.SourceSpan.Equals(object obj) -> bool

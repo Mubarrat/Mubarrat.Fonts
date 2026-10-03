@@ -1,0 +1,27 @@
+<Project>
+	<PropertyGroup>
+		<Authors>Mubarrat</Authors>
+		<Company>Mubarrat</Company>
+		<Copyright>Copyright (c) 2026 Mubarrat</Copyright>
+
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/Mubarrat/Mubarrat.Fonts</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Mubarrat/Mubarrat.Fonts</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+		<EnablePackageValidation>true</EnablePackageValidation>
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+		<LangVersion>15.0</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
+</Project>
