@@ -1,7 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Outlines;
-using Mubarrat.Fonts.OpenType.Tables.Variations;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -152,7 +150,7 @@ public class Cff2TableAnalyzer : IFontAnalyzer
 
     private static void AnalyzeGlyphCount(FontFace face, Cff2Table cff, Tag tag, DiagnosticBag bag)
     {
-        if (!face.Directory.Contains(MaxpTable.Tag)) return;
+        if (!face.Directory.ContainsKey(MaxpTable.Tag)) return;
 
         var maxp = face.GetTable<MaxpTable>();
         if (cff.GlyphCount != maxp.NumGlyphs)
@@ -256,7 +254,7 @@ public class Cff2TableAnalyzer : IFontAnalyzer
     private static void AnalyzeVariations(FontFace face, Cff2Table cff, Tag tag, DiagnosticBag bag)
     {
         bool fontIsVariable = false;
-        if (face.Directory.Contains(FvarTable.Tag))
+        if (face.Directory.ContainsKey(FvarTable.Tag))
         {
             var fvar = face.GetTable<FvarTable>();
             fontIsVariable = fvar.AxisCount > 0;

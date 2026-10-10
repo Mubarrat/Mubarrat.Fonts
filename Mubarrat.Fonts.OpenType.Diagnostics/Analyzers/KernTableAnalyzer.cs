@@ -1,5 +1,6 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables.Metadata;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Sfnt;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -122,7 +123,7 @@ public class KernTableAnalyzer : IFontAnalyzer
     private static void AnalyzeFlavor(FontFace face, KernTable kern, Tag tag, DiagnosticBag bag)
     {
         // sfnt version 0x4F54544F ("OTTO") indicates CFF outlines.
-        if (face.SfntVersion == TableDirectory.SfntVersionCff)
+        if (face is SfntFontFace { SfntVersion: SfntTableDirectory.SfntVersionCff })
         {
             bag.Add(KernInCffFont.Create(
                 [], table: tag));

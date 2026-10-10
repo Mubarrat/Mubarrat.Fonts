@@ -1,4 +1,4 @@
-# Mubarrat.Fonts.OpenType
+# Mubarrat.Fonts.OpenType (Outdated in this commit, Needs update)
 
 > A modern, reflection-free, AOT-compatible OpenType font library for .NET.
 
@@ -201,7 +201,7 @@ public class MyRules : IFontAnalyzer
 
     public void Analyze(FontFace face, DiagnosticBag bag)
     {
-        if (!face.Directory.Contains(Os2Table.Tag))
+        if (!face.Directory.ContainsKey(Os2Table.Tag))
             bag.Add(MissingOS2.Create([], table: null));
     }
 }

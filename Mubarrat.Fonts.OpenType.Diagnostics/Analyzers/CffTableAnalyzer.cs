@@ -1,6 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Outlines;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -158,7 +157,7 @@ public class CffTableAnalyzer : IFontAnalyzer
 
     private static void AnalyzeGlyphCount(FontFace face, CffTable cff, Tag tag, DiagnosticBag bag)
     {
-        if (!face.Directory.Contains(MaxpTable.Tag)) return;
+        if (!face.Directory.ContainsKey(MaxpTable.Tag)) return;
 
         var maxp = face.GetTable<MaxpTable>();
         if (cff.GlyphCount != maxp.NumGlyphs)
@@ -272,7 +271,7 @@ public class CffTableAnalyzer : IFontAnalyzer
     private static void AnalyzeName(FontFace face, CffTable cff, Tag tag, DiagnosticBag bag)
     {
         if (string.IsNullOrEmpty(cff.Name)) return;
-        if (!face.Directory.Contains(NameTable.Tag)) return;
+        if (!face.Directory.ContainsKey(NameTable.Tag)) return;
 
         var name = face.GetTable<NameTable>();
         string? psName = name.GetString(NameId.PostScriptName);

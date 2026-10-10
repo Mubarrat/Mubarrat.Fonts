@@ -1,5 +1,4 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables.Variations;
+﻿using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -64,7 +63,7 @@ public class CvarTableAnalyzer : IFontAnalyzer
                 [reserved, cvar.Store.RawTupleVariationCount],
                 table: tag, field: nameof(CvarTable.Store)));
 
-        if (!face.Directory.Contains("cvt "))
+        if (!face.Directory.ContainsKey("cvt "))
             bag.Add(CvtTableMissing.Create([], table: tag));
     }
 }

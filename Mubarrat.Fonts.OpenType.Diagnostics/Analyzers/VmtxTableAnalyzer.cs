@@ -1,6 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Vertical;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -93,7 +92,7 @@ public class VmtxTableAnalyzer : IFontAnalyzer
         AnalyzeMetricCount(vmtx, tag, bag);
 
         // Cross-table against vhea. VMTX is the dependent; VHEA holds the source of truth.
-        if (face.Directory.Contains(VheaTable.Tag))
+        if (face.Directory.ContainsKey(VheaTable.Tag))
             AnalyzeAgainstVhea(face.GetTable<VheaTable>(), vmtx, tag, bag);
     }
 

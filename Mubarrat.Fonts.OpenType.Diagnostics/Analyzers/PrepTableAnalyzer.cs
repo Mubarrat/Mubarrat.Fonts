@@ -1,6 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Hinting;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -125,7 +124,7 @@ public class PrepTableAnalyzer : IFontAnalyzer
 
     private static void AnalyzeBudgets(FontFace face, PrepTable prep, Tag tag, DiagnosticBag bag)
     {
-        if (!face.Directory.Contains(MaxpTable.Tag)) return;
+        if (!face.Directory.ContainsKey(MaxpTable.Tag)) return;
 
         var maxp = face.GetTable<MaxpTable>();
 

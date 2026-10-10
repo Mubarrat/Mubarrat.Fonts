@@ -1,4 +1,4 @@
-﻿using Mubarrat.Fonts.OpenType.Tables;
+﻿using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.Tests;
 

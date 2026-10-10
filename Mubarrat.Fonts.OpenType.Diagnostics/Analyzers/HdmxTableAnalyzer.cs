@@ -1,6 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Metadata;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -124,7 +123,7 @@ public class HdmxTableAnalyzer : IFontAnalyzer
         }
 
         // Cross-check: head.flags bit 4 must be set for hdmx to be meaningful.
-        if (face.Directory.Contains(HeadTable.Tag))
+        if (face.Directory.ContainsKey(HeadTable.Tag))
         {
             var head = face.GetTable<HeadTable>();
             bool nonlinear = (head.Flags & HeadFlags.InstructionsAlterAdvanceWidth) != 0;

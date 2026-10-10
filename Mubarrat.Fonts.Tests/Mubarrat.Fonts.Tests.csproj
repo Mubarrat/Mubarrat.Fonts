@@ -18,7 +18,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Mubarrat.Fonts.OpenType.Diagnostics\Mubarrat.Fonts.OpenType.Diagnostics.csproj" />
-		<ProjectReference Include="..\Mubarrat.Fonts.OpenType\Mubarrat.Fonts.OpenType.csproj" />
+		<ProjectReference Include="..\Mubarrat.Fonts\Mubarrat.Fonts.csproj" />
 	</ItemGroup>
 	
 	<ItemGroup>

@@ -1,4 +1,4 @@
-# Contributing to Mubarrat.Fonts.OpenType
+# Contributing to Mubarrat.Fonts.OpenType (Outdated in this commit, Needs update)
 
 Thank you for considering a contribution. This document explains the conventions, workflows, and expectations for changes to this library. It is written for someone who has never opened the source and wants to add a table, fix a parser, or write a rule — not as a legal contract, but as a description of how the codebase is organized and why.
 

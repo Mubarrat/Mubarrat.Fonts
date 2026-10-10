@@ -1,6 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Outlines;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -95,7 +94,7 @@ public class LocaTableAnalyzer : IFontAnalyzer
 
     private static void AnalyzeCount(FontFace face, LocaTable loca, Tag tag, DiagnosticBag bag)
     {
-        if (!face.Directory.Contains(MaxpTable.Tag)) return;
+        if (!face.Directory.ContainsKey(MaxpTable.Tag)) return;
 
         var maxp = face.GetTable<MaxpTable>();
         int expected = maxp.NumGlyphs + 1;
@@ -164,9 +163,9 @@ public class LocaTableAnalyzer : IFontAnalyzer
 
     private static void AnalyzeAgainstGlyf(FontFace face, LocaTable loca, Tag tag, DiagnosticBag bag)
     {
-        if (!face.Directory.Contains(GlyfTable.Tag)) return;
+        if (!face.Directory.ContainsKey(GlyfTable.Tag)) return;
 
-        int glyfLength = face.GetTableLength(GlyfTable.Tag);
+        long glyfLength = face.Directory[GlyfTable.Tag] is Sfnt.SfntTableRecord entry ? entry.Length : 0;
         uint lastOffset = loca.Offsets.Length > 0 ? loca.Offsets[^1] : 0;
 
         if (lastOffset != (uint)glyfLength)

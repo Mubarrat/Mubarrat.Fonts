@@ -1,6 +1,4 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Variations;
+﻿using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -58,7 +56,7 @@ public class GvarTableAnalyzer : IFontAnalyzer
                 [gvar.MinorVersion], table: tag, field: nameof(GvarTable.MinorVersion),
                 span: new SourceSpan(2, 2)));
 
-        if (face.Directory.Contains(FvarTable.Tag))
+        if (face.Directory.ContainsKey(FvarTable.Tag))
         {
             var fvar = face.GetTable<FvarTable>();
             if (gvar.AxisCount != fvar.AxisCount)
@@ -68,7 +66,7 @@ public class GvarTableAnalyzer : IFontAnalyzer
                     span: new SourceSpan(4, 2)));
         }
 
-        if (face.Directory.Contains(MaxpTable.Tag))
+        if (face.Directory.ContainsKey(MaxpTable.Tag))
         {
             var maxp = face.GetTable<MaxpTable>();
             if (gvar.GlyphCount != maxp.NumGlyphs)

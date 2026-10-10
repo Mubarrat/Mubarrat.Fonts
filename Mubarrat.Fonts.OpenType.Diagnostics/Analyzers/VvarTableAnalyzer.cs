@@ -1,6 +1,4 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables.Vertical;
-using Mubarrat.Fonts.OpenType.Tables.Variations;
+﻿using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -57,9 +55,9 @@ public class VvarTableAnalyzer : IFontAnalyzer
                 [vvar.MinorVersion], table: tag, field: nameof(VvarTable.MinorVersion),
                 span: new SourceSpan(2, 2)));
 
-        if (!face.Directory.Contains(VheaTable.Tag))
+        if (!face.Directory.ContainsKey(VheaTable.Tag))
             bag.Add(MissingVhea.Create([], table: tag));
-        if (!face.Directory.Contains(VmtxTable.Tag))
+        if (!face.Directory.ContainsKey(VmtxTable.Tag))
             bag.Add(MissingVmtx.Create([], table: tag));
 
         if (vvar.AdvanceHeightMap is null

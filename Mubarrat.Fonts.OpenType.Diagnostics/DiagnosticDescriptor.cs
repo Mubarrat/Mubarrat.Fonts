@@ -1,5 +1,4 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using System.Globalization;
+﻿using Mubarrat.Fonts.Primitives;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics;
 

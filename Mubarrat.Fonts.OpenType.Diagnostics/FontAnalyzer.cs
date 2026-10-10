@@ -1,7 +1,4 @@
-﻿using Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
-using Mubarrat.Fonts.OpenType.Tables;
-
-namespace Mubarrat.Fonts.OpenType.Diagnostics;
+﻿namespace Mubarrat.Fonts.OpenType.Diagnostics;
 
 /// <summary>
 /// Runs the built-in rule set and any consumer-supplied analyzers against a

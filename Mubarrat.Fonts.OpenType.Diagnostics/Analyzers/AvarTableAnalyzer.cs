@@ -1,5 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables.Variations;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -135,7 +135,7 @@ public class AvarTableAnalyzer : IFontAnalyzer
 
     private static void AnalyzeAxisCount(FontFace face, AvarTable avar, Tag tag, DiagnosticBag bag)
     {
-        if (!face.Directory.Contains(FvarTable.Tag)) return;
+        if (!face.Directory.ContainsKey(FvarTable.Tag)) return;
 
         var fvar = face.GetTable<FvarTable>();
         if (avar.AxisCount != fvar.AxisCount)

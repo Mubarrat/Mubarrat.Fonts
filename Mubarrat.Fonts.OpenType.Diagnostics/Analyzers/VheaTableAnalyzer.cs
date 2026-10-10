@@ -1,6 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Vertical;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -135,7 +134,7 @@ public class VheaTableAnalyzer : IFontAnalyzer
         AnalyzeReservedFields(vhea, tag, bag);
 
         // Cross-table against maxp. VHEA is the dependent.
-        if (face.Directory.Contains(MaxpTable.Tag))
+        if (face.Directory.ContainsKey(MaxpTable.Tag))
         {
             var maxp = face.GetTable<MaxpTable>();
             if (vhea.NumberOfVMetrics > maxp.NumGlyphs)

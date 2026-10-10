@@ -1,6 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Metadata;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -63,7 +62,7 @@ public class LtshTableAnalyzer : IFontAnalyzer
 
     private static void AnalyzeHeader(FontFace face, LtshTable ltsh, Tag tag, DiagnosticBag bag)
     {
-        if (!face.Directory.Contains(HeadTable.Tag)) return;
+        if (!face.Directory.ContainsKey(HeadTable.Tag)) return;
 
         var head = face.GetTable<HeadTable>();
         bool nonlinear = (head.Flags & HeadFlags.InstructionsAlterAdvanceWidth) != 0;
@@ -80,7 +79,7 @@ public class LtshTableAnalyzer : IFontAnalyzer
         if (yPixels.Count == 0) return;
 
         int lowestRecPPEM = 0;
-        if (face.Directory.Contains(HeadTable.Tag))
+        if (face.Directory.ContainsKey(HeadTable.Tag))
         {
             lowestRecPPEM = face.GetTable<HeadTable>().LowestRecPPEM;
         }

@@ -1,5 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -140,7 +140,7 @@ public class PostTableAnalyzer : IFontAnalyzer
         AnalyzeFixedPitch(face, post, tag, bag);       // needs hmtx
 
         // Cross-table rules. post is the dependent; maxp is the source of truth.
-        if (face.Directory.Contains(MaxpTable.Tag))
+        if (face.Directory.ContainsKey(MaxpTable.Tag))
         {
             var maxp = face.GetTable<MaxpTable>();
             if (post.Version is PostVersion.Version20 or PostVersion.Version25 &&
@@ -272,12 +272,12 @@ public class PostTableAnalyzer : IFontAnalyzer
         // If it's absent, fall back to OS/2.
         bool? declaresItalic = null;
 
-        if (face.Directory.Contains(HeadTable.Tag))
+        if (face.Directory.ContainsKey(HeadTable.Tag))
         {
             var head = face.GetTable<HeadTable>();
             declaresItalic = (head.MacStyle & MacStyle.Italic) != 0;
         }
-        else if (face.Directory.Contains(Os2Table.Tag))
+        else if (face.Directory.ContainsKey(Os2Table.Tag))
         {
             var os2 = face.GetTable<Os2Table>();
             declaresItalic = (os2.FsSelection & FsSelection.Italic) != 0
@@ -326,7 +326,7 @@ public class PostTableAnalyzer : IFontAnalyzer
                 span: new SourceSpan(12, 4)));
         }
 
-        if (!face.Directory.Contains(HmtxTable.Tag)) return;
+        if (!face.Directory.ContainsKey(HmtxTable.Tag)) return;
 
         var hmtx = face.GetTable<HmtxTable>();
         bool actuallyFixed = AreAllAdvancesEqual(hmtx.AdvanceWidths);

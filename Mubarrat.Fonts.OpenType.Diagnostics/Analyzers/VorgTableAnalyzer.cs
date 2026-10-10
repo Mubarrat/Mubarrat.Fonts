@@ -1,7 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Outlines;
-using Mubarrat.Fonts.OpenType.Tables.Vertical;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -108,7 +106,7 @@ public class VorgTableAnalyzer : IFontAnalyzer
         AnalyzeOutlineFlavor(face, tag, bag);   // needs glyf presence
 
         // Cross-table rules against maxp. VORG is the dependent.
-        if (face.Directory.Contains(MaxpTable.Tag))
+        if (face.Directory.ContainsKey(MaxpTable.Tag))
         {
             var maxp = face.GetTable<MaxpTable>();
             int numGlyphs = maxp.NumGlyphs;
@@ -200,7 +198,7 @@ public class VorgTableAnalyzer : IFontAnalyzer
     private static void AnalyzeOutlineFlavor(FontFace face, Tag tag, DiagnosticBag bag)
     {
         // VORG is CFF-only. Its presence alongside glyf means it should be ignored.
-        if (!face.Directory.Contains(GlyfTable.Tag)) return;
+        if (!face.Directory.ContainsKey(GlyfTable.Tag)) return;
 
         bag.Add(PresentInTrueTypeFont.Create(
             [],

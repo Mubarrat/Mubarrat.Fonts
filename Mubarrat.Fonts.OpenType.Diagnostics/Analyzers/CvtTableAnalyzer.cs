@@ -1,7 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables;
-using Mubarrat.Fonts.OpenType.Tables.Hinting;
-using Mubarrat.Fonts.OpenType.Tables.Variations;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -99,11 +97,11 @@ public class CvtTableAnalyzer : IFontAnalyzer
 
     private static void AnalyzeCrossTables(FontFace face, CvtTable cvt, Tag tag, DiagnosticBag bag)
     {
-        bool hasCvar = face.Directory.Contains(CvarTable.Tag);
-        bool hasHinting = face.Directory.Contains(FpgmTable.Tag)
-                       || face.Directory.Contains(PrepTable.Tag);
+        bool hasCvar = face.Directory.ContainsKey(CvarTable.Tag);
+        bool hasHinting = face.Directory.ContainsKey(FpgmTable.Tag)
+                       || face.Directory.ContainsKey(PrepTable.Tag);
 
-        if (hasCvar && !face.Directory.Contains(CvtTable.Tag))
+        if (hasCvar && !face.Directory.ContainsKey(CvtTable.Tag))
         {
             // Reached only when the analyzer is run against a face that has cvar but not
             // cvt. In practice the cvt analyzer only runs when cvt is present, so this

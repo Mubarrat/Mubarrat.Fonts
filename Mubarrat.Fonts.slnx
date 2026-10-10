@@ -1,5 +1,5 @@
 <Solution>
   <Project Path="Mubarrat.Fonts.OpenType.Diagnostics/Mubarrat.Fonts.OpenType.Diagnostics.csproj" />
-  <Project Path="Mubarrat.Fonts.OpenType/Mubarrat.Fonts.OpenType.csproj" />
+  <Project Path="Mubarrat.Fonts/Mubarrat.Fonts.csproj" />
   <Project Path="Mubarrat.Fonts.Tests/Mubarrat.Fonts.Tests.csproj" />
 </Solution>

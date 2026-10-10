@@ -1,5 +1,5 @@
-﻿using Mubarrat.Fonts.OpenType.Primitives;
-using Mubarrat.Fonts.OpenType.Tables.Variations;
+﻿using Mubarrat.Fonts.Primitives;
+using Mubarrat.Fonts.Tables;
 
 namespace Mubarrat.Fonts.OpenType.Diagnostics.Analyzers;
 
@@ -108,7 +108,7 @@ public class StatTableAnalyzer : IFontAnalyzer
         AnalyzeDesignAxes(stat, tag, bag);
         AnalyzeAxisValues(stat, tag, bag);
 
-        if (face.Directory.Contains(FvarTable.Tag))
+        if (face.Directory.ContainsKey(FvarTable.Tag))
             AnalyzeAgainstFvar(face.GetTable<FvarTable>(), stat, tag, bag);
     }
 
