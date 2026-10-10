@@ -434,12 +434,18 @@ The following tables and formats constitute the complete OpenType specification 
 * `VORG`
 * `vhea`
 * `vmtx`
+* `ankr`
 * `DSIG`
 * `hdmx`
 * `kern`
+* `lcar`
+* `ltag`
 * `LTSH`
 * `meta`
+* `opbd`
 * `PCLT`
+* `prop`
+* `trak`
 * `VDMX`
 
 </details>
@@ -486,6 +492,9 @@ The following tables and formats constitute the complete OpenType specification 
 <details>
 <summary><b>Bitmap</b></summary>
 
+* `bdat`
+* `bhed`
+* `bloc`
 * `CBDT`
 * `CBLC`
 * `EBDT`
