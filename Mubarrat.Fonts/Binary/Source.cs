@@ -405,6 +405,112 @@ public abstract class Source : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ushort ReadUFWordAt(long offset, bool isLittleEndian = false) => ReadUInt16At(offset, isLittleEndian);
 
+    // ───────────────────────── Scalar reads (32-bit float) ─────────────────────────
+
+    /// <summary>Reads a 32-bit IEEE 754 floating-point value at an absolute offset in the requested wire byte order.</summary>
+    /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>IEEE 754 binary32. The bytes are read as-is and reversed only when the wire order disagrees with the host order.</remarks>
+    /// <seealso cref="ReadDoubleAt(long, bool)"/>
+    /// <seealso cref="ReadSingleArrayAt(long, int, bool)"/>
+    public float ReadSingleAt(long offset, bool isLittleEndian = false)
+    {
+        if (TryGetSpanAt(offset, 4, out var span))
+            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadSingleBigEndian(span) : BinaryPrimitives.ReadSingleLittleEndian(span);
+        Span<byte> buffer = stackalloc byte[4];
+        ReadAt(offset, buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadSingleBigEndian(buffer) : BinaryPrimitives.ReadSingleLittleEndian(buffer);
+    }
+
+    /// <summary>Reads <paramref name="count"/> 32-bit IEEE 754 floating-point values at an absolute offset in the requested wire byte order.</summary>
+    /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read, in native byte order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="ReadSingleArrayAt(long, Span{float}, bool)"/>
+    public float[] ReadSingleArrayAt(long offset, int count, bool isLittleEndian = false)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        var result = new float[count];
+        ReadSingleArrayAt(offset, result, isLittleEndian);
+        return result;
+    }
+
+    /// <summary>Reads <paramref name="destination"/>.Length 32-bit IEEE 754 floating-point values at an absolute offset in the requested wire byte order.</summary>
+    /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The bytes are read as-is and reversed in place only when the wire order disagrees with the host order.</remarks>
+    /// <seealso cref="ReadSingleArrayAt(long, int, bool)"/>
+    public void ReadSingleArrayAt(long offset, scoped Span<float> destination, bool isLittleEndian = false)
+    {
+        ReadAt(offset, MemoryMarshal.AsBytes(destination));
+        if (BitConverter.IsLittleEndian != isLittleEndian)
+            BinaryPrimitives.ReverseEndianness(
+                MemoryMarshal.Cast<float, uint>(destination),
+                MemoryMarshal.Cast<float, uint>(destination));
+    }
+
+    // ───────────────────────── Scalar reads (64-bit float) ─────────────────────────
+
+    /// <summary>Reads a 64-bit IEEE 754 floating-point value at an absolute offset in the requested wire byte order.</summary>
+    /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>IEEE 754 binary64. The bytes are read as-is and reversed only when the wire order disagrees with the host order.</remarks>
+    /// <seealso cref="ReadSingleAt(long, bool)"/>
+    /// <seealso cref="ReadDoubleArrayAt(long, int, bool)"/>
+    public double ReadDoubleAt(long offset, bool isLittleEndian = false)
+    {
+        if (TryGetSpanAt(offset, 8, out var span))
+            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadDoubleBigEndian(span) : BinaryPrimitives.ReadDoubleLittleEndian(span);
+        Span<byte> buffer = stackalloc byte[8];
+        ReadAt(offset, buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadDoubleBigEndian(buffer) : BinaryPrimitives.ReadDoubleLittleEndian(buffer);
+    }
+
+    /// <summary>Reads <paramref name="count"/> 64-bit IEEE 754 floating-point values at an absolute offset in the requested wire byte order.</summary>
+    /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read, in native byte order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="ReadDoubleArrayAt(long, Span{double}, bool)"/>
+    public double[] ReadDoubleArrayAt(long offset, int count, bool isLittleEndian = false)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        var result = new double[count];
+        ReadDoubleArrayAt(offset, result, isLittleEndian);
+        return result;
+    }
+
+    /// <summary>Reads <paramref name="destination"/>.Length 64-bit IEEE 754 floating-point values at an absolute offset in the requested wire byte order.</summary>
+    /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The bytes are read as-is and reversed in place only when the wire order disagrees with the host order.</remarks>
+    /// <seealso cref="ReadDoubleArrayAt(long, int, bool)"/>
+    public void ReadDoubleArrayAt(long offset, scoped Span<double> destination, bool isLittleEndian = false)
+    {
+        ReadAt(offset, MemoryMarshal.AsBytes(destination));
+        if (BitConverter.IsLittleEndian != isLittleEndian)
+            BinaryPrimitives.ReverseEndianness(
+                MemoryMarshal.Cast<double, ulong>(destination),
+                MemoryMarshal.Cast<double, ulong>(destination));
+    }
+
     // ───────────────────────── Offset reads ─────────────────────────
 
     /// <summary>Reads an 8-bit offset at an absolute offset.</summary>

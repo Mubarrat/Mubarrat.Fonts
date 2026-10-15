@@ -6,6 +6,8 @@ abstract Mubarrat.Fonts.FontFace.Directory.get -> System.Collections.Generic.IRe
 abstract Mubarrat.Fonts.FontFace.GetTable<T>() -> T
 abstract Mubarrat.Fonts.FontFace.TryGetTable<T>(out T table) -> bool
 abstract Mubarrat.Fonts.Tables.AcntGlyphDescription.<Clone>$() -> Mubarrat.Fonts.Tables.AcntGlyphDescription!
+abstract Mubarrat.Fonts.Tables.ActionSubrecord.<Clone>$() -> Mubarrat.Fonts.Tables.ActionSubrecord!
+abstract Mubarrat.Fonts.Tables.ActionSubrecord.ActionType.get -> ushort
 abstract Mubarrat.Fonts.Tables.Anchor.<Clone>$() -> Mubarrat.Fonts.Tables.Anchor!
 abstract Mubarrat.Fonts.Tables.BaseCoord.<Clone>$() -> Mubarrat.Fonts.Tables.BaseCoord!
 abstract Mubarrat.Fonts.Tables.BaseCoord.Coordinate.get -> short
@@ -33,11 +35,16 @@ abstract Mubarrat.Fonts.Tables.GlyphBitmap.<Clone>$() -> Mubarrat.Fonts.Tables.G
 abstract Mubarrat.Fonts.Tables.GlyphBitmap.ImageFormat.get -> ushort
 abstract Mubarrat.Fonts.Tables.GposSubtable.<Clone>$() -> Mubarrat.Fonts.Tables.GposSubtable!
 abstract Mubarrat.Fonts.Tables.GsubSubtable.<Clone>$() -> Mubarrat.Fonts.Tables.GsubSubtable!
+abstract Mubarrat.Fonts.Tables.HvglPart.<Clone>$() -> Mubarrat.Fonts.Tables.HvglPart!
+abstract Mubarrat.Fonts.Tables.HvglPart.Flags.get -> ushort
+abstract Mubarrat.Fonts.Tables.HvglPart.Flags.init -> void
 abstract Mubarrat.Fonts.Tables.IndexSubtable.<Clone>$() -> Mubarrat.Fonts.Tables.IndexSubtable!
 abstract Mubarrat.Fonts.Tables.IndexSubtable.GetGlyphDataLength(int glyphId) -> int
 abstract Mubarrat.Fonts.Tables.IndexSubtable.GetGlyphDataOffset(int glyphId) -> long
 abstract Mubarrat.Fonts.Tables.KernSubtable.<Clone>$() -> Mubarrat.Fonts.Tables.KernSubtable!
 abstract Mubarrat.Fonts.Tables.KernSubtable.GetKerningValue(ushort left, ushort right) -> short
+abstract Mubarrat.Fonts.Tables.KerxSubtable.<Clone>$() -> Mubarrat.Fonts.Tables.KerxSubtable!
+abstract Mubarrat.Fonts.Tables.KerxSubtable.Format.get -> int
 abstract Mubarrat.Fonts.Tables.LookupTable.<Clone>$() -> Mubarrat.Fonts.Tables.LookupTable!
 abstract Mubarrat.Fonts.Tables.LookupTable.Count.get -> int
 abstract Mubarrat.Fonts.Tables.LookupTable.Format.get -> ushort
@@ -150,9 +157,20 @@ const Mubarrat.Fonts.Tables.HeadTable.Magic = 1594834165 -> uint
 const Mubarrat.Fonts.Tables.HeadTable.MaxUnitsPerEm = 16384 -> ushort
 const Mubarrat.Fonts.Tables.HeadTable.MinUnitsPerEm = 16 -> ushort
 const Mubarrat.Fonts.Tables.HeadTable.OpenTypeEpochOffset = 2082844800 -> long
+const Mubarrat.Fonts.Tables.HvglTable.CurrentMajorVersion = 3 -> ushort
+const Mubarrat.Fonts.Tables.HvglTable.CurrentMinorVersion = 1 -> ushort
+const Mubarrat.Fonts.Tables.HvpmTable.CurrentVersion = 1 -> ushort
 const Mubarrat.Fonts.Tables.ItemVariationData.LongWordsFlag = 32768 -> ushort
 const Mubarrat.Fonts.Tables.ItemVariationData.WordDeltaCountMask = 32767 -> ushort
+const Mubarrat.Fonts.Tables.JustTable.CurrentFormat = 0 -> ushort
+const Mubarrat.Fonts.Tables.JustTable.CurrentVersion = 65536 -> uint
+const Mubarrat.Fonts.Tables.KerningPair.EndOfList = 65535 -> ushort
 const Mubarrat.Fonts.Tables.KernSubtable.Header.Size = 6 -> int
+const Mubarrat.Fonts.Tables.KerxFormat4StateEntry.NoKerning = 65535 -> ushort
+const Mubarrat.Fonts.Tables.KerxTable.CoverageTableVersion = 3 -> ushort
+const Mubarrat.Fonts.Tables.KerxTable.MaxVersion = 4 -> ushort
+const Mubarrat.Fonts.Tables.KerxTable.MinVersion = 2 -> ushort
+const Mubarrat.Fonts.Tables.KerxTable.VariationVersion = 4 -> ushort
 const Mubarrat.Fonts.Tables.MathConstants.ValueCount = 51 -> int
 const Mubarrat.Fonts.Tables.MathValueRecord.Header.Size = 4 -> int
 const Mubarrat.Fonts.Tables.MvarTable.ValueRecordSize = 8 -> int
@@ -167,10 +185,13 @@ Mubarrat.Fonts.Binary.Cursor.Cursor() -> void
 Mubarrat.Fonts.Binary.Cursor.Cursor(Mubarrat.Fonts.Binary.Source! source, long position = 0) -> void
 Mubarrat.Fonts.Binary.Cursor.Here() -> Mubarrat.Fonts.Binary.Cursor
 Mubarrat.Fonts.Binary.Cursor.Length.get -> long
-Mubarrat.Fonts.Binary.Cursor.PeekEndianReversibleStruct<T>(bool isLittleEndian = false) -> T
-Mubarrat.Fonts.Binary.Cursor.PeekEndianReversibleStructArray<T>(int count, bool isLittleEndian = false) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.PeekBytes(int count) -> byte[]!
 Mubarrat.Fonts.Binary.Cursor.PeekBytes(scoped System.Span<byte> destination) -> void
+Mubarrat.Fonts.Binary.Cursor.PeekDouble(bool isLittleEndian = false) -> double
+Mubarrat.Fonts.Binary.Cursor.PeekDoubleArray(int count, bool isLittleEndian = false) -> double[]!
+Mubarrat.Fonts.Binary.Cursor.PeekDoubleArray(System.Span<double> destination, bool isLittleEndian = false) -> void
+Mubarrat.Fonts.Binary.Cursor.PeekEndianReversibleStruct<T>(bool isLittleEndian = false) -> T
+Mubarrat.Fonts.Binary.Cursor.PeekEndianReversibleStructArray<T>(int count, bool isLittleEndian = false) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.PeekEndianReversibleStructArray<T>(System.Span<T> destination, bool isLittleEndian = false) -> void
 Mubarrat.Fonts.Binary.Cursor.PeekF2Dot14(bool isLittleEndian = false) -> Mubarrat.Fonts.Primitives.F2Dot14
 Mubarrat.Fonts.Binary.Cursor.PeekFixed(bool isLittleEndian = false) -> Mubarrat.Fonts.Primitives.Fixed
@@ -218,6 +239,9 @@ Mubarrat.Fonts.Binary.Cursor.PeekOffset8ArrayPeekStruct<T>(int count) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.PeekRecord<T>(object? context = null) -> T
 Mubarrat.Fonts.Binary.Cursor.PeekRecordArray<T>(int count, object? context = null) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.PeekRecordArray<T>(System.Span<T> destination, object? context = null) -> void
+Mubarrat.Fonts.Binary.Cursor.PeekSingle(bool isLittleEndian = false) -> float
+Mubarrat.Fonts.Binary.Cursor.PeekSingleArray(int count, bool isLittleEndian = false) -> float[]!
+Mubarrat.Fonts.Binary.Cursor.PeekSingleArray(System.Span<float> destination, bool isLittleEndian = false) -> void
 Mubarrat.Fonts.Binary.Cursor.PeekStruct<T>() -> T
 Mubarrat.Fonts.Binary.Cursor.PeekStructArray<T>(int count) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.PeekStructArray<T>(System.Span<T> destination) -> void
@@ -241,10 +265,13 @@ Mubarrat.Fonts.Binary.Cursor.PeekUInt8Array(System.Span<byte> destination) -> vo
 Mubarrat.Fonts.Binary.Cursor.PeekVersion16Dot16(bool isLittleEndian = false) -> double
 Mubarrat.Fonts.Binary.Cursor.Position.get -> long
 Mubarrat.Fonts.Binary.Cursor.Position.set -> void
-Mubarrat.Fonts.Binary.Cursor.ReadEndianReversibleStruct<T>(bool isLittleEndian = false) -> T
-Mubarrat.Fonts.Binary.Cursor.ReadEndianReversibleStructArray<T>(int count, bool isLittleEndian = false) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.ReadBytes(int count) -> byte[]!
 Mubarrat.Fonts.Binary.Cursor.ReadBytes(scoped System.Span<byte> destination) -> void
+Mubarrat.Fonts.Binary.Cursor.ReadDouble(bool isLittleEndian = false) -> double
+Mubarrat.Fonts.Binary.Cursor.ReadDoubleArray(int count, bool isLittleEndian = false) -> double[]!
+Mubarrat.Fonts.Binary.Cursor.ReadDoubleArray(System.Span<double> destination, bool isLittleEndian = false) -> void
+Mubarrat.Fonts.Binary.Cursor.ReadEndianReversibleStruct<T>(bool isLittleEndian = false) -> T
+Mubarrat.Fonts.Binary.Cursor.ReadEndianReversibleStructArray<T>(int count, bool isLittleEndian = false) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.ReadEndianReversibleStructArray<T>(System.Span<T> destination, bool isLittleEndian = false) -> void
 Mubarrat.Fonts.Binary.Cursor.ReadF2Dot14(bool isLittleEndian = false) -> Mubarrat.Fonts.Primitives.F2Dot14
 Mubarrat.Fonts.Binary.Cursor.ReadFixed(bool isLittleEndian = false) -> Mubarrat.Fonts.Primitives.Fixed
@@ -292,6 +319,9 @@ Mubarrat.Fonts.Binary.Cursor.ReadOffset8ArrayPeekStruct<T>(int count) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.ReadRecord<T>(object? context = null) -> T
 Mubarrat.Fonts.Binary.Cursor.ReadRecordArray<T>(int count, object? context = null) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.ReadRecordArray<T>(scoped System.Span<T> destination, object? context = null) -> void
+Mubarrat.Fonts.Binary.Cursor.ReadSingle(bool isLittleEndian = false) -> float
+Mubarrat.Fonts.Binary.Cursor.ReadSingleArray(int count, bool isLittleEndian = false) -> float[]!
+Mubarrat.Fonts.Binary.Cursor.ReadSingleArray(System.Span<float> destination, bool isLittleEndian = false) -> void
 Mubarrat.Fonts.Binary.Cursor.ReadStruct<T>() -> T
 Mubarrat.Fonts.Binary.Cursor.ReadStructArray<T>(int count) -> T[]!
 Mubarrat.Fonts.Binary.Cursor.ReadStructArray<T>(System.Span<T> destination) -> void
@@ -359,6 +389,9 @@ Mubarrat.Fonts.Binary.Source.ParseRecordArrayAt<T>(long offset, scoped System.Sp
 Mubarrat.Fonts.Binary.Source.ParseRecordAt<T>(long offset, object? context = null) -> T
 Mubarrat.Fonts.Binary.Source.ReadBytesAt(long offset, int count) -> byte[]!
 Mubarrat.Fonts.Binary.Source.ReadBytesAt(long offset, scoped System.Span<byte> destination) -> void
+Mubarrat.Fonts.Binary.Source.ReadDoubleArrayAt(long offset, int count, bool isLittleEndian = false) -> double[]!
+Mubarrat.Fonts.Binary.Source.ReadDoubleArrayAt(long offset, scoped System.Span<double> destination, bool isLittleEndian = false) -> void
+Mubarrat.Fonts.Binary.Source.ReadDoubleAt(long offset, bool isLittleEndian = false) -> double
 Mubarrat.Fonts.Binary.Source.ReadEndianReversibleStructArrayAt<T>(long offset, int count, bool isLittleEndian = false) -> T[]!
 Mubarrat.Fonts.Binary.Source.ReadEndianReversibleStructArrayAt<T>(long offset, scoped System.Span<T> destination, bool isLittleEndian = false) -> void
 Mubarrat.Fonts.Binary.Source.ReadEndianReversibleStructAt<T>(long offset, bool isLittleEndian = false) -> T
@@ -405,6 +438,9 @@ Mubarrat.Fonts.Binary.Source.ReadOffset8ArrayParseRecordAt<T>(long offset, scope
 Mubarrat.Fonts.Binary.Source.ReadOffset8ArrayPeekEndianReversibleStructAt<T>(long offset, int count, bool isLittleEndian = false) -> T[]!
 Mubarrat.Fonts.Binary.Source.ReadOffset8ArrayPeekStructAt<T>(long offset, int count) -> T[]!
 Mubarrat.Fonts.Binary.Source.ReadOffset8At(long offset) -> byte
+Mubarrat.Fonts.Binary.Source.ReadSingleArrayAt(long offset, int count, bool isLittleEndian = false) -> float[]!
+Mubarrat.Fonts.Binary.Source.ReadSingleArrayAt(long offset, scoped System.Span<float> destination, bool isLittleEndian = false) -> void
+Mubarrat.Fonts.Binary.Source.ReadSingleAt(long offset, bool isLittleEndian = false) -> float
 Mubarrat.Fonts.Binary.Source.ReadStructArrayAt<T>(long offset, int count) -> T[]!
 Mubarrat.Fonts.Binary.Source.ReadStructArrayAt<T>(long offset, scoped System.Span<T> destination) -> void
 Mubarrat.Fonts.Binary.Source.ReadStructAt<T>(long offset) -> T
@@ -639,6 +675,17 @@ Mubarrat.Fonts.Tables.AcntTable.SecondaryInfo.get -> System.Collections.Generic.
 Mubarrat.Fonts.Tables.AcntTable.SecondaryInfo.init -> void
 Mubarrat.Fonts.Tables.AcntTable.Version.get -> Mubarrat.Fonts.Primitives.Fixed
 Mubarrat.Fonts.Tables.AcntTable.Version.init -> void
+Mubarrat.Fonts.Tables.ActionSubrecord
+Mubarrat.Fonts.Tables.ActionSubrecord.ActionClass.get -> ushort
+Mubarrat.Fonts.Tables.ActionSubrecord.ActionClass.init -> void
+Mubarrat.Fonts.Tables.ActionSubrecord.ActionSubrecord() -> void
+Mubarrat.Fonts.Tables.ActionSubrecord.ActionSubrecord(Mubarrat.Fonts.Tables.ActionSubrecord! original) -> void
+Mubarrat.Fonts.Tables.ActionSubrecordHeader
+Mubarrat.Fonts.Tables.ActionSubrecordHeader.ActionClass -> ushort
+Mubarrat.Fonts.Tables.ActionSubrecordHeader.ActionLength -> uint
+Mubarrat.Fonts.Tables.ActionSubrecordHeader.ActionSubrecordHeader() -> void
+Mubarrat.Fonts.Tables.ActionSubrecordHeader.ActionType -> ushort
+Mubarrat.Fonts.Tables.ActionSubrecordHeader.Equals(Mubarrat.Fonts.Tables.ActionSubrecordHeader other) -> bool
 Mubarrat.Fonts.Tables.Affine2x3
 Mubarrat.Fonts.Tables.Affine2x3.Affine2x3() -> void
 Mubarrat.Fonts.Tables.Affine2x3.Dx -> Mubarrat.Fonts.Primitives.Fixed
@@ -2176,6 +2223,21 @@ Mubarrat.Fonts.Tables.Condition.Condition() -> void
 Mubarrat.Fonts.Tables.Condition.Condition(Mubarrat.Fonts.Tables.Condition! original) -> void
 Mubarrat.Fonts.Tables.Condition.Format.get -> ushort
 Mubarrat.Fonts.Tables.Condition.Format.init -> void
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.AddGlyph.get -> ushort
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.AddGlyph.init -> void
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.ConditionalAddGlyphSubrecord() -> void
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord? other) -> bool
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.AddGlyph -> ushort
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.Equals(Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload other) -> bool
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.Payload() -> void
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.SubstGlyph -> ushort
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.SubstThreshold -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.SubstGlyph.get -> ushort
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.SubstGlyph.init -> void
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.SubstThreshold.get -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.SubstThreshold.init -> void
 Mubarrat.Fonts.Tables.ConditionFormat1
 Mubarrat.Fonts.Tables.ConditionFormat1.AxisIndex.get -> ushort
 Mubarrat.Fonts.Tables.ConditionFormat1.AxisIndex.init -> void
@@ -2301,6 +2363,24 @@ Mubarrat.Fonts.Tables.CvtTable.Evaluate(Mubarrat.Fonts.Tables.CvarTable? cvar, S
 Mubarrat.Fonts.Tables.CvtTable.this[int index].get -> short
 Mubarrat.Fonts.Tables.CvtTable.Values.get -> System.Collections.Generic.IReadOnlyList<short>!
 Mubarrat.Fonts.Tables.CvtTable.Values.init -> void
+Mubarrat.Fonts.Tables.DecompositionSubrecord
+Mubarrat.Fonts.Tables.DecompositionSubrecord.DecompositionSubrecord() -> void
+Mubarrat.Fonts.Tables.DecompositionSubrecord.Equals(Mubarrat.Fonts.Tables.DecompositionSubrecord? other) -> bool
+Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix
+Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.DecomposedCount -> ushort
+Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.Equals(Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix other) -> bool
+Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.FixedPrefix() -> void
+Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.LowerLimit -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.Order -> ushort
+Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.UpperLimit -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DecompositionSubrecord.Glyphs.get -> ushort[]!
+Mubarrat.Fonts.Tables.DecompositionSubrecord.Glyphs.init -> void
+Mubarrat.Fonts.Tables.DecompositionSubrecord.LowerLimit.get -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DecompositionSubrecord.LowerLimit.init -> void
+Mubarrat.Fonts.Tables.DecompositionSubrecord.Order.get -> ushort
+Mubarrat.Fonts.Tables.DecompositionSubrecord.Order.init -> void
+Mubarrat.Fonts.Tables.DecompositionSubrecord.UpperLimit.get -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DecompositionSubrecord.UpperLimit.init -> void
 Mubarrat.Fonts.Tables.DeltaSetIndexMap
 Mubarrat.Fonts.Tables.DeltaSetIndexMap.<Clone>$() -> Mubarrat.Fonts.Tables.DeltaSetIndexMap!
 Mubarrat.Fonts.Tables.DeltaSetIndexMap.DeltaSetIndexMap() -> void
@@ -2375,6 +2455,24 @@ Mubarrat.Fonts.Tables.DsigTable.Signatures.get -> System.Collections.Generic.IRe
 Mubarrat.Fonts.Tables.DsigTable.Signatures.init -> void
 Mubarrat.Fonts.Tables.DsigTable.Version.get -> uint
 Mubarrat.Fonts.Tables.DsigTable.Version.init -> void
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.DuctileGlyphSubrecord() -> void
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.DuctileGlyphSubrecord? other) -> bool
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.MaximumLimit.get -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.MaximumLimit.init -> void
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.MinimumLimit.get -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.MinimumLimit.init -> void
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.NoStretchValue.get -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.NoStretchValue.init -> void
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.Equals(Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload other) -> bool
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.MaximumLimit -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.MinimumLimit -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.NoStretchValue -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.Payload() -> void
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.VariationAxis -> Mubarrat.Fonts.Primitives.Tag
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.VariationAxis.get -> Mubarrat.Fonts.Primitives.Tag
+Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.VariationAxis.init -> void
 Mubarrat.Fonts.Tables.EbdtComponent
 Mubarrat.Fonts.Tables.EbdtComponent.EbdtComponent() -> void
 Mubarrat.Fonts.Tables.EbdtComponent.Equals(Mubarrat.Fonts.Tables.EbdtComponent other) -> bool
@@ -3489,6 +3587,152 @@ Mubarrat.Fonts.Tables.HvarTable.RightSideBearingMap.get -> Mubarrat.Fonts.Tables
 Mubarrat.Fonts.Tables.HvarTable.RightSideBearingMap.init -> void
 Mubarrat.Fonts.Tables.HvarTable.Store.get -> Mubarrat.Fonts.Tables.ItemVariationStore!
 Mubarrat.Fonts.Tables.HvarTable.Store.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart
+Mubarrat.Fonts.Tables.HvglCompositePart.Equals(Mubarrat.Fonts.Tables.HvglCompositePart? other) -> bool
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumAxisValueDeltas.get -> float[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumAxisValueDeltas.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumColumnStarts.get -> ushort[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumColumnStarts.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumRotationDeltas.get -> float[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumRotationDeltas.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumRotationIndices.get -> ushort[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumRotationIndices.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumRowIndices.get -> ushort[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumRowIndices.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumTranslationDeltas.get -> float[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumTranslationDeltas.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumTranslationIndices.get -> ushort[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.ExtremumTranslationIndices.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.Header
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.CountOfExtremumAxisValues -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.CountOfExtremumRotations -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.CountOfExtremumTranslations -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.CountOfMasterAxisValues -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.CountOfMasterRotations -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.CountOfMasterTranslations -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.Equals(Mubarrat.Fonts.Tables.HvglCompositePart.Header other) -> bool
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.Flags -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.Header() -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.MaxNumberOfExtremes -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.NumberOfAxes -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.NumberOfSubparts -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.OffsetToAllRotations -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.OffsetToAllTranslations -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.OffsetToExtremumAxisDeltas -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.OffsetToExtremumColumnStarts -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.OffsetToMasterAxisDeltas -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.OffsetToSubpartArray -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.TotalAxesInStructureTree -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Header.TotalPartsInStructureTree -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.HvglCompositePart() -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterAxisValueDeltas.get -> float[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterAxisValueDeltas.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterRotationDeltas.get -> float[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterRotationDeltas.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterRotationIndices.get -> ushort[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterRotationIndices.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterRowIndices.get -> ushort[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterRowIndices.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterTranslationDeltas.get -> float[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterTranslationDeltas.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterTranslationIndices.get -> ushort[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.MasterTranslationIndices.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.MaxNumberOfExtremes.get -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.MaxNumberOfExtremes.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.NumberOfAxes.get -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.NumberOfAxes.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry
+Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.Equals(Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry other) -> bool
+Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.PartTableIndex -> uint
+Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.SubpartEntry() -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.TreeAxisOffset -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.TreePartOffset -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.Subparts.get -> Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry[]!
+Mubarrat.Fonts.Tables.HvglCompositePart.Subparts.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.TotalAxesInStructureTree.get -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.TotalAxesInStructureTree.init -> void
+Mubarrat.Fonts.Tables.HvglCompositePart.TotalPartsInStructureTree.get -> ushort
+Mubarrat.Fonts.Tables.HvglCompositePart.TotalPartsInStructureTree.init -> void
+Mubarrat.Fonts.Tables.HvglPart
+Mubarrat.Fonts.Tables.HvglPart.HvglPart() -> void
+Mubarrat.Fonts.Tables.HvglPart.HvglPart(Mubarrat.Fonts.Tables.HvglPart! original) -> void
+Mubarrat.Fonts.Tables.HvglShapePart
+Mubarrat.Fonts.Tables.HvglShapePart.BlendTypes.get -> byte[]!
+Mubarrat.Fonts.Tables.HvglShapePart.BlendTypes.init -> void
+Mubarrat.Fonts.Tables.HvglShapePart.DeltaCoordinates.get -> double[]!
+Mubarrat.Fonts.Tables.HvglShapePart.DeltaCoordinates.init -> void
+Mubarrat.Fonts.Tables.HvglShapePart.Equals(Mubarrat.Fonts.Tables.HvglShapePart? other) -> bool
+Mubarrat.Fonts.Tables.HvglShapePart.Header
+Mubarrat.Fonts.Tables.HvglShapePart.Header.Equals(Mubarrat.Fonts.Tables.HvglShapePart.Header other) -> bool
+Mubarrat.Fonts.Tables.HvglShapePart.Header.Flags -> ushort
+Mubarrat.Fonts.Tables.HvglShapePart.Header.Header() -> void
+Mubarrat.Fonts.Tables.HvglShapePart.Header.NumberOfAxes -> ushort
+Mubarrat.Fonts.Tables.HvglShapePart.Header.NumberOfPaths -> ushort
+Mubarrat.Fonts.Tables.HvglShapePart.Header.TotalSegmentCount -> ushort
+Mubarrat.Fonts.Tables.HvglShapePart.HvglShapePart() -> void
+Mubarrat.Fonts.Tables.HvglShapePart.MasterCoordinates.get -> double[]!
+Mubarrat.Fonts.Tables.HvglShapePart.MasterCoordinates.init -> void
+Mubarrat.Fonts.Tables.HvglShapePart.NumberOfAxes.get -> ushort
+Mubarrat.Fonts.Tables.HvglShapePart.NumberOfAxes.init -> void
+Mubarrat.Fonts.Tables.HvglShapePart.NumberOfPaths.get -> ushort
+Mubarrat.Fonts.Tables.HvglShapePart.NumberOfPaths.init -> void
+Mubarrat.Fonts.Tables.HvglShapePart.PathSizes.get -> ushort[]!
+Mubarrat.Fonts.Tables.HvglShapePart.PathSizes.init -> void
+Mubarrat.Fonts.Tables.HvglShapePart.TotalSegmentCount.get -> ushort
+Mubarrat.Fonts.Tables.HvglShapePart.TotalSegmentCount.init -> void
+Mubarrat.Fonts.Tables.HvglTable
+Mubarrat.Fonts.Tables.HvglTable.<Clone>$() -> Mubarrat.Fonts.Tables.HvglTable!
+Mubarrat.Fonts.Tables.HvglTable.Equals(Mubarrat.Fonts.Tables.HvglTable? other) -> bool
+Mubarrat.Fonts.Tables.HvglTable.FormatFlags.get -> uint
+Mubarrat.Fonts.Tables.HvglTable.FormatFlags.init -> void
+Mubarrat.Fonts.Tables.HvglTable.GetGlyph(int glyphIndex) -> Mubarrat.Fonts.Tables.HvglPart!
+Mubarrat.Fonts.Tables.HvglTable.Glyphs.get -> System.ReadOnlySpan<Mubarrat.Fonts.Tables.HvglPart!>
+Mubarrat.Fonts.Tables.HvglTable.Header
+Mubarrat.Fonts.Tables.HvglTable.Header.Equals(Mubarrat.Fonts.Tables.HvglTable.Header other) -> bool
+Mubarrat.Fonts.Tables.HvglTable.Header.FormatFlags -> uint
+Mubarrat.Fonts.Tables.HvglTable.Header.Header() -> void
+Mubarrat.Fonts.Tables.HvglTable.Header.MajorVersion -> ushort
+Mubarrat.Fonts.Tables.HvglTable.Header.MinorVersion -> ushort
+Mubarrat.Fonts.Tables.HvglTable.Header.NumberOfGlyphs -> uint
+Mubarrat.Fonts.Tables.HvglTable.Header.NumberOfParts -> uint
+Mubarrat.Fonts.Tables.HvglTable.Header.PartIndexOffset -> uint
+Mubarrat.Fonts.Tables.HvglTable.Header.Unused -> uint
+Mubarrat.Fonts.Tables.HvglTable.HvglTable() -> void
+Mubarrat.Fonts.Tables.HvglTable.MajorVersion.get -> ushort
+Mubarrat.Fonts.Tables.HvglTable.MajorVersion.init -> void
+Mubarrat.Fonts.Tables.HvglTable.MinorVersion.get -> ushort
+Mubarrat.Fonts.Tables.HvglTable.MinorVersion.init -> void
+Mubarrat.Fonts.Tables.HvglTable.NumberOfGlyphs.get -> uint
+Mubarrat.Fonts.Tables.HvglTable.NumberOfGlyphs.init -> void
+Mubarrat.Fonts.Tables.HvglTable.NumberOfParts.get -> uint
+Mubarrat.Fonts.Tables.HvglTable.NumberOfParts.init -> void
+Mubarrat.Fonts.Tables.HvglTable.Parts.get -> Mubarrat.Fonts.Tables.HvglPart![]!
+Mubarrat.Fonts.Tables.HvglTable.Parts.init -> void
+Mubarrat.Fonts.Tables.HvglTable.TryGetPart(int index, out Mubarrat.Fonts.Tables.HvglPart? part) -> bool
+Mubarrat.Fonts.Tables.HvpmTable
+Mubarrat.Fonts.Tables.HvpmTable.<Clone>$() -> Mubarrat.Fonts.Tables.HvpmTable!
+Mubarrat.Fonts.Tables.HvpmTable.Equals(Mubarrat.Fonts.Tables.HvpmTable? other) -> bool
+Mubarrat.Fonts.Tables.HvpmTable.Flags.get -> ushort
+Mubarrat.Fonts.Tables.HvpmTable.Flags.init -> void
+Mubarrat.Fonts.Tables.HvpmTable.Header
+Mubarrat.Fonts.Tables.HvpmTable.Header.Equals(Mubarrat.Fonts.Tables.HvpmTable.Header other) -> bool
+Mubarrat.Fonts.Tables.HvpmTable.Header.Flags -> ushort
+Mubarrat.Fonts.Tables.HvpmTable.Header.Header() -> void
+Mubarrat.Fonts.Tables.HvpmTable.Header.MapSubtableOffset -> uint
+Mubarrat.Fonts.Tables.HvpmTable.Header.Version -> ushort
+Mubarrat.Fonts.Tables.HvpmTable.HvpmTable() -> void
+Mubarrat.Fonts.Tables.HvpmTable.MapPart(uint partId) -> uint
+Mubarrat.Fonts.Tables.HvpmTable.PartRange
+Mubarrat.Fonts.Tables.HvpmTable.PartRange.Destination -> uint
+Mubarrat.Fonts.Tables.HvpmTable.PartRange.End -> uint
+Mubarrat.Fonts.Tables.HvpmTable.PartRange.Equals(Mubarrat.Fonts.Tables.HvpmTable.PartRange other) -> bool
+Mubarrat.Fonts.Tables.HvpmTable.PartRange.PartRange() -> void
+Mubarrat.Fonts.Tables.HvpmTable.PartRange.Start -> uint
+Mubarrat.Fonts.Tables.HvpmTable.Ranges.get -> Mubarrat.Fonts.Tables.HvpmTable.PartRange[]!
+Mubarrat.Fonts.Tables.HvpmTable.Ranges.init -> void
+Mubarrat.Fonts.Tables.HvpmTable.TryMapPart(uint partId, out uint mapped) -> bool
+Mubarrat.Fonts.Tables.HvpmTable.Version.get -> ushort
+Mubarrat.Fonts.Tables.HvpmTable.Version.init -> void
 Mubarrat.Fonts.Tables.IndexSubHeader
 Mubarrat.Fonts.Tables.IndexSubHeader.Equals(Mubarrat.Fonts.Tables.IndexSubHeader other) -> bool
 Mubarrat.Fonts.Tables.IndexSubHeader.ImageDataOffset -> uint
@@ -3716,6 +3960,96 @@ Mubarrat.Fonts.Tables.JstfTable.ScriptHeader.ScriptHeader() -> void
 Mubarrat.Fonts.Tables.JstfTable.ScriptHeader.Tag -> Mubarrat.Fonts.Primitives.Tag
 Mubarrat.Fonts.Tables.JstfTable.Scripts.get -> System.Collections.Generic.IReadOnlyList<Mubarrat.Fonts.Tables.JstfScriptRecord!>!
 Mubarrat.Fonts.Tables.JstfTable.Scripts.init -> void
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.<Clone>$() -> Mubarrat.Fonts.Tables.JustificationCategoryStateTable!
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.ClassArray.get -> byte[]!
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.ClassArray.init -> void
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.ClassifyGlyph(int glyphId) -> int
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.Coverage.get -> ushort
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.Coverage.init -> void
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.Entries.get -> Mubarrat.Fonts.Tables.JustificationStateEntry[]!
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.Entries.init -> void
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.Equals(Mubarrat.Fonts.Tables.JustificationCategoryStateTable? other) -> bool
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.FirstGlyph.get -> ushort
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.FirstGlyph.init -> void
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.JustificationCategoryStateTable() -> void
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.StateArray.get -> byte[]!
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.StateArray.init -> void
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.StateCount.get -> int
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.StateSize.get -> ushort
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.StateSize.init -> void
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.Step(int stateIndex, int glyphClass) -> Mubarrat.Fonts.Tables.JustificationStateEntry
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.SubFeatureFlags.get -> uint
+Mubarrat.Fonts.Tables.JustificationCategoryStateTable.SubFeatureFlags.init -> void
+Mubarrat.Fonts.Tables.JustificationDirection
+Mubarrat.Fonts.Tables.JustificationDirection.<Clone>$() -> Mubarrat.Fonts.Tables.JustificationDirection!
+Mubarrat.Fonts.Tables.JustificationDirection.CategoryStateTable.get -> Mubarrat.Fonts.Tables.JustificationCategoryStateTable?
+Mubarrat.Fonts.Tables.JustificationDirection.CategoryStateTable.init -> void
+Mubarrat.Fonts.Tables.JustificationDirection.Context
+Mubarrat.Fonts.Tables.JustificationDirection.Context.Context(long TableStart, int GlyphCount) -> void
+Mubarrat.Fonts.Tables.JustificationDirection.Context.Context(Mubarrat.Fonts.Tables.JustificationDirection.Context! original) -> void
+Mubarrat.Fonts.Tables.JustificationDirection.Context.Deconstruct(out long TableStart, out int GlyphCount) -> void
+Mubarrat.Fonts.Tables.JustificationDirection.Context.GlyphCount.get -> int
+Mubarrat.Fonts.Tables.JustificationDirection.Context.GlyphCount.init -> void
+Mubarrat.Fonts.Tables.JustificationDirection.Context.TableStart.get -> long
+Mubarrat.Fonts.Tables.JustificationDirection.Context.TableStart.init -> void
+Mubarrat.Fonts.Tables.JustificationDirection.Equals(Mubarrat.Fonts.Tables.JustificationDirection? other) -> bool
+Mubarrat.Fonts.Tables.JustificationDirection.GetCluster(int glyphId) -> Mubarrat.Fonts.Tables.WidthDeltaCluster?
+Mubarrat.Fonts.Tables.JustificationDirection.GlyphToClusterLookup.get -> Mubarrat.Fonts.Tables.LookupTable!
+Mubarrat.Fonts.Tables.JustificationDirection.GlyphToClusterLookup.init -> void
+Mubarrat.Fonts.Tables.JustificationDirection.JustificationDirection() -> void
+Mubarrat.Fonts.Tables.JustificationDirection.Postcompensation.get -> Mubarrat.Fonts.Tables.PostcompensationSubtable?
+Mubarrat.Fonts.Tables.JustificationDirection.Postcompensation.init -> void
+Mubarrat.Fonts.Tables.JustificationDirection.WidthDeltaClustersByOffset.get -> System.Collections.Generic.IReadOnlyDictionary<ushort, Mubarrat.Fonts.Tables.WidthDeltaCluster!>!
+Mubarrat.Fonts.Tables.JustificationDirection.WidthDeltaClustersByOffset.init -> void
+Mubarrat.Fonts.Tables.JustificationPriority
+Mubarrat.Fonts.Tables.JustificationPriority.InterCharacter = 2 -> Mubarrat.Fonts.Tables.JustificationPriority
+Mubarrat.Fonts.Tables.JustificationPriority.Kashida = 0 -> Mubarrat.Fonts.Tables.JustificationPriority
+Mubarrat.Fonts.Tables.JustificationPriority.Null = 3 -> Mubarrat.Fonts.Tables.JustificationPriority
+Mubarrat.Fonts.Tables.JustificationPriority.Whitespace = 1 -> Mubarrat.Fonts.Tables.JustificationPriority
+Mubarrat.Fonts.Tables.JustificationStateEntry
+Mubarrat.Fonts.Tables.JustificationStateEntry.CurrentCategory.get -> byte
+Mubarrat.Fonts.Tables.JustificationStateEntry.DontAdvance.get -> bool
+Mubarrat.Fonts.Tables.JustificationStateEntry.Equals(Mubarrat.Fonts.Tables.JustificationStateEntry other) -> bool
+Mubarrat.Fonts.Tables.JustificationStateEntry.Flags.get -> ushort
+Mubarrat.Fonts.Tables.JustificationStateEntry.Flags.init -> void
+Mubarrat.Fonts.Tables.JustificationStateEntry.JustificationStateEntry() -> void
+Mubarrat.Fonts.Tables.JustificationStateEntry.MarkCategory.get -> byte
+Mubarrat.Fonts.Tables.JustificationStateEntry.NewStateIndex.get -> int
+Mubarrat.Fonts.Tables.JustificationStateEntry.NewStateIndex.init -> void
+Mubarrat.Fonts.Tables.JustificationStateEntry.SetMark.get -> bool
+Mubarrat.Fonts.Tables.JustTable
+Mubarrat.Fonts.Tables.JustTable.<Clone>$() -> Mubarrat.Fonts.Tables.JustTable!
+Mubarrat.Fonts.Tables.JustTable.Equals(Mubarrat.Fonts.Tables.JustTable? other) -> bool
+Mubarrat.Fonts.Tables.JustTable.Format.get -> ushort
+Mubarrat.Fonts.Tables.JustTable.Format.init -> void
+Mubarrat.Fonts.Tables.JustTable.Header
+Mubarrat.Fonts.Tables.JustTable.Header.Equals(Mubarrat.Fonts.Tables.JustTable.Header other) -> bool
+Mubarrat.Fonts.Tables.JustTable.Header.Format -> ushort
+Mubarrat.Fonts.Tables.JustTable.Header.Header() -> void
+Mubarrat.Fonts.Tables.JustTable.Header.HorizOffset -> ushort
+Mubarrat.Fonts.Tables.JustTable.Header.Version -> uint
+Mubarrat.Fonts.Tables.JustTable.Header.VertOffset -> ushort
+Mubarrat.Fonts.Tables.JustTable.Horizontal.get -> Mubarrat.Fonts.Tables.JustificationDirection?
+Mubarrat.Fonts.Tables.JustTable.Horizontal.init -> void
+Mubarrat.Fonts.Tables.JustTable.JustTable() -> void
+Mubarrat.Fonts.Tables.JustTable.Version.get -> uint
+Mubarrat.Fonts.Tables.JustTable.Version.init -> void
+Mubarrat.Fonts.Tables.JustTable.Vertical.get -> Mubarrat.Fonts.Tables.JustificationDirection?
+Mubarrat.Fonts.Tables.JustTable.Vertical.init -> void
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.AfterGrowLimit -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.AfterShrinkLimit -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.BeforeGrowLimit -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.BeforeShrinkLimit -> Mubarrat.Fonts.Primitives.Fixed
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.Equals(Mubarrat.Fonts.Tables.JustWidthDeltaEntry other) -> bool
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.GrowFlags -> ushort
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.GrowPriority.get -> Mubarrat.Fonts.Tables.JustificationPriority
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.GrowUnlimited.get -> bool
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.JustWidthDeltaEntry() -> void
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.ShrinkFlags -> ushort
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.ShrinkPriority.get -> Mubarrat.Fonts.Tables.JustificationPriority
+Mubarrat.Fonts.Tables.JustWidthDeltaEntry.ShrinkUnlimited.get -> bool
 Mubarrat.Fonts.Tables.KernClassTable
 Mubarrat.Fonts.Tables.KernClassTable.<Clone>$() -> Mubarrat.Fonts.Tables.KernClassTable!
 Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader
@@ -3761,6 +4095,26 @@ Mubarrat.Fonts.Tables.KernFormat2.RightClassTable.get -> Mubarrat.Fonts.Tables.K
 Mubarrat.Fonts.Tables.KernFormat2.RightClassTable.init -> void
 Mubarrat.Fonts.Tables.KernFormat2.RowWidth.get -> ushort
 Mubarrat.Fonts.Tables.KernFormat2.RowWidth.init -> void
+Mubarrat.Fonts.Tables.KerningPair
+Mubarrat.Fonts.Tables.KerningPair.<Clone>$() -> Mubarrat.Fonts.Tables.KerningPair!
+Mubarrat.Fonts.Tables.KerningPair.Context
+Mubarrat.Fonts.Tables.KerningPair.Context.Context(Mubarrat.Fonts.Tables.KerningPair.Context! original) -> void
+Mubarrat.Fonts.Tables.KerningPair.Context.Context(uint TupleCount) -> void
+Mubarrat.Fonts.Tables.KerningPair.Context.Deconstruct(out uint TupleCount) -> void
+Mubarrat.Fonts.Tables.KerningPair.Context.TupleCount.get -> uint
+Mubarrat.Fonts.Tables.KerningPair.Context.TupleCount.init -> void
+Mubarrat.Fonts.Tables.KerningPair.Equals(Mubarrat.Fonts.Tables.KerningPair? other) -> bool
+Mubarrat.Fonts.Tables.KerningPair.IsEndOfList.get -> bool
+Mubarrat.Fonts.Tables.KerningPair.IsVariation.get -> bool
+Mubarrat.Fonts.Tables.KerningPair.KerningPair() -> void
+Mubarrat.Fonts.Tables.KerningPair.KernValue.get -> int
+Mubarrat.Fonts.Tables.KerningPair.KernValue.init -> void
+Mubarrat.Fonts.Tables.KerningPair.Left.get -> ushort
+Mubarrat.Fonts.Tables.KerningPair.Left.init -> void
+Mubarrat.Fonts.Tables.KerningPair.Right.get -> ushort
+Mubarrat.Fonts.Tables.KerningPair.Right.init -> void
+Mubarrat.Fonts.Tables.KerningPair.TupleValues.get -> short[]!
+Mubarrat.Fonts.Tables.KerningPair.TupleValues.init -> void
 Mubarrat.Fonts.Tables.KernPair
 Mubarrat.Fonts.Tables.KernPair.Equals(Mubarrat.Fonts.Tables.KernPair other) -> bool
 Mubarrat.Fonts.Tables.KernPair.KernPair() -> void
@@ -3818,6 +4172,179 @@ Mubarrat.Fonts.Tables.KernTable.Version.init -> void
 Mubarrat.Fonts.Tables.KernUnknown
 Mubarrat.Fonts.Tables.KernUnknown.Equals(Mubarrat.Fonts.Tables.KernUnknown? other) -> bool
 Mubarrat.Fonts.Tables.KernUnknown.KernUnknown() -> void
+Mubarrat.Fonts.Tables.KerxFormat0Subtable
+Mubarrat.Fonts.Tables.KerxFormat0Subtable.Equals(Mubarrat.Fonts.Tables.KerxFormat0Subtable? other) -> bool
+Mubarrat.Fonts.Tables.KerxFormat0Subtable.GetPairs(int leftGlyph) -> Mubarrat.Fonts.Tables.KerningPair![]!
+Mubarrat.Fonts.Tables.KerxFormat0Subtable.KerxFormat0Subtable() -> void
+Mubarrat.Fonts.Tables.KerxFormat0Subtable.LeftGlyphToPairList.get -> Mubarrat.Fonts.Tables.LookupTable!
+Mubarrat.Fonts.Tables.KerxFormat0Subtable.LeftGlyphToPairList.init -> void
+Mubarrat.Fonts.Tables.KerxFormat0Subtable.PairsByOffset.get -> System.Collections.Generic.IReadOnlyDictionary<ushort, Mubarrat.Fonts.Tables.KerningPair![]!>!
+Mubarrat.Fonts.Tables.KerxFormat0Subtable.PairsByOffset.init -> void
+Mubarrat.Fonts.Tables.KerxFormat1Subtable
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.ClassifyGlyph(int glyphId) -> int
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.ClassTable.get -> Mubarrat.Fonts.Tables.LookupTable!
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.ClassTable.init -> void
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.Entries.get -> Mubarrat.Fonts.Tables.KerxStateEntry![]!
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.Entries.init -> void
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.Equals(Mubarrat.Fonts.Tables.KerxFormat1Subtable? other) -> bool
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.KerxFormat1Subtable() -> void
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.StateArray.get -> ushort[]!
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.StateArray.init -> void
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.StateCount.get -> int
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.StateSize.get -> int
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.StateSize.init -> void
+Mubarrat.Fonts.Tables.KerxFormat1Subtable.Step(int stateIndex, int glyphClass) -> Mubarrat.Fonts.Tables.KerxStateEntry!
+Mubarrat.Fonts.Tables.KerxFormat2Subtable
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.ElementSizeInShorts.get -> int
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.Equals(Mubarrat.Fonts.Tables.KerxFormat2Subtable? other) -> bool
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.GetKernValue(int leftGlyph, int rightGlyph) -> int
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.GetTupleValues(int leftGlyph, int rightGlyph) -> short[]!
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.GlyphCount.get -> int
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.GlyphCount.init -> void
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.KerningValues.get -> short[]!
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.KerningValues.init -> void
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.KerxFormat2Subtable() -> void
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.LeftClassTable.get -> Mubarrat.Fonts.Tables.LookupTable!
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.LeftClassTable.init -> void
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.RightClassTable.get -> Mubarrat.Fonts.Tables.LookupTable!
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.RightClassTable.init -> void
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.RowWidthInBytes.get -> uint
+Mubarrat.Fonts.Tables.KerxFormat2Subtable.RowWidthInBytes.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.<Clone>$() -> Mubarrat.Fonts.Tables.KerxFormat4StateEntry!
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.ClassCount.get -> int
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.ClassCount.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.Context(int ClassCount) -> void
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.Context(Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context! original) -> void
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.Deconstruct(out int ClassCount) -> void
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.DontAdvance.get -> bool
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Equals(Mubarrat.Fonts.Tables.KerxFormat4StateEntry? other) -> bool
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Flags.get -> ushort
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Flags.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.KerningIndices.get -> ushort[]!
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.KerningIndices.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.KerxFormat4StateEntry() -> void
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.NewStateIndex.get -> int
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.NewStateIndex.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Push.get -> bool
+Mubarrat.Fonts.Tables.KerxFormat4Subtable
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.ClassifyGlyph(int glyphId) -> int
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.ClassTable.get -> Mubarrat.Fonts.Tables.LookupTable!
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.ClassTable.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.Entries.get -> Mubarrat.Fonts.Tables.KerxFormat4StateEntry![]!
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.Entries.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.Equals(Mubarrat.Fonts.Tables.KerxFormat4Subtable? other) -> bool
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.GetKernValue(Mubarrat.Fonts.Tables.KerxFormat4StateEntry! entry, int glyphClass) -> int
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.GetTupleValues(Mubarrat.Fonts.Tables.KerxFormat4StateEntry! entry, int glyphClass) -> short[]!
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.KernValues.get -> short[]!
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.KernValues.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.KerxFormat4Subtable() -> void
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.StateArray.get -> ushort[]!
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.StateArray.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.StateCount.get -> int
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.StateSize.get -> int
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.StateSize.init -> void
+Mubarrat.Fonts.Tables.KerxFormat4Subtable.Step(int stateIndex, int glyphClass) -> Mubarrat.Fonts.Tables.KerxFormat4StateEntry!
+Mubarrat.Fonts.Tables.KerxFormat6Subtable
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.ColumnCount.get -> int
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.ColumnCount.init -> void
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.ColumnIndexTable.get -> Mubarrat.Fonts.Tables.LookupTable!
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.ColumnIndexTable.init -> void
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.ElementSizeInShorts.get -> int
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.Equals(Mubarrat.Fonts.Tables.KerxFormat6Subtable? other) -> bool
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.GetKernValue(int leftGlyph, int rightGlyph) -> int
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.GetTupleValues(int leftGlyph, int rightGlyph) -> short[]!
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.KerningValues.get -> short[]!
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.KerningValues.init -> void
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.KerxFormat6Subtable() -> void
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.RowCount.get -> int
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.RowCount.init -> void
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.RowIndexTable.get -> Mubarrat.Fonts.Tables.LookupTable!
+Mubarrat.Fonts.Tables.KerxFormat6Subtable.RowIndexTable.init -> void
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.<Clone>$() -> Mubarrat.Fonts.Tables.KerxGlyphCoverageTable!
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.BitfieldCount.get -> int
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.BitfieldCount.init -> void
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.Context(int GlyphCount, int SubtableCount) -> void
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.Context(Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context! original) -> void
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.Deconstruct(out int GlyphCount, out int SubtableCount) -> void
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.GlyphCount.get -> int
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.GlyphCount.init -> void
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.SubtableCount.get -> int
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.SubtableCount.init -> void
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Equals(Mubarrat.Fonts.Tables.KerxGlyphCoverageTable? other) -> bool
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.GlyphBitfields.get -> byte[]![]!
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.GlyphBitfields.init -> void
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.IsCovered(int glyphId, int subtableIndex) -> bool
+Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.KerxGlyphCoverageTable() -> void
+Mubarrat.Fonts.Tables.KerxStateEntry
+Mubarrat.Fonts.Tables.KerxStateEntry.<Clone>$() -> Mubarrat.Fonts.Tables.KerxStateEntry!
+Mubarrat.Fonts.Tables.KerxStateEntry.Context
+Mubarrat.Fonts.Tables.KerxStateEntry.Context.ClassCount.get -> int
+Mubarrat.Fonts.Tables.KerxStateEntry.Context.ClassCount.init -> void
+Mubarrat.Fonts.Tables.KerxStateEntry.Context.Context(int ClassCount, uint TupleCount) -> void
+Mubarrat.Fonts.Tables.KerxStateEntry.Context.Context(Mubarrat.Fonts.Tables.KerxStateEntry.Context! original) -> void
+Mubarrat.Fonts.Tables.KerxStateEntry.Context.Deconstruct(out int ClassCount, out uint TupleCount) -> void
+Mubarrat.Fonts.Tables.KerxStateEntry.Context.TupleCount.get -> uint
+Mubarrat.Fonts.Tables.KerxStateEntry.Context.TupleCount.init -> void
+Mubarrat.Fonts.Tables.KerxStateEntry.DontAdvance.get -> bool
+Mubarrat.Fonts.Tables.KerxStateEntry.Equals(Mubarrat.Fonts.Tables.KerxStateEntry? other) -> bool
+Mubarrat.Fonts.Tables.KerxStateEntry.Flags.get -> ushort
+Mubarrat.Fonts.Tables.KerxStateEntry.Flags.init -> void
+Mubarrat.Fonts.Tables.KerxStateEntry.KerningValues.get -> short[]!
+Mubarrat.Fonts.Tables.KerxStateEntry.KerningValues.init -> void
+Mubarrat.Fonts.Tables.KerxStateEntry.KerxStateEntry() -> void
+Mubarrat.Fonts.Tables.KerxStateEntry.NewStateIndex.get -> int
+Mubarrat.Fonts.Tables.KerxStateEntry.NewStateIndex.init -> void
+Mubarrat.Fonts.Tables.KerxStateEntry.Push.get -> bool
+Mubarrat.Fonts.Tables.KerxSubtable
+Mubarrat.Fonts.Tables.KerxSubtable.Context
+Mubarrat.Fonts.Tables.KerxSubtable.Context.Context(int GlyphCount, ushort Version) -> void
+Mubarrat.Fonts.Tables.KerxSubtable.Context.Context(Mubarrat.Fonts.Tables.KerxSubtable.Context! original) -> void
+Mubarrat.Fonts.Tables.KerxSubtable.Context.Deconstruct(out int GlyphCount, out ushort Version) -> void
+Mubarrat.Fonts.Tables.KerxSubtable.Context.GlyphCount.get -> int
+Mubarrat.Fonts.Tables.KerxSubtable.Context.GlyphCount.init -> void
+Mubarrat.Fonts.Tables.KerxSubtable.Context.Version.get -> ushort
+Mubarrat.Fonts.Tables.KerxSubtable.Context.Version.init -> void
+Mubarrat.Fonts.Tables.KerxSubtable.Coverage.get -> uint
+Mubarrat.Fonts.Tables.KerxSubtable.Coverage.init -> void
+Mubarrat.Fonts.Tables.KerxSubtable.CrossStream.get -> bool
+Mubarrat.Fonts.Tables.KerxSubtable.KerxSubtable() -> void
+Mubarrat.Fonts.Tables.KerxSubtable.KerxSubtable(Mubarrat.Fonts.Tables.KerxSubtable! original) -> void
+Mubarrat.Fonts.Tables.KerxSubtable.Length.get -> uint
+Mubarrat.Fonts.Tables.KerxSubtable.Length.init -> void
+Mubarrat.Fonts.Tables.KerxSubtable.ProcessDirection.get -> bool
+Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader
+Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.Coverage -> uint
+Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.Equals(Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader other) -> bool
+Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.Length -> uint
+Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.SubtableHeader() -> void
+Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.TupleCount -> uint
+Mubarrat.Fonts.Tables.KerxSubtable.TupleCount.get -> uint
+Mubarrat.Fonts.Tables.KerxSubtable.TupleCount.init -> void
+Mubarrat.Fonts.Tables.KerxSubtable.Variation.get -> bool
+Mubarrat.Fonts.Tables.KerxSubtable.Vertical.get -> bool
+Mubarrat.Fonts.Tables.KerxTable
+Mubarrat.Fonts.Tables.KerxTable.<Clone>$() -> Mubarrat.Fonts.Tables.KerxTable!
+Mubarrat.Fonts.Tables.KerxTable.Coverage.get -> Mubarrat.Fonts.Tables.KerxGlyphCoverageTable?
+Mubarrat.Fonts.Tables.KerxTable.Coverage.init -> void
+Mubarrat.Fonts.Tables.KerxTable.Equals(Mubarrat.Fonts.Tables.KerxTable? other) -> bool
+Mubarrat.Fonts.Tables.KerxTable.HasCoverageTable.get -> bool
+Mubarrat.Fonts.Tables.KerxTable.Header
+Mubarrat.Fonts.Tables.KerxTable.Header.Equals(Mubarrat.Fonts.Tables.KerxTable.Header other) -> bool
+Mubarrat.Fonts.Tables.KerxTable.Header.Header() -> void
+Mubarrat.Fonts.Tables.KerxTable.Header.NTables -> uint
+Mubarrat.Fonts.Tables.KerxTable.Header.Padding -> ushort
+Mubarrat.Fonts.Tables.KerxTable.Header.Version -> ushort
+Mubarrat.Fonts.Tables.KerxTable.KerxTable() -> void
+Mubarrat.Fonts.Tables.KerxTable.NumberOfSubtables.get -> uint
+Mubarrat.Fonts.Tables.KerxTable.NumberOfSubtables.init -> void
+Mubarrat.Fonts.Tables.KerxTable.Subtables.get -> Mubarrat.Fonts.Tables.KerxSubtable![]!
+Mubarrat.Fonts.Tables.KerxTable.Subtables.init -> void
+Mubarrat.Fonts.Tables.KerxTable.Version.get -> ushort
+Mubarrat.Fonts.Tables.KerxTable.Version.init -> void
 Mubarrat.Fonts.Tables.LangSys
 Mubarrat.Fonts.Tables.LangSys.<Clone>$() -> Mubarrat.Fonts.Tables.LangSys!
 Mubarrat.Fonts.Tables.LangSys.Equals(Mubarrat.Fonts.Tables.LangSys? other) -> bool
@@ -5512,6 +6039,27 @@ Mubarrat.Fonts.Tables.PcltTable.WidthType.get -> sbyte
 Mubarrat.Fonts.Tables.PcltTable.WidthType.init -> void
 Mubarrat.Fonts.Tables.PcltTable.XHeight.get -> ushort
 Mubarrat.Fonts.Tables.PcltTable.XHeight.init -> void
+Mubarrat.Fonts.Tables.PostcompensationAction
+Mubarrat.Fonts.Tables.PostcompensationAction.<Clone>$() -> Mubarrat.Fonts.Tables.PostcompensationAction!
+Mubarrat.Fonts.Tables.PostcompensationAction.Equals(Mubarrat.Fonts.Tables.PostcompensationAction? other) -> bool
+Mubarrat.Fonts.Tables.PostcompensationAction.PostcompensationAction() -> void
+Mubarrat.Fonts.Tables.PostcompensationAction.Subrecords.get -> Mubarrat.Fonts.Tables.ActionSubrecord![]!
+Mubarrat.Fonts.Tables.PostcompensationAction.Subrecords.init -> void
+Mubarrat.Fonts.Tables.PostcompensationSubtable
+Mubarrat.Fonts.Tables.PostcompensationSubtable.<Clone>$() -> Mubarrat.Fonts.Tables.PostcompensationSubtable!
+Mubarrat.Fonts.Tables.PostcompensationSubtable.ActionsByOffset.get -> System.Collections.Generic.IReadOnlyDictionary<ushort, Mubarrat.Fonts.Tables.ActionSubrecord!>!
+Mubarrat.Fonts.Tables.PostcompensationSubtable.ActionsByOffset.init -> void
+Mubarrat.Fonts.Tables.PostcompensationSubtable.Context
+Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.Context(int GlyphCount) -> void
+Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.Context(Mubarrat.Fonts.Tables.PostcompensationSubtable.Context! original) -> void
+Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.Deconstruct(out int GlyphCount) -> void
+Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.GlyphCount.get -> int
+Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.GlyphCount.init -> void
+Mubarrat.Fonts.Tables.PostcompensationSubtable.Equals(Mubarrat.Fonts.Tables.PostcompensationSubtable? other) -> bool
+Mubarrat.Fonts.Tables.PostcompensationSubtable.GetAction(int glyphId) -> Mubarrat.Fonts.Tables.ActionSubrecord?
+Mubarrat.Fonts.Tables.PostcompensationSubtable.GlyphToActionLookup.get -> Mubarrat.Fonts.Tables.LookupTable!
+Mubarrat.Fonts.Tables.PostcompensationSubtable.GlyphToActionLookup.init -> void
+Mubarrat.Fonts.Tables.PostcompensationSubtable.PostcompensationSubtable() -> void
 Mubarrat.Fonts.Tables.PostTable
 Mubarrat.Fonts.Tables.PostTable.<Clone>$() -> Mubarrat.Fonts.Tables.PostTable!
 Mubarrat.Fonts.Tables.PostTable.Equals(Mubarrat.Fonts.Tables.PostTable? other) -> bool
@@ -5572,6 +6120,18 @@ Mubarrat.Fonts.Tables.PrepTable.InstructionCount.get -> int
 Mubarrat.Fonts.Tables.PrepTable.PrepTable() -> void
 Mubarrat.Fonts.Tables.PrepTable.Program.get -> Mubarrat.Fonts.Tables.TrueTypeProgram!
 Mubarrat.Fonts.Tables.PrepTable.Program.init -> void
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord? other) -> bool
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Flags.get -> ushort
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Flags.init -> void
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Glyph.get -> ushort
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Glyph.init -> void
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.Equals(Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload other) -> bool
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.Flags -> ushort
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.Glyph -> ushort
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.Payload() -> void
+Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.RepeatedAddGlyphSubrecord() -> void
 Mubarrat.Fonts.Tables.ResourceMapping
 Mubarrat.Fonts.Tables.ResourceMapping.<Clone>$() -> Mubarrat.Fonts.Tables.ResourceMapping!
 Mubarrat.Fonts.Tables.ResourceMapping.Equals(Mubarrat.Fonts.Tables.ResourceMapping? other) -> bool
@@ -5966,6 +6526,9 @@ Mubarrat.Fonts.Tables.StatTable.MajorVersion.init -> void
 Mubarrat.Fonts.Tables.StatTable.MinorVersion.get -> ushort
 Mubarrat.Fonts.Tables.StatTable.MinorVersion.init -> void
 Mubarrat.Fonts.Tables.StatTable.StatTable() -> void
+Mubarrat.Fonts.Tables.StretchGlyphSubrecord
+Mubarrat.Fonts.Tables.StretchGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.StretchGlyphSubrecord? other) -> bool
+Mubarrat.Fonts.Tables.StretchGlyphSubrecord.StretchGlyphSubrecord() -> void
 Mubarrat.Fonts.Tables.STXHeader
 Mubarrat.Fonts.Tables.STXHeader.ClassCount -> uint
 Mubarrat.Fonts.Tables.STXHeader.ClassTableOffset -> uint
@@ -6300,6 +6863,11 @@ Mubarrat.Fonts.Tables.Type2CharStringOperator.VMoveTo = 4 -> Mubarrat.Fonts.Tabl
 Mubarrat.Fonts.Tables.Type2CharStringOperator.VStem = 3 -> Mubarrat.Fonts.Tables.Type2CharStringOperator
 Mubarrat.Fonts.Tables.Type2CharStringOperator.VStemHM = 23 -> Mubarrat.Fonts.Tables.Type2CharStringOperator
 Mubarrat.Fonts.Tables.Type2CharStringOperator.VVCurveTo = 26 -> Mubarrat.Fonts.Tables.Type2CharStringOperator
+Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord
+Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.AddGlyph.get -> ushort
+Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.AddGlyph.init -> void
+Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord? other) -> bool
+Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.UnconditionalAddGlyphSubrecord() -> void
 Mubarrat.Fonts.Tables.Var<T>
 Mubarrat.Fonts.Tables.Var<T>.Equals(Mubarrat.Fonts.Tables.Var<T> other) -> bool
 Mubarrat.Fonts.Tables.Var<T>.Value -> T
@@ -6547,6 +7115,19 @@ Mubarrat.Fonts.Tables.WidthClass.SemiCondensed = 4 -> Mubarrat.Fonts.Tables.Widt
 Mubarrat.Fonts.Tables.WidthClass.SemiExpanded = 6 -> Mubarrat.Fonts.Tables.WidthClass
 Mubarrat.Fonts.Tables.WidthClass.UltraCondensed = 1 -> Mubarrat.Fonts.Tables.WidthClass
 Mubarrat.Fonts.Tables.WidthClass.UltraExpanded = 9 -> Mubarrat.Fonts.Tables.WidthClass
+Mubarrat.Fonts.Tables.WidthDeltaCluster
+Mubarrat.Fonts.Tables.WidthDeltaCluster.<Clone>$() -> Mubarrat.Fonts.Tables.WidthDeltaCluster!
+Mubarrat.Fonts.Tables.WidthDeltaCluster.Equals(Mubarrat.Fonts.Tables.WidthDeltaCluster? other) -> bool
+Mubarrat.Fonts.Tables.WidthDeltaCluster.GetEntry(uint justClass) -> Mubarrat.Fonts.Tables.JustWidthDeltaEntry?
+Mubarrat.Fonts.Tables.WidthDeltaCluster.Pairs.get -> Mubarrat.Fonts.Tables.WidthDeltaPair[]!
+Mubarrat.Fonts.Tables.WidthDeltaCluster.Pairs.init -> void
+Mubarrat.Fonts.Tables.WidthDeltaCluster.WidthDeltaCluster() -> void
+Mubarrat.Fonts.Tables.WidthDeltaPair
+Mubarrat.Fonts.Tables.WidthDeltaPair.Entry -> Mubarrat.Fonts.Tables.JustWidthDeltaEntry
+Mubarrat.Fonts.Tables.WidthDeltaPair.Equals(Mubarrat.Fonts.Tables.WidthDeltaPair other) -> bool
+Mubarrat.Fonts.Tables.WidthDeltaPair.JustClass.get -> uint
+Mubarrat.Fonts.Tables.WidthDeltaPair.RawJustClass -> uint
+Mubarrat.Fonts.Tables.WidthDeltaPair.WidthDeltaPair() -> void
 override abstract Mubarrat.Fonts.Tables.PairPos.<Clone>$() -> Mubarrat.Fonts.Tables.PairPos!
 override abstract Mubarrat.Fonts.Tables.SinglePos.<Clone>$() -> Mubarrat.Fonts.Tables.SinglePos!
 override abstract Mubarrat.Fonts.Tables.SingleSubst.<Clone>$() -> Mubarrat.Fonts.Tables.SingleSubst!
@@ -6613,6 +7194,10 @@ override Mubarrat.Fonts.Tables.AcntTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.AcntTable.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.AcntTable.Header.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.AcntTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.ActionSubrecord.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.ActionSubrecord.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.ActionSubrecord.ToString() -> string!
+override Mubarrat.Fonts.Tables.ActionSubrecordHeader.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.Affine2x3.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.AlternateSet.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.AlternateSet.GetHashCode() -> int
@@ -7063,6 +7648,12 @@ override Mubarrat.Fonts.Tables.CompositeGlyph.ToString() -> string!
 override Mubarrat.Fonts.Tables.Condition.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.Condition.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.Condition.ToString() -> string!
+override Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.<Clone>$() -> Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord!
+override Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.ActionType.get -> ushort
+override Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.ToString() -> string!
 override Mubarrat.Fonts.Tables.ConditionFormat1.<Clone>$() -> Mubarrat.Fonts.Tables.ConditionFormat1!
 override Mubarrat.Fonts.Tables.ConditionFormat1.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.ConditionFormat1.GetHashCode() -> int
@@ -7113,6 +7704,12 @@ override Mubarrat.Fonts.Tables.CvarTable.ToString() -> string!
 override Mubarrat.Fonts.Tables.CvtTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.CvtTable.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.CvtTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.DecompositionSubrecord.<Clone>$() -> Mubarrat.Fonts.Tables.DecompositionSubrecord!
+override Mubarrat.Fonts.Tables.DecompositionSubrecord.ActionType.get -> ushort
+override Mubarrat.Fonts.Tables.DecompositionSubrecord.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.DecompositionSubrecord.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.DecompositionSubrecord.ToString() -> string!
 override Mubarrat.Fonts.Tables.DeltaSetIndexMap.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.DeltaSetIndexMap.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.DeltaSetIndexMap.ToString() -> string!
@@ -7132,6 +7729,12 @@ override Mubarrat.Fonts.Tables.DsigTable.Header.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.DsigTable.SignatureBlockHeader.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.DsigTable.SignatureRecord.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.DsigTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.<Clone>$() -> Mubarrat.Fonts.Tables.DuctileGlyphSubrecord!
+override Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.ActionType.get -> ushort
+override Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.ToString() -> string!
 override Mubarrat.Fonts.Tables.EbdtComponent.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.EbdtTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.EbdtTable.GetHashCode() -> int
@@ -7385,6 +7988,33 @@ override Mubarrat.Fonts.Tables.HvarTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.HvarTable.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.HvarTable.Header.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.HvarTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.HvglCompositePart.<Clone>$() -> Mubarrat.Fonts.Tables.HvglCompositePart!
+override Mubarrat.Fonts.Tables.HvglCompositePart.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.HvglCompositePart.Flags.get -> ushort
+override Mubarrat.Fonts.Tables.HvglCompositePart.Flags.init -> void
+override Mubarrat.Fonts.Tables.HvglCompositePart.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvglCompositePart.Header.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvglCompositePart.ToString() -> string!
+override Mubarrat.Fonts.Tables.HvglPart.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.HvglPart.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvglPart.ToString() -> string!
+override Mubarrat.Fonts.Tables.HvglShapePart.<Clone>$() -> Mubarrat.Fonts.Tables.HvglShapePart!
+override Mubarrat.Fonts.Tables.HvglShapePart.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.HvglShapePart.Flags.get -> ushort
+override Mubarrat.Fonts.Tables.HvglShapePart.Flags.init -> void
+override Mubarrat.Fonts.Tables.HvglShapePart.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvglShapePart.Header.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvglShapePart.ToString() -> string!
+override Mubarrat.Fonts.Tables.HvglTable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.HvglTable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvglTable.Header.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvglTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.HvpmTable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.HvpmTable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvpmTable.Header.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvpmTable.PartRange.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.HvpmTable.ToString() -> string!
 override Mubarrat.Fonts.Tables.IndexSubHeader.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.IndexSubtable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.IndexSubtable.GetHashCode() -> int
@@ -7469,6 +8099,21 @@ override Mubarrat.Fonts.Tables.JstfTable.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.JstfTable.Header.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.JstfTable.ScriptHeader.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.JstfTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.JustificationCategoryStateTable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.JustificationCategoryStateTable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.JustificationCategoryStateTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.JustificationDirection.Context.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.JustificationDirection.Context.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.JustificationDirection.Context.ToString() -> string!
+override Mubarrat.Fonts.Tables.JustificationDirection.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.JustificationDirection.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.JustificationDirection.ToString() -> string!
+override Mubarrat.Fonts.Tables.JustificationStateEntry.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.JustTable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.JustTable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.JustTable.Header.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.JustTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.JustWidthDeltaEntry.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.KernClassTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.KernClassTable.GetHashCode() -> int
@@ -7485,6 +8130,12 @@ override Mubarrat.Fonts.Tables.KernFormat2.Format2Header.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.KernFormat2.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.KernFormat2.GetKerningValue(ushort left, ushort right) -> short
 override Mubarrat.Fonts.Tables.KernFormat2.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerningPair.Context.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerningPair.Context.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerningPair.Context.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerningPair.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerningPair.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerningPair.ToString() -> string!
 override Mubarrat.Fonts.Tables.KernPair.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.KernSubtable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.KernSubtable.GetHashCode() -> int
@@ -7499,6 +8150,60 @@ override Mubarrat.Fonts.Tables.KernUnknown.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.KernUnknown.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.KernUnknown.GetKerningValue(ushort left, ushort right) -> short
 override Mubarrat.Fonts.Tables.KernUnknown.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxFormat0Subtable.<Clone>$() -> Mubarrat.Fonts.Tables.KerxFormat0Subtable!
+override Mubarrat.Fonts.Tables.KerxFormat0Subtable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxFormat0Subtable.Format.get -> int
+override Mubarrat.Fonts.Tables.KerxFormat0Subtable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxFormat0Subtable.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxFormat1Subtable.<Clone>$() -> Mubarrat.Fonts.Tables.KerxFormat1Subtable!
+override Mubarrat.Fonts.Tables.KerxFormat1Subtable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxFormat1Subtable.Format.get -> int
+override Mubarrat.Fonts.Tables.KerxFormat1Subtable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxFormat1Subtable.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxFormat2Subtable.<Clone>$() -> Mubarrat.Fonts.Tables.KerxFormat2Subtable!
+override Mubarrat.Fonts.Tables.KerxFormat2Subtable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxFormat2Subtable.Format.get -> int
+override Mubarrat.Fonts.Tables.KerxFormat2Subtable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxFormat2Subtable.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxFormat4StateEntry.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxFormat4StateEntry.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxFormat4Subtable.<Clone>$() -> Mubarrat.Fonts.Tables.KerxFormat4Subtable!
+override Mubarrat.Fonts.Tables.KerxFormat4Subtable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxFormat4Subtable.Format.get -> int
+override Mubarrat.Fonts.Tables.KerxFormat4Subtable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxFormat4Subtable.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxFormat6Subtable.<Clone>$() -> Mubarrat.Fonts.Tables.KerxFormat6Subtable!
+override Mubarrat.Fonts.Tables.KerxFormat6Subtable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxFormat6Subtable.Format.get -> int
+override Mubarrat.Fonts.Tables.KerxFormat6Subtable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxFormat6Subtable.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxStateEntry.Context.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxStateEntry.Context.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxStateEntry.Context.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxStateEntry.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxStateEntry.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxStateEntry.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxSubtable.Context.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxSubtable.Context.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxSubtable.Context.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxSubtable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxSubtable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxSubtable.ToString() -> string!
+override Mubarrat.Fonts.Tables.KerxTable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.KerxTable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxTable.Header.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.KerxTable.ToString() -> string!
 override Mubarrat.Fonts.Tables.LangSys.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.LangSys.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.LangSys.Header.GetHashCode() -> int
@@ -7920,6 +8625,15 @@ override Mubarrat.Fonts.Tables.PcltTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.PcltTable.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.PcltTable.Header.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.PcltTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.PostcompensationAction.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.PostcompensationAction.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.PostcompensationAction.ToString() -> string!
+override Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.ToString() -> string!
+override Mubarrat.Fonts.Tables.PostcompensationSubtable.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.PostcompensationSubtable.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.PostcompensationSubtable.ToString() -> string!
 override Mubarrat.Fonts.Tables.PostTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.PostTable.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.PostTable.Header.GetHashCode() -> int
@@ -7927,6 +8641,12 @@ override Mubarrat.Fonts.Tables.PostTable.ToString() -> string!
 override Mubarrat.Fonts.Tables.PrepTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.PrepTable.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.PrepTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.<Clone>$() -> Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord!
+override Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.ActionType.get -> ushort
+override Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.ToString() -> string!
 override Mubarrat.Fonts.Tables.ResourceMapping.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.ResourceMapping.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.ResourceMapping.ToString() -> string!
@@ -8061,6 +8781,11 @@ override Mubarrat.Fonts.Tables.StatTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.StatTable.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.StatTable.HeaderV0.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.StatTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.StretchGlyphSubrecord.<Clone>$() -> Mubarrat.Fonts.Tables.StretchGlyphSubrecord!
+override Mubarrat.Fonts.Tables.StretchGlyphSubrecord.ActionType.get -> ushort
+override Mubarrat.Fonts.Tables.StretchGlyphSubrecord.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.StretchGlyphSubrecord.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.StretchGlyphSubrecord.ToString() -> string!
 override Mubarrat.Fonts.Tables.STXHeader.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.SubtableContext.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.SubtableContext.GetHashCode() -> int
@@ -8092,6 +8817,11 @@ override Mubarrat.Fonts.Tables.TupleVariationStore.ToString() -> string!
 override Mubarrat.Fonts.Tables.TupleVariationTableData.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.TupleVariationTableData.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.TupleVariationTableData.ToString() -> string!
+override Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.<Clone>$() -> Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord!
+override Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.ActionType.get -> ushort
+override Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.ToString() -> string!
 override Mubarrat.Fonts.Tables.Var<T>.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.VarColorLine.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.VarColorLine.GetHashCode() -> int
@@ -8132,6 +8862,10 @@ override Mubarrat.Fonts.Tables.VvarTable.Equals(object? obj) -> bool
 override Mubarrat.Fonts.Tables.VvarTable.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.VvarTable.Header.GetHashCode() -> int
 override Mubarrat.Fonts.Tables.VvarTable.ToString() -> string!
+override Mubarrat.Fonts.Tables.WidthDeltaCluster.Equals(object? obj) -> bool
+override Mubarrat.Fonts.Tables.WidthDeltaCluster.GetHashCode() -> int
+override Mubarrat.Fonts.Tables.WidthDeltaCluster.ToString() -> string!
+override Mubarrat.Fonts.Tables.WidthDeltaPair.GetHashCode() -> int
 override sealed Mubarrat.Fonts.Tables.AcntExtendedDescription.Equals(Mubarrat.Fonts.Tables.AcntGlyphDescription? other) -> bool
 override sealed Mubarrat.Fonts.Tables.AcntSimpleDescription.Equals(Mubarrat.Fonts.Tables.AcntGlyphDescription? other) -> bool
 override sealed Mubarrat.Fonts.Tables.AlternateSubst.Equals(Mubarrat.Fonts.Tables.GsubSubtable? other) -> bool
@@ -8166,13 +8900,16 @@ override sealed Mubarrat.Fonts.Tables.CmapFormat6.Equals(Mubarrat.Fonts.Tables.C
 override sealed Mubarrat.Fonts.Tables.CmapFormat8.Equals(Mubarrat.Fonts.Tables.CmapSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.CmapFormatUnknown.Equals(Mubarrat.Fonts.Tables.CmapSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.CompositeGlyph.Equals(Mubarrat.Fonts.Tables.Glyph? other) -> bool
+override sealed Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.ActionSubrecord? other) -> bool
 override sealed Mubarrat.Fonts.Tables.ConditionFormat1.Equals(Mubarrat.Fonts.Tables.Condition? other) -> bool
 override sealed Mubarrat.Fonts.Tables.ContextualPos.Equals(Mubarrat.Fonts.Tables.GposSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.ContextualSubst.Equals(Mubarrat.Fonts.Tables.GsubSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.CoverageFormat1.Equals(Mubarrat.Fonts.Tables.Coverage? other) -> bool
 override sealed Mubarrat.Fonts.Tables.CoverageFormat2.Equals(Mubarrat.Fonts.Tables.Coverage? other) -> bool
 override sealed Mubarrat.Fonts.Tables.CursivePos.Equals(Mubarrat.Fonts.Tables.GposSubtable? other) -> bool
+override sealed Mubarrat.Fonts.Tables.DecompositionSubrecord.Equals(Mubarrat.Fonts.Tables.ActionSubrecord? other) -> bool
 override sealed Mubarrat.Fonts.Tables.DeviceFormat.Equals(Mubarrat.Fonts.Tables.Device? other) -> bool
+override sealed Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.ActionSubrecord? other) -> bool
 override sealed Mubarrat.Fonts.Tables.EmptyGlyph.Equals(Mubarrat.Fonts.Tables.Glyph? other) -> bool
 override sealed Mubarrat.Fonts.Tables.FeatureParamsCharacterVariants.Equals(Mubarrat.Fonts.Tables.FeatureParams? other) -> bool
 override sealed Mubarrat.Fonts.Tables.FeatureParamsSize.Equals(Mubarrat.Fonts.Tables.FeatureParams? other) -> bool
@@ -8188,6 +8925,8 @@ override sealed Mubarrat.Fonts.Tables.GlyphBitmapFormat6.Equals(Mubarrat.Fonts.T
 override sealed Mubarrat.Fonts.Tables.GlyphBitmapFormat7.Equals(Mubarrat.Fonts.Tables.GlyphBitmap? other) -> bool
 override sealed Mubarrat.Fonts.Tables.GlyphBitmapFormat8.Equals(Mubarrat.Fonts.Tables.GlyphBitmap? other) -> bool
 override sealed Mubarrat.Fonts.Tables.GlyphBitmapFormat9.Equals(Mubarrat.Fonts.Tables.GlyphBitmap? other) -> bool
+override sealed Mubarrat.Fonts.Tables.HvglCompositePart.Equals(Mubarrat.Fonts.Tables.HvglPart? other) -> bool
+override sealed Mubarrat.Fonts.Tables.HvglShapePart.Equals(Mubarrat.Fonts.Tables.HvglPart? other) -> bool
 override sealed Mubarrat.Fonts.Tables.IndexSubtableFormat1.Equals(Mubarrat.Fonts.Tables.IndexSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.IndexSubtableFormat2.Equals(Mubarrat.Fonts.Tables.IndexSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.IndexSubtableFormat3.Equals(Mubarrat.Fonts.Tables.IndexSubtable? other) -> bool
@@ -8196,6 +8935,11 @@ override sealed Mubarrat.Fonts.Tables.IndexSubtableFormat5.Equals(Mubarrat.Fonts
 override sealed Mubarrat.Fonts.Tables.KernFormat0.Equals(Mubarrat.Fonts.Tables.KernSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.KernFormat2.Equals(Mubarrat.Fonts.Tables.KernSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.KernUnknown.Equals(Mubarrat.Fonts.Tables.KernSubtable? other) -> bool
+override sealed Mubarrat.Fonts.Tables.KerxFormat0Subtable.Equals(Mubarrat.Fonts.Tables.KerxSubtable? other) -> bool
+override sealed Mubarrat.Fonts.Tables.KerxFormat1Subtable.Equals(Mubarrat.Fonts.Tables.KerxSubtable? other) -> bool
+override sealed Mubarrat.Fonts.Tables.KerxFormat2Subtable.Equals(Mubarrat.Fonts.Tables.KerxSubtable? other) -> bool
+override sealed Mubarrat.Fonts.Tables.KerxFormat4Subtable.Equals(Mubarrat.Fonts.Tables.KerxSubtable? other) -> bool
+override sealed Mubarrat.Fonts.Tables.KerxFormat6Subtable.Equals(Mubarrat.Fonts.Tables.KerxSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.LigatureSubst.Equals(Mubarrat.Fonts.Tables.GsubSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.LookupTable0.Equals(Mubarrat.Fonts.Tables.LookupTable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.LookupTable10.Equals(Mubarrat.Fonts.Tables.LookupTable? other) -> bool
@@ -8242,6 +8986,7 @@ override sealed Mubarrat.Fonts.Tables.PaintVarTranslate.Equals(Mubarrat.Fonts.Ta
 override sealed Mubarrat.Fonts.Tables.PairPos.Equals(Mubarrat.Fonts.Tables.GposSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.PairPosFormat1.Equals(Mubarrat.Fonts.Tables.PairPos? other) -> bool
 override sealed Mubarrat.Fonts.Tables.PairPosFormat2.Equals(Mubarrat.Fonts.Tables.PairPos? other) -> bool
+override sealed Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.ActionSubrecord? other) -> bool
 override sealed Mubarrat.Fonts.Tables.ReverseChainSingleSubst.Equals(Mubarrat.Fonts.Tables.GsubSubtable? other) -> bool
 override sealed Mubarrat.Fonts.Tables.SequenceContextFormat1.Equals(Mubarrat.Fonts.Tables.SequenceContext? other) -> bool
 override sealed Mubarrat.Fonts.Tables.SequenceContextFormat2.Equals(Mubarrat.Fonts.Tables.SequenceContext? other) -> bool
@@ -8257,6 +9002,8 @@ override sealed Mubarrat.Fonts.Tables.StatAxisValueFormat1.Equals(Mubarrat.Fonts
 override sealed Mubarrat.Fonts.Tables.StatAxisValueFormat2.Equals(Mubarrat.Fonts.Tables.StatAxisValue? other) -> bool
 override sealed Mubarrat.Fonts.Tables.StatAxisValueFormat3.Equals(Mubarrat.Fonts.Tables.StatAxisValue? other) -> bool
 override sealed Mubarrat.Fonts.Tables.StatAxisValueFormat4.Equals(Mubarrat.Fonts.Tables.StatAxisValue? other) -> bool
+override sealed Mubarrat.Fonts.Tables.StretchGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.ActionSubrecord? other) -> bool
+override sealed Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.Equals(Mubarrat.Fonts.Tables.ActionSubrecord? other) -> bool
 override sealed Mubarrat.Fonts.Tables.VariationIndex.Equals(Mubarrat.Fonts.Tables.Device? other) -> bool
 static Mubarrat.Fonts.Binary.BinaryExtensions.PeekEnumArray<TEnum>(this ref Mubarrat.Fonts.Binary.Cursor cursor, int count, bool isLittleEndian = false) -> TEnum[]!
 static Mubarrat.Fonts.Binary.BinaryExtensions.PeekEnumArray<TEnum>(this ref Mubarrat.Fonts.Binary.Cursor cursor, System.Span<TEnum> destination, bool isLittleEndian = false) -> void
@@ -8512,6 +9259,12 @@ static Mubarrat.Fonts.Tables.AcntTable.Header.ReverseEndianness(Mubarrat.Fonts.T
 static Mubarrat.Fonts.Tables.AcntTable.operator !=(Mubarrat.Fonts.Tables.AcntTable? left, Mubarrat.Fonts.Tables.AcntTable? right) -> bool
 static Mubarrat.Fonts.Tables.AcntTable.operator ==(Mubarrat.Fonts.Tables.AcntTable? left, Mubarrat.Fonts.Tables.AcntTable? right) -> bool
 static Mubarrat.Fonts.Tables.AcntTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.ActionSubrecord.operator !=(Mubarrat.Fonts.Tables.ActionSubrecord? left, Mubarrat.Fonts.Tables.ActionSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.ActionSubrecord.operator ==(Mubarrat.Fonts.Tables.ActionSubrecord? left, Mubarrat.Fonts.Tables.ActionSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.ActionSubrecord.Parse(ref Mubarrat.Fonts.Binary.Cursor cursor, object? context = null) -> Mubarrat.Fonts.Tables.ActionSubrecord!
+static Mubarrat.Fonts.Tables.ActionSubrecordHeader.operator !=(Mubarrat.Fonts.Tables.ActionSubrecordHeader left, Mubarrat.Fonts.Tables.ActionSubrecordHeader right) -> bool
+static Mubarrat.Fonts.Tables.ActionSubrecordHeader.operator ==(Mubarrat.Fonts.Tables.ActionSubrecordHeader left, Mubarrat.Fonts.Tables.ActionSubrecordHeader right) -> bool
+static Mubarrat.Fonts.Tables.ActionSubrecordHeader.ReverseEndianness(Mubarrat.Fonts.Tables.ActionSubrecordHeader value) -> Mubarrat.Fonts.Tables.ActionSubrecordHeader
 static Mubarrat.Fonts.Tables.Affine2x3.operator !=(Mubarrat.Fonts.Tables.Affine2x3 left, Mubarrat.Fonts.Tables.Affine2x3 right) -> bool
 static Mubarrat.Fonts.Tables.Affine2x3.operator ==(Mubarrat.Fonts.Tables.Affine2x3 left, Mubarrat.Fonts.Tables.Affine2x3 right) -> bool
 static Mubarrat.Fonts.Tables.Affine2x3.ReverseEndianness(Mubarrat.Fonts.Tables.Affine2x3 v) -> Mubarrat.Fonts.Tables.Affine2x3
@@ -8953,6 +9706,11 @@ static Mubarrat.Fonts.Tables.CompositeGlyph.operator !=(Mubarrat.Fonts.Tables.Co
 static Mubarrat.Fonts.Tables.CompositeGlyph.operator ==(Mubarrat.Fonts.Tables.CompositeGlyph? left, Mubarrat.Fonts.Tables.CompositeGlyph? right) -> bool
 static Mubarrat.Fonts.Tables.Condition.operator !=(Mubarrat.Fonts.Tables.Condition? left, Mubarrat.Fonts.Tables.Condition? right) -> bool
 static Mubarrat.Fonts.Tables.Condition.operator ==(Mubarrat.Fonts.Tables.Condition? left, Mubarrat.Fonts.Tables.Condition? right) -> bool
+static Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.operator !=(Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord? left, Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.operator ==(Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord? left, Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.operator !=(Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload left, Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload right) -> bool
+static Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.operator ==(Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload left, Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload right) -> bool
+static Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.ReverseEndianness(Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload value) -> Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload
 static Mubarrat.Fonts.Tables.ConditionFormat1.Header.operator !=(Mubarrat.Fonts.Tables.ConditionFormat1.Header left, Mubarrat.Fonts.Tables.ConditionFormat1.Header right) -> bool
 static Mubarrat.Fonts.Tables.ConditionFormat1.Header.operator ==(Mubarrat.Fonts.Tables.ConditionFormat1.Header left, Mubarrat.Fonts.Tables.ConditionFormat1.Header right) -> bool
 static Mubarrat.Fonts.Tables.ConditionFormat1.Header.ReverseEndianness(Mubarrat.Fonts.Tables.ConditionFormat1.Header v) -> Mubarrat.Fonts.Tables.ConditionFormat1.Header
@@ -8996,6 +9754,11 @@ static Mubarrat.Fonts.Tables.CvarTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
 static Mubarrat.Fonts.Tables.CvtTable.operator !=(Mubarrat.Fonts.Tables.CvtTable? left, Mubarrat.Fonts.Tables.CvtTable? right) -> bool
 static Mubarrat.Fonts.Tables.CvtTable.operator ==(Mubarrat.Fonts.Tables.CvtTable? left, Mubarrat.Fonts.Tables.CvtTable? right) -> bool
 static Mubarrat.Fonts.Tables.CvtTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.operator !=(Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix left, Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix right) -> bool
+static Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.operator ==(Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix left, Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix right) -> bool
+static Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.ReverseEndianness(Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix value) -> Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix
+static Mubarrat.Fonts.Tables.DecompositionSubrecord.operator !=(Mubarrat.Fonts.Tables.DecompositionSubrecord? left, Mubarrat.Fonts.Tables.DecompositionSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.DecompositionSubrecord.operator ==(Mubarrat.Fonts.Tables.DecompositionSubrecord? left, Mubarrat.Fonts.Tables.DecompositionSubrecord? right) -> bool
 static Mubarrat.Fonts.Tables.DeltaSetIndexMap.operator !=(Mubarrat.Fonts.Tables.DeltaSetIndexMap? left, Mubarrat.Fonts.Tables.DeltaSetIndexMap? right) -> bool
 static Mubarrat.Fonts.Tables.DeltaSetIndexMap.operator ==(Mubarrat.Fonts.Tables.DeltaSetIndexMap? left, Mubarrat.Fonts.Tables.DeltaSetIndexMap? right) -> bool
 static Mubarrat.Fonts.Tables.DeltaSetIndexMap.Parse(ref Mubarrat.Fonts.Binary.Cursor cursor, object? context) -> Mubarrat.Fonts.Tables.DeltaSetIndexMap!
@@ -9020,6 +9783,11 @@ static Mubarrat.Fonts.Tables.DsigTable.SignatureRecord.operator !=(Mubarrat.Font
 static Mubarrat.Fonts.Tables.DsigTable.SignatureRecord.operator ==(Mubarrat.Fonts.Tables.DsigTable.SignatureRecord left, Mubarrat.Fonts.Tables.DsigTable.SignatureRecord right) -> bool
 static Mubarrat.Fonts.Tables.DsigTable.SignatureRecord.ReverseEndianness(Mubarrat.Fonts.Tables.DsigTable.SignatureRecord v) -> Mubarrat.Fonts.Tables.DsigTable.SignatureRecord
 static Mubarrat.Fonts.Tables.DsigTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.operator !=(Mubarrat.Fonts.Tables.DuctileGlyphSubrecord? left, Mubarrat.Fonts.Tables.DuctileGlyphSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.operator ==(Mubarrat.Fonts.Tables.DuctileGlyphSubrecord? left, Mubarrat.Fonts.Tables.DuctileGlyphSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.operator !=(Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload left, Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload right) -> bool
+static Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.operator ==(Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload left, Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload right) -> bool
+static Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.ReverseEndianness(Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload value) -> Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload
 static Mubarrat.Fonts.Tables.EbdtComponent.operator !=(Mubarrat.Fonts.Tables.EbdtComponent left, Mubarrat.Fonts.Tables.EbdtComponent right) -> bool
 static Mubarrat.Fonts.Tables.EbdtComponent.operator ==(Mubarrat.Fonts.Tables.EbdtComponent left, Mubarrat.Fonts.Tables.EbdtComponent right) -> bool
 static Mubarrat.Fonts.Tables.EbdtComponent.ReverseEndianness(Mubarrat.Fonts.Tables.EbdtComponent value) -> Mubarrat.Fonts.Tables.EbdtComponent
@@ -9307,6 +10075,36 @@ static Mubarrat.Fonts.Tables.HvarTable.operator !=(Mubarrat.Fonts.Tables.HvarTab
 static Mubarrat.Fonts.Tables.HvarTable.operator ==(Mubarrat.Fonts.Tables.HvarTable? left, Mubarrat.Fonts.Tables.HvarTable? right) -> bool
 static Mubarrat.Fonts.Tables.HvarTable.Parse(ref Mubarrat.Fonts.Binary.Cursor cursor, object? context) -> Mubarrat.Fonts.Tables.HvarTable!
 static Mubarrat.Fonts.Tables.HvarTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.HvglCompositePart.Header.operator !=(Mubarrat.Fonts.Tables.HvglCompositePart.Header left, Mubarrat.Fonts.Tables.HvglCompositePart.Header right) -> bool
+static Mubarrat.Fonts.Tables.HvglCompositePart.Header.operator ==(Mubarrat.Fonts.Tables.HvglCompositePart.Header left, Mubarrat.Fonts.Tables.HvglCompositePart.Header right) -> bool
+static Mubarrat.Fonts.Tables.HvglCompositePart.Header.ReverseEndianness(Mubarrat.Fonts.Tables.HvglCompositePart.Header value) -> Mubarrat.Fonts.Tables.HvglCompositePart.Header
+static Mubarrat.Fonts.Tables.HvglCompositePart.operator !=(Mubarrat.Fonts.Tables.HvglCompositePart? left, Mubarrat.Fonts.Tables.HvglCompositePart? right) -> bool
+static Mubarrat.Fonts.Tables.HvglCompositePart.operator ==(Mubarrat.Fonts.Tables.HvglCompositePart? left, Mubarrat.Fonts.Tables.HvglCompositePart? right) -> bool
+static Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.operator !=(Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry left, Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry right) -> bool
+static Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.operator ==(Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry left, Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry right) -> bool
+static Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.ReverseEndianness(Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry value) -> Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry
+static Mubarrat.Fonts.Tables.HvglPart.operator !=(Mubarrat.Fonts.Tables.HvglPart? left, Mubarrat.Fonts.Tables.HvglPart? right) -> bool
+static Mubarrat.Fonts.Tables.HvglPart.operator ==(Mubarrat.Fonts.Tables.HvglPart? left, Mubarrat.Fonts.Tables.HvglPart? right) -> bool
+static Mubarrat.Fonts.Tables.HvglShapePart.Header.operator !=(Mubarrat.Fonts.Tables.HvglShapePart.Header left, Mubarrat.Fonts.Tables.HvglShapePart.Header right) -> bool
+static Mubarrat.Fonts.Tables.HvglShapePart.Header.operator ==(Mubarrat.Fonts.Tables.HvglShapePart.Header left, Mubarrat.Fonts.Tables.HvglShapePart.Header right) -> bool
+static Mubarrat.Fonts.Tables.HvglShapePart.Header.ReverseEndianness(Mubarrat.Fonts.Tables.HvglShapePart.Header value) -> Mubarrat.Fonts.Tables.HvglShapePart.Header
+static Mubarrat.Fonts.Tables.HvglShapePart.operator !=(Mubarrat.Fonts.Tables.HvglShapePart? left, Mubarrat.Fonts.Tables.HvglShapePart? right) -> bool
+static Mubarrat.Fonts.Tables.HvglShapePart.operator ==(Mubarrat.Fonts.Tables.HvglShapePart? left, Mubarrat.Fonts.Tables.HvglShapePart? right) -> bool
+static Mubarrat.Fonts.Tables.HvglTable.Header.operator !=(Mubarrat.Fonts.Tables.HvglTable.Header left, Mubarrat.Fonts.Tables.HvglTable.Header right) -> bool
+static Mubarrat.Fonts.Tables.HvglTable.Header.operator ==(Mubarrat.Fonts.Tables.HvglTable.Header left, Mubarrat.Fonts.Tables.HvglTable.Header right) -> bool
+static Mubarrat.Fonts.Tables.HvglTable.Header.ReverseEndianness(Mubarrat.Fonts.Tables.HvglTable.Header value) -> Mubarrat.Fonts.Tables.HvglTable.Header
+static Mubarrat.Fonts.Tables.HvglTable.operator !=(Mubarrat.Fonts.Tables.HvglTable? left, Mubarrat.Fonts.Tables.HvglTable? right) -> bool
+static Mubarrat.Fonts.Tables.HvglTable.operator ==(Mubarrat.Fonts.Tables.HvglTable? left, Mubarrat.Fonts.Tables.HvglTable? right) -> bool
+static Mubarrat.Fonts.Tables.HvglTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.HvpmTable.Header.operator !=(Mubarrat.Fonts.Tables.HvpmTable.Header left, Mubarrat.Fonts.Tables.HvpmTable.Header right) -> bool
+static Mubarrat.Fonts.Tables.HvpmTable.Header.operator ==(Mubarrat.Fonts.Tables.HvpmTable.Header left, Mubarrat.Fonts.Tables.HvpmTable.Header right) -> bool
+static Mubarrat.Fonts.Tables.HvpmTable.Header.ReverseEndianness(Mubarrat.Fonts.Tables.HvpmTable.Header value) -> Mubarrat.Fonts.Tables.HvpmTable.Header
+static Mubarrat.Fonts.Tables.HvpmTable.operator !=(Mubarrat.Fonts.Tables.HvpmTable? left, Mubarrat.Fonts.Tables.HvpmTable? right) -> bool
+static Mubarrat.Fonts.Tables.HvpmTable.operator ==(Mubarrat.Fonts.Tables.HvpmTable? left, Mubarrat.Fonts.Tables.HvpmTable? right) -> bool
+static Mubarrat.Fonts.Tables.HvpmTable.PartRange.operator !=(Mubarrat.Fonts.Tables.HvpmTable.PartRange left, Mubarrat.Fonts.Tables.HvpmTable.PartRange right) -> bool
+static Mubarrat.Fonts.Tables.HvpmTable.PartRange.operator ==(Mubarrat.Fonts.Tables.HvpmTable.PartRange left, Mubarrat.Fonts.Tables.HvpmTable.PartRange right) -> bool
+static Mubarrat.Fonts.Tables.HvpmTable.PartRange.ReverseEndianness(Mubarrat.Fonts.Tables.HvpmTable.PartRange value) -> Mubarrat.Fonts.Tables.HvpmTable.PartRange
+static Mubarrat.Fonts.Tables.HvpmTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
 static Mubarrat.Fonts.Tables.IndexSubHeader.operator !=(Mubarrat.Fonts.Tables.IndexSubHeader left, Mubarrat.Fonts.Tables.IndexSubHeader right) -> bool
 static Mubarrat.Fonts.Tables.IndexSubHeader.operator ==(Mubarrat.Fonts.Tables.IndexSubHeader left, Mubarrat.Fonts.Tables.IndexSubHeader right) -> bool
 static Mubarrat.Fonts.Tables.IndexSubHeader.ReverseEndianness(Mubarrat.Fonts.Tables.IndexSubHeader value) -> Mubarrat.Fonts.Tables.IndexSubHeader
@@ -9378,6 +10176,23 @@ static Mubarrat.Fonts.Tables.JstfTable.ScriptHeader.operator !=(Mubarrat.Fonts.T
 static Mubarrat.Fonts.Tables.JstfTable.ScriptHeader.operator ==(Mubarrat.Fonts.Tables.JstfTable.ScriptHeader left, Mubarrat.Fonts.Tables.JstfTable.ScriptHeader right) -> bool
 static Mubarrat.Fonts.Tables.JstfTable.ScriptHeader.ReverseEndianness(Mubarrat.Fonts.Tables.JstfTable.ScriptHeader value) -> Mubarrat.Fonts.Tables.JstfTable.ScriptHeader
 static Mubarrat.Fonts.Tables.JstfTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.JustificationCategoryStateTable.operator !=(Mubarrat.Fonts.Tables.JustificationCategoryStateTable? left, Mubarrat.Fonts.Tables.JustificationCategoryStateTable? right) -> bool
+static Mubarrat.Fonts.Tables.JustificationCategoryStateTable.operator ==(Mubarrat.Fonts.Tables.JustificationCategoryStateTable? left, Mubarrat.Fonts.Tables.JustificationCategoryStateTable? right) -> bool
+static Mubarrat.Fonts.Tables.JustificationDirection.Context.operator !=(Mubarrat.Fonts.Tables.JustificationDirection.Context? left, Mubarrat.Fonts.Tables.JustificationDirection.Context? right) -> bool
+static Mubarrat.Fonts.Tables.JustificationDirection.Context.operator ==(Mubarrat.Fonts.Tables.JustificationDirection.Context? left, Mubarrat.Fonts.Tables.JustificationDirection.Context? right) -> bool
+static Mubarrat.Fonts.Tables.JustificationDirection.operator !=(Mubarrat.Fonts.Tables.JustificationDirection? left, Mubarrat.Fonts.Tables.JustificationDirection? right) -> bool
+static Mubarrat.Fonts.Tables.JustificationDirection.operator ==(Mubarrat.Fonts.Tables.JustificationDirection? left, Mubarrat.Fonts.Tables.JustificationDirection? right) -> bool
+static Mubarrat.Fonts.Tables.JustificationStateEntry.operator !=(Mubarrat.Fonts.Tables.JustificationStateEntry left, Mubarrat.Fonts.Tables.JustificationStateEntry right) -> bool
+static Mubarrat.Fonts.Tables.JustificationStateEntry.operator ==(Mubarrat.Fonts.Tables.JustificationStateEntry left, Mubarrat.Fonts.Tables.JustificationStateEntry right) -> bool
+static Mubarrat.Fonts.Tables.JustTable.Header.operator !=(Mubarrat.Fonts.Tables.JustTable.Header left, Mubarrat.Fonts.Tables.JustTable.Header right) -> bool
+static Mubarrat.Fonts.Tables.JustTable.Header.operator ==(Mubarrat.Fonts.Tables.JustTable.Header left, Mubarrat.Fonts.Tables.JustTable.Header right) -> bool
+static Mubarrat.Fonts.Tables.JustTable.Header.ReverseEndianness(Mubarrat.Fonts.Tables.JustTable.Header value) -> Mubarrat.Fonts.Tables.JustTable.Header
+static Mubarrat.Fonts.Tables.JustTable.operator !=(Mubarrat.Fonts.Tables.JustTable? left, Mubarrat.Fonts.Tables.JustTable? right) -> bool
+static Mubarrat.Fonts.Tables.JustTable.operator ==(Mubarrat.Fonts.Tables.JustTable? left, Mubarrat.Fonts.Tables.JustTable? right) -> bool
+static Mubarrat.Fonts.Tables.JustTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.JustWidthDeltaEntry.operator !=(Mubarrat.Fonts.Tables.JustWidthDeltaEntry left, Mubarrat.Fonts.Tables.JustWidthDeltaEntry right) -> bool
+static Mubarrat.Fonts.Tables.JustWidthDeltaEntry.operator ==(Mubarrat.Fonts.Tables.JustWidthDeltaEntry left, Mubarrat.Fonts.Tables.JustWidthDeltaEntry right) -> bool
+static Mubarrat.Fonts.Tables.JustWidthDeltaEntry.ReverseEndianness(Mubarrat.Fonts.Tables.JustWidthDeltaEntry value) -> Mubarrat.Fonts.Tables.JustWidthDeltaEntry
 static Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader.operator !=(Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader left, Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader right) -> bool
 static Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader.operator ==(Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader left, Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader right) -> bool
 static Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader.ReverseEndianness(Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader v) -> Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader
@@ -9394,6 +10209,10 @@ static Mubarrat.Fonts.Tables.KernFormat2.Format2Header.operator ==(Mubarrat.Font
 static Mubarrat.Fonts.Tables.KernFormat2.Format2Header.ReverseEndianness(Mubarrat.Fonts.Tables.KernFormat2.Format2Header v) -> Mubarrat.Fonts.Tables.KernFormat2.Format2Header
 static Mubarrat.Fonts.Tables.KernFormat2.operator !=(Mubarrat.Fonts.Tables.KernFormat2? left, Mubarrat.Fonts.Tables.KernFormat2? right) -> bool
 static Mubarrat.Fonts.Tables.KernFormat2.operator ==(Mubarrat.Fonts.Tables.KernFormat2? left, Mubarrat.Fonts.Tables.KernFormat2? right) -> bool
+static Mubarrat.Fonts.Tables.KerningPair.Context.operator !=(Mubarrat.Fonts.Tables.KerningPair.Context? left, Mubarrat.Fonts.Tables.KerningPair.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerningPair.Context.operator ==(Mubarrat.Fonts.Tables.KerningPair.Context? left, Mubarrat.Fonts.Tables.KerningPair.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerningPair.operator !=(Mubarrat.Fonts.Tables.KerningPair? left, Mubarrat.Fonts.Tables.KerningPair? right) -> bool
+static Mubarrat.Fonts.Tables.KerningPair.operator ==(Mubarrat.Fonts.Tables.KerningPair? left, Mubarrat.Fonts.Tables.KerningPair? right) -> bool
 static Mubarrat.Fonts.Tables.KernPair.operator !=(Mubarrat.Fonts.Tables.KernPair left, Mubarrat.Fonts.Tables.KernPair right) -> bool
 static Mubarrat.Fonts.Tables.KernPair.operator ==(Mubarrat.Fonts.Tables.KernPair left, Mubarrat.Fonts.Tables.KernPair right) -> bool
 static Mubarrat.Fonts.Tables.KernPair.ReverseEndianness(Mubarrat.Fonts.Tables.KernPair v) -> Mubarrat.Fonts.Tables.KernPair
@@ -9412,6 +10231,42 @@ static Mubarrat.Fonts.Tables.KernTable.Parse(ref Mubarrat.Fonts.Binary.Cursor cu
 static Mubarrat.Fonts.Tables.KernTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
 static Mubarrat.Fonts.Tables.KernUnknown.operator !=(Mubarrat.Fonts.Tables.KernUnknown? left, Mubarrat.Fonts.Tables.KernUnknown? right) -> bool
 static Mubarrat.Fonts.Tables.KernUnknown.operator ==(Mubarrat.Fonts.Tables.KernUnknown? left, Mubarrat.Fonts.Tables.KernUnknown? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat0Subtable.operator !=(Mubarrat.Fonts.Tables.KerxFormat0Subtable? left, Mubarrat.Fonts.Tables.KerxFormat0Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat0Subtable.operator ==(Mubarrat.Fonts.Tables.KerxFormat0Subtable? left, Mubarrat.Fonts.Tables.KerxFormat0Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat1Subtable.operator !=(Mubarrat.Fonts.Tables.KerxFormat1Subtable? left, Mubarrat.Fonts.Tables.KerxFormat1Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat1Subtable.operator ==(Mubarrat.Fonts.Tables.KerxFormat1Subtable? left, Mubarrat.Fonts.Tables.KerxFormat1Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat2Subtable.operator !=(Mubarrat.Fonts.Tables.KerxFormat2Subtable? left, Mubarrat.Fonts.Tables.KerxFormat2Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat2Subtable.operator ==(Mubarrat.Fonts.Tables.KerxFormat2Subtable? left, Mubarrat.Fonts.Tables.KerxFormat2Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.operator !=(Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context? left, Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.operator ==(Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context? left, Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat4StateEntry.operator !=(Mubarrat.Fonts.Tables.KerxFormat4StateEntry? left, Mubarrat.Fonts.Tables.KerxFormat4StateEntry? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat4StateEntry.operator ==(Mubarrat.Fonts.Tables.KerxFormat4StateEntry? left, Mubarrat.Fonts.Tables.KerxFormat4StateEntry? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat4Subtable.operator !=(Mubarrat.Fonts.Tables.KerxFormat4Subtable? left, Mubarrat.Fonts.Tables.KerxFormat4Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat4Subtable.operator ==(Mubarrat.Fonts.Tables.KerxFormat4Subtable? left, Mubarrat.Fonts.Tables.KerxFormat4Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat6Subtable.operator !=(Mubarrat.Fonts.Tables.KerxFormat6Subtable? left, Mubarrat.Fonts.Tables.KerxFormat6Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxFormat6Subtable.operator ==(Mubarrat.Fonts.Tables.KerxFormat6Subtable? left, Mubarrat.Fonts.Tables.KerxFormat6Subtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.operator !=(Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context? left, Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.operator ==(Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context? left, Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.operator !=(Mubarrat.Fonts.Tables.KerxGlyphCoverageTable? left, Mubarrat.Fonts.Tables.KerxGlyphCoverageTable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.operator ==(Mubarrat.Fonts.Tables.KerxGlyphCoverageTable? left, Mubarrat.Fonts.Tables.KerxGlyphCoverageTable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxStateEntry.Context.operator !=(Mubarrat.Fonts.Tables.KerxStateEntry.Context? left, Mubarrat.Fonts.Tables.KerxStateEntry.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerxStateEntry.Context.operator ==(Mubarrat.Fonts.Tables.KerxStateEntry.Context? left, Mubarrat.Fonts.Tables.KerxStateEntry.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerxStateEntry.operator !=(Mubarrat.Fonts.Tables.KerxStateEntry? left, Mubarrat.Fonts.Tables.KerxStateEntry? right) -> bool
+static Mubarrat.Fonts.Tables.KerxStateEntry.operator ==(Mubarrat.Fonts.Tables.KerxStateEntry? left, Mubarrat.Fonts.Tables.KerxStateEntry? right) -> bool
+static Mubarrat.Fonts.Tables.KerxSubtable.Context.operator !=(Mubarrat.Fonts.Tables.KerxSubtable.Context? left, Mubarrat.Fonts.Tables.KerxSubtable.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerxSubtable.Context.operator ==(Mubarrat.Fonts.Tables.KerxSubtable.Context? left, Mubarrat.Fonts.Tables.KerxSubtable.Context? right) -> bool
+static Mubarrat.Fonts.Tables.KerxSubtable.operator !=(Mubarrat.Fonts.Tables.KerxSubtable? left, Mubarrat.Fonts.Tables.KerxSubtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxSubtable.operator ==(Mubarrat.Fonts.Tables.KerxSubtable? left, Mubarrat.Fonts.Tables.KerxSubtable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxSubtable.Parse(ref Mubarrat.Fonts.Binary.Cursor cursor, object? context = null) -> Mubarrat.Fonts.Tables.KerxSubtable!
+static Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.operator !=(Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader left, Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader right) -> bool
+static Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.operator ==(Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader left, Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader right) -> bool
+static Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.ReverseEndianness(Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader value) -> Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader
+static Mubarrat.Fonts.Tables.KerxTable.Header.operator !=(Mubarrat.Fonts.Tables.KerxTable.Header left, Mubarrat.Fonts.Tables.KerxTable.Header right) -> bool
+static Mubarrat.Fonts.Tables.KerxTable.Header.operator ==(Mubarrat.Fonts.Tables.KerxTable.Header left, Mubarrat.Fonts.Tables.KerxTable.Header right) -> bool
+static Mubarrat.Fonts.Tables.KerxTable.Header.ReverseEndianness(Mubarrat.Fonts.Tables.KerxTable.Header value) -> Mubarrat.Fonts.Tables.KerxTable.Header
+static Mubarrat.Fonts.Tables.KerxTable.operator !=(Mubarrat.Fonts.Tables.KerxTable? left, Mubarrat.Fonts.Tables.KerxTable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxTable.operator ==(Mubarrat.Fonts.Tables.KerxTable? left, Mubarrat.Fonts.Tables.KerxTable? right) -> bool
+static Mubarrat.Fonts.Tables.KerxTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
 static Mubarrat.Fonts.Tables.LangSys.Header.operator !=(Mubarrat.Fonts.Tables.LangSys.Header left, Mubarrat.Fonts.Tables.LangSys.Header right) -> bool
 static Mubarrat.Fonts.Tables.LangSys.Header.operator ==(Mubarrat.Fonts.Tables.LangSys.Header left, Mubarrat.Fonts.Tables.LangSys.Header right) -> bool
 static Mubarrat.Fonts.Tables.LangSys.Header.ReverseEndianness(Mubarrat.Fonts.Tables.LangSys.Header v) -> Mubarrat.Fonts.Tables.LangSys.Header
@@ -9818,6 +10673,12 @@ static Mubarrat.Fonts.Tables.PcltTable.operator !=(Mubarrat.Fonts.Tables.PcltTab
 static Mubarrat.Fonts.Tables.PcltTable.operator ==(Mubarrat.Fonts.Tables.PcltTable? left, Mubarrat.Fonts.Tables.PcltTable? right) -> bool
 static Mubarrat.Fonts.Tables.PcltTable.Parse(ref Mubarrat.Fonts.Binary.Cursor cursor, object? context) -> Mubarrat.Fonts.Tables.PcltTable!
 static Mubarrat.Fonts.Tables.PcltTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.PostcompensationAction.operator !=(Mubarrat.Fonts.Tables.PostcompensationAction? left, Mubarrat.Fonts.Tables.PostcompensationAction? right) -> bool
+static Mubarrat.Fonts.Tables.PostcompensationAction.operator ==(Mubarrat.Fonts.Tables.PostcompensationAction? left, Mubarrat.Fonts.Tables.PostcompensationAction? right) -> bool
+static Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.operator !=(Mubarrat.Fonts.Tables.PostcompensationSubtable.Context? left, Mubarrat.Fonts.Tables.PostcompensationSubtable.Context? right) -> bool
+static Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.operator ==(Mubarrat.Fonts.Tables.PostcompensationSubtable.Context? left, Mubarrat.Fonts.Tables.PostcompensationSubtable.Context? right) -> bool
+static Mubarrat.Fonts.Tables.PostcompensationSubtable.operator !=(Mubarrat.Fonts.Tables.PostcompensationSubtable? left, Mubarrat.Fonts.Tables.PostcompensationSubtable? right) -> bool
+static Mubarrat.Fonts.Tables.PostcompensationSubtable.operator ==(Mubarrat.Fonts.Tables.PostcompensationSubtable? left, Mubarrat.Fonts.Tables.PostcompensationSubtable? right) -> bool
 static Mubarrat.Fonts.Tables.PostTable.Header.operator !=(Mubarrat.Fonts.Tables.PostTable.Header left, Mubarrat.Fonts.Tables.PostTable.Header right) -> bool
 static Mubarrat.Fonts.Tables.PostTable.Header.operator ==(Mubarrat.Fonts.Tables.PostTable.Header left, Mubarrat.Fonts.Tables.PostTable.Header right) -> bool
 static Mubarrat.Fonts.Tables.PostTable.Header.ReverseEndianness(Mubarrat.Fonts.Tables.PostTable.Header value) -> Mubarrat.Fonts.Tables.PostTable.Header
@@ -9832,6 +10693,11 @@ static Mubarrat.Fonts.Tables.PostTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
 static Mubarrat.Fonts.Tables.PrepTable.operator !=(Mubarrat.Fonts.Tables.PrepTable? left, Mubarrat.Fonts.Tables.PrepTable? right) -> bool
 static Mubarrat.Fonts.Tables.PrepTable.operator ==(Mubarrat.Fonts.Tables.PrepTable? left, Mubarrat.Fonts.Tables.PrepTable? right) -> bool
 static Mubarrat.Fonts.Tables.PrepTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.operator !=(Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord? left, Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.operator ==(Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord? left, Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.operator !=(Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload left, Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload right) -> bool
+static Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.operator ==(Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload left, Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload right) -> bool
+static Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.ReverseEndianness(Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload value) -> Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload
 static Mubarrat.Fonts.Tables.ResourceMapping.operator !=(Mubarrat.Fonts.Tables.ResourceMapping? left, Mubarrat.Fonts.Tables.ResourceMapping? right) -> bool
 static Mubarrat.Fonts.Tables.ResourceMapping.operator ==(Mubarrat.Fonts.Tables.ResourceMapping? left, Mubarrat.Fonts.Tables.ResourceMapping? right) -> bool
 static Mubarrat.Fonts.Tables.ReverseChainSingleSubst.Header.operator !=(Mubarrat.Fonts.Tables.ReverseChainSingleSubst.Header left, Mubarrat.Fonts.Tables.ReverseChainSingleSubst.Header right) -> bool
@@ -9961,6 +10827,8 @@ static Mubarrat.Fonts.Tables.StatTable.operator ==(Mubarrat.Fonts.Tables.StatTab
 static Mubarrat.Fonts.Tables.StatTable.Parse(ref Mubarrat.Fonts.Binary.Cursor cursor, object? context) -> Mubarrat.Fonts.Tables.StatTable!
 static Mubarrat.Fonts.Tables.StatTable.ParseDesignAxes(Mubarrat.Fonts.Binary.Cursor cursor, int count, ushort declaredSize) -> Mubarrat.Fonts.Tables.StatAxisRecord[]!
 static Mubarrat.Fonts.Tables.StatTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.StretchGlyphSubrecord.operator !=(Mubarrat.Fonts.Tables.StretchGlyphSubrecord? left, Mubarrat.Fonts.Tables.StretchGlyphSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.StretchGlyphSubrecord.operator ==(Mubarrat.Fonts.Tables.StretchGlyphSubrecord? left, Mubarrat.Fonts.Tables.StretchGlyphSubrecord? right) -> bool
 static Mubarrat.Fonts.Tables.STXHeader.operator !=(Mubarrat.Fonts.Tables.STXHeader left, Mubarrat.Fonts.Tables.STXHeader right) -> bool
 static Mubarrat.Fonts.Tables.STXHeader.operator ==(Mubarrat.Fonts.Tables.STXHeader left, Mubarrat.Fonts.Tables.STXHeader right) -> bool
 static Mubarrat.Fonts.Tables.STXHeader.ReverseEndianness(Mubarrat.Fonts.Tables.STXHeader v) -> Mubarrat.Fonts.Tables.STXHeader
@@ -9998,6 +10866,8 @@ static Mubarrat.Fonts.Tables.TupleVariationStore.operator ==(Mubarrat.Fonts.Tabl
 static Mubarrat.Fonts.Tables.TupleVariationStore.Parse(ref Mubarrat.Fonts.Binary.Cursor cursor, int axisCount, bool isCvar, System.Collections.Generic.IReadOnlyList<Mubarrat.Fonts.Tables.TupleRecord>? sharedTuples = null) -> Mubarrat.Fonts.Tables.TupleVariationStore!
 static Mubarrat.Fonts.Tables.TupleVariationTableData.operator !=(Mubarrat.Fonts.Tables.TupleVariationTableData? left, Mubarrat.Fonts.Tables.TupleVariationTableData? right) -> bool
 static Mubarrat.Fonts.Tables.TupleVariationTableData.operator ==(Mubarrat.Fonts.Tables.TupleVariationTableData? left, Mubarrat.Fonts.Tables.TupleVariationTableData? right) -> bool
+static Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.operator !=(Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord? left, Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord? right) -> bool
+static Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord.operator ==(Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord? left, Mubarrat.Fonts.Tables.UnconditionalAddGlyphSubrecord? right) -> bool
 static Mubarrat.Fonts.Tables.Var<T>.operator !=(Mubarrat.Fonts.Tables.Var<T> left, Mubarrat.Fonts.Tables.Var<T> right) -> bool
 static Mubarrat.Fonts.Tables.Var<T>.operator ==(Mubarrat.Fonts.Tables.Var<T> left, Mubarrat.Fonts.Tables.Var<T> right) -> bool
 static Mubarrat.Fonts.Tables.Var<T>.ReverseEndianness(Mubarrat.Fonts.Tables.Var<T> v) -> Mubarrat.Fonts.Tables.Var<T>
@@ -10058,6 +10928,11 @@ static Mubarrat.Fonts.Tables.VvarTable.Header.ReverseEndianness(Mubarrat.Fonts.T
 static Mubarrat.Fonts.Tables.VvarTable.operator !=(Mubarrat.Fonts.Tables.VvarTable? left, Mubarrat.Fonts.Tables.VvarTable? right) -> bool
 static Mubarrat.Fonts.Tables.VvarTable.operator ==(Mubarrat.Fonts.Tables.VvarTable? left, Mubarrat.Fonts.Tables.VvarTable? right) -> bool
 static Mubarrat.Fonts.Tables.VvarTable.Tag.get -> Mubarrat.Fonts.Primitives.Tag
+static Mubarrat.Fonts.Tables.WidthDeltaCluster.operator !=(Mubarrat.Fonts.Tables.WidthDeltaCluster? left, Mubarrat.Fonts.Tables.WidthDeltaCluster? right) -> bool
+static Mubarrat.Fonts.Tables.WidthDeltaCluster.operator ==(Mubarrat.Fonts.Tables.WidthDeltaCluster? left, Mubarrat.Fonts.Tables.WidthDeltaCluster? right) -> bool
+static Mubarrat.Fonts.Tables.WidthDeltaPair.operator !=(Mubarrat.Fonts.Tables.WidthDeltaPair left, Mubarrat.Fonts.Tables.WidthDeltaPair right) -> bool
+static Mubarrat.Fonts.Tables.WidthDeltaPair.operator ==(Mubarrat.Fonts.Tables.WidthDeltaPair left, Mubarrat.Fonts.Tables.WidthDeltaPair right) -> bool
+static Mubarrat.Fonts.Tables.WidthDeltaPair.ReverseEndianness(Mubarrat.Fonts.Tables.WidthDeltaPair value) -> Mubarrat.Fonts.Tables.WidthDeltaPair
 static readonly Mubarrat.Fonts.Primitives.F2Dot14.MaxValue -> Mubarrat.Fonts.Primitives.F2Dot14
 static readonly Mubarrat.Fonts.Primitives.F2Dot14.MinValue -> Mubarrat.Fonts.Primitives.F2Dot14
 static readonly Mubarrat.Fonts.Primitives.F2Dot14.NegativeOneValue -> Mubarrat.Fonts.Primitives.F2Dot14
@@ -10132,6 +11007,9 @@ virtual Mubarrat.Fonts.Tables.AcntGlyphContext.PrintMembers(System.Text.StringBu
 virtual Mubarrat.Fonts.Tables.AcntGlyphDescription.EqualityContract.get -> System.Type!
 virtual Mubarrat.Fonts.Tables.AcntGlyphDescription.Equals(Mubarrat.Fonts.Tables.AcntGlyphDescription? other) -> bool
 virtual Mubarrat.Fonts.Tables.AcntGlyphDescription.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.ActionSubrecord.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.ActionSubrecord.Equals(Mubarrat.Fonts.Tables.ActionSubrecord? other) -> bool
+virtual Mubarrat.Fonts.Tables.ActionSubrecord.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual Mubarrat.Fonts.Tables.Anchor.EqualityContract.get -> System.Type!
 virtual Mubarrat.Fonts.Tables.Anchor.Equals(Mubarrat.Fonts.Tables.Anchor? other) -> bool
 virtual Mubarrat.Fonts.Tables.Anchor.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -10241,6 +11119,9 @@ virtual Mubarrat.Fonts.Tables.GposValueRecord.Context.PrintMembers(System.Text.S
 virtual Mubarrat.Fonts.Tables.GsubSubtable.EqualityContract.get -> System.Type!
 virtual Mubarrat.Fonts.Tables.GsubSubtable.Equals(Mubarrat.Fonts.Tables.GsubSubtable? other) -> bool
 virtual Mubarrat.Fonts.Tables.GsubSubtable.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.HvglPart.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.HvglPart.Equals(Mubarrat.Fonts.Tables.HvglPart? other) -> bool
+virtual Mubarrat.Fonts.Tables.HvglPart.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual Mubarrat.Fonts.Tables.IndexSubtable.EqualityContract.get -> System.Type!
 virtual Mubarrat.Fonts.Tables.IndexSubtable.Equals(Mubarrat.Fonts.Tables.IndexSubtable? other) -> bool
 virtual Mubarrat.Fonts.Tables.IndexSubtable.PrintMembers(System.Text.StringBuilder! builder) -> bool
@@ -10256,9 +11137,36 @@ virtual Mubarrat.Fonts.Tables.IndexSubtableList.Context.<Clone>$() -> Mubarrat.F
 virtual Mubarrat.Fonts.Tables.IndexSubtableList.Context.EqualityContract.get -> System.Type!
 virtual Mubarrat.Fonts.Tables.IndexSubtableList.Context.Equals(Mubarrat.Fonts.Tables.IndexSubtableList.Context? other) -> bool
 virtual Mubarrat.Fonts.Tables.IndexSubtableList.Context.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.JustificationDirection.Context.<Clone>$() -> Mubarrat.Fonts.Tables.JustificationDirection.Context!
+virtual Mubarrat.Fonts.Tables.JustificationDirection.Context.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.JustificationDirection.Context.Equals(Mubarrat.Fonts.Tables.JustificationDirection.Context? other) -> bool
+virtual Mubarrat.Fonts.Tables.JustificationDirection.Context.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.KerningPair.Context.<Clone>$() -> Mubarrat.Fonts.Tables.KerningPair.Context!
+virtual Mubarrat.Fonts.Tables.KerningPair.Context.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.KerningPair.Context.Equals(Mubarrat.Fonts.Tables.KerningPair.Context? other) -> bool
+virtual Mubarrat.Fonts.Tables.KerningPair.Context.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual Mubarrat.Fonts.Tables.KernSubtable.EqualityContract.get -> System.Type!
 virtual Mubarrat.Fonts.Tables.KernSubtable.Equals(Mubarrat.Fonts.Tables.KernSubtable? other) -> bool
 virtual Mubarrat.Fonts.Tables.KernSubtable.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.<Clone>$() -> Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context!
+virtual Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.Equals(Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context? other) -> bool
+virtual Mubarrat.Fonts.Tables.KerxFormat4StateEntry.Context.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.<Clone>$() -> Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context!
+virtual Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.Equals(Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context? other) -> bool
+virtual Mubarrat.Fonts.Tables.KerxGlyphCoverageTable.Context.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.KerxStateEntry.Context.<Clone>$() -> Mubarrat.Fonts.Tables.KerxStateEntry.Context!
+virtual Mubarrat.Fonts.Tables.KerxStateEntry.Context.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.KerxStateEntry.Context.Equals(Mubarrat.Fonts.Tables.KerxStateEntry.Context? other) -> bool
+virtual Mubarrat.Fonts.Tables.KerxStateEntry.Context.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.KerxSubtable.Context.<Clone>$() -> Mubarrat.Fonts.Tables.KerxSubtable.Context!
+virtual Mubarrat.Fonts.Tables.KerxSubtable.Context.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.KerxSubtable.Context.Equals(Mubarrat.Fonts.Tables.KerxSubtable.Context? other) -> bool
+virtual Mubarrat.Fonts.Tables.KerxSubtable.Context.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.KerxSubtable.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.KerxSubtable.Equals(Mubarrat.Fonts.Tables.KerxSubtable? other) -> bool
+virtual Mubarrat.Fonts.Tables.KerxSubtable.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual Mubarrat.Fonts.Tables.LigatureArray.Context.<Clone>$() -> Mubarrat.Fonts.Tables.LigatureArray.Context!
 virtual Mubarrat.Fonts.Tables.LigatureArray.Context.EqualityContract.get -> System.Type!
 virtual Mubarrat.Fonts.Tables.LigatureArray.Context.Equals(Mubarrat.Fonts.Tables.LigatureArray.Context? other) -> bool
@@ -10294,6 +11202,10 @@ virtual Mubarrat.Fonts.Tables.PairValueRecord.Context.<Clone>$() -> Mubarrat.Fon
 virtual Mubarrat.Fonts.Tables.PairValueRecord.Context.EqualityContract.get -> System.Type!
 virtual Mubarrat.Fonts.Tables.PairValueRecord.Context.Equals(Mubarrat.Fonts.Tables.PairValueRecord.Context? other) -> bool
 virtual Mubarrat.Fonts.Tables.PairValueRecord.Context.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.<Clone>$() -> Mubarrat.Fonts.Tables.PostcompensationSubtable.Context!
+virtual Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.EqualityContract.get -> System.Type!
+virtual Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.Equals(Mubarrat.Fonts.Tables.PostcompensationSubtable.Context? other) -> bool
+virtual Mubarrat.Fonts.Tables.PostcompensationSubtable.Context.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual Mubarrat.Fonts.Tables.SbixGlyphData.Context.<Clone>$() -> Mubarrat.Fonts.Tables.SbixGlyphData.Context!
 virtual Mubarrat.Fonts.Tables.SbixGlyphData.Context.EqualityContract.get -> System.Type!
 virtual Mubarrat.Fonts.Tables.SbixGlyphData.Context.Equals(Mubarrat.Fonts.Tables.SbixGlyphData.Context? other) -> bool
@@ -10332,6 +11244,8 @@ virtual Mubarrat.Fonts.Tables.TrueTypeProgramContext.PrintMembers(System.Text.St
 ~override Mubarrat.Fonts.Tables.AcntSimpleDescription.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.AcntTable.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.AcntTable.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.ActionSubrecordHeader.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.ActionSubrecordHeader.ToString() -> string
 ~override Mubarrat.Fonts.Tables.Affine2x3.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.Affine2x3.ToString() -> string
 ~override Mubarrat.Fonts.Tables.AlternateSubst.Header.Equals(object obj) -> bool
@@ -10449,6 +11363,8 @@ virtual Mubarrat.Fonts.Tables.TrueTypeProgramContext.PrintMembers(System.Text.St
 ~override Mubarrat.Fonts.Tables.ColrTable.HeaderV1.ToString() -> string
 ~override Mubarrat.Fonts.Tables.Component.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.Component.ToString() -> string
+~override Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.ConditionalAddGlyphSubrecord.Payload.ToString() -> string
 ~override Mubarrat.Fonts.Tables.ConditionFormat1.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.ConditionFormat1.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.Contour.Equals(object obj) -> bool
@@ -10461,12 +11377,16 @@ virtual Mubarrat.Fonts.Tables.TrueTypeProgramContext.PrintMembers(System.Text.St
 ~override Mubarrat.Fonts.Tables.CpalTable.HeaderV1.ToString() -> string
 ~override Mubarrat.Fonts.Tables.CursivePos.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.CursivePos.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.DecompositionSubrecord.FixedPrefix.ToString() -> string
 ~override Mubarrat.Fonts.Tables.DsigTable.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.DsigTable.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.DsigTable.SignatureBlockHeader.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.DsigTable.SignatureBlockHeader.ToString() -> string
 ~override Mubarrat.Fonts.Tables.DsigTable.SignatureRecord.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.DsigTable.SignatureRecord.ToString() -> string
+~override Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.DuctileGlyphSubrecord.Payload.ToString() -> string
 ~override Mubarrat.Fonts.Tables.EbdtComponent.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.EbdtComponent.ToString() -> string
 ~override Mubarrat.Fonts.Tables.EbdtTable.Header.Equals(object obj) -> bool
@@ -10548,6 +11468,18 @@ virtual Mubarrat.Fonts.Tables.TrueTypeProgramContext.PrintMembers(System.Text.St
 ~override Mubarrat.Fonts.Tables.HmtxTable.LongHorMetric.ToString() -> string
 ~override Mubarrat.Fonts.Tables.HvarTable.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.HvarTable.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.HvglCompositePart.Header.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.HvglCompositePart.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.HvglCompositePart.SubpartEntry.ToString() -> string
+~override Mubarrat.Fonts.Tables.HvglShapePart.Header.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.HvglShapePart.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.HvglTable.Header.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.HvglTable.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.HvpmTable.Header.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.HvpmTable.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.HvpmTable.PartRange.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.HvpmTable.PartRange.ToString() -> string
 ~override Mubarrat.Fonts.Tables.IndexSubHeader.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.IndexSubHeader.ToString() -> string
 ~override Mubarrat.Fonts.Tables.IndexSubtableFormat4.GlyphIdOffsetPair.Equals(object obj) -> bool
@@ -10560,6 +11492,12 @@ virtual Mubarrat.Fonts.Tables.TrueTypeProgramContext.PrintMembers(System.Text.St
 ~override Mubarrat.Fonts.Tables.JstfTable.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.JstfTable.ScriptHeader.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.JstfTable.ScriptHeader.ToString() -> string
+~override Mubarrat.Fonts.Tables.JustificationStateEntry.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.JustificationStateEntry.ToString() -> string
+~override Mubarrat.Fonts.Tables.JustTable.Header.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.JustTable.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.JustWidthDeltaEntry.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.JustWidthDeltaEntry.ToString() -> string
 ~override Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.KernClassTable.ClassTableHeader.ToString() -> string
 ~override Mubarrat.Fonts.Tables.KernFormat0.Format0Header.Equals(object obj) -> bool
@@ -10572,6 +11510,10 @@ virtual Mubarrat.Fonts.Tables.TrueTypeProgramContext.PrintMembers(System.Text.St
 ~override Mubarrat.Fonts.Tables.KernSubtable.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.KernTable.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.KernTable.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.KerxSubtable.SubtableHeader.ToString() -> string
+~override Mubarrat.Fonts.Tables.KerxTable.Header.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.KerxTable.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.LangSys.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.LangSys.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.LayerRecord.Equals(object obj) -> bool
@@ -10689,6 +11631,8 @@ virtual Mubarrat.Fonts.Tables.TrueTypeProgramContext.PrintMembers(System.Text.St
 ~override Mubarrat.Fonts.Tables.PcltTable.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.PostTable.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.PostTable.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.RepeatedAddGlyphSubrecord.Payload.ToString() -> string
 ~override Mubarrat.Fonts.Tables.ReverseChainSingleSubst.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.ReverseChainSingleSubst.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.SbitLineMetrics.Equals(object obj) -> bool
@@ -10762,3 +11706,5 @@ virtual Mubarrat.Fonts.Tables.TrueTypeProgramContext.PrintMembers(System.Text.St
 ~override Mubarrat.Fonts.Tables.VorgTable.Header.ToString() -> string
 ~override Mubarrat.Fonts.Tables.VvarTable.Header.Equals(object obj) -> bool
 ~override Mubarrat.Fonts.Tables.VvarTable.Header.ToString() -> string
+~override Mubarrat.Fonts.Tables.WidthDeltaPair.Equals(object obj) -> bool
+~override Mubarrat.Fonts.Tables.WidthDeltaPair.ToString() -> string

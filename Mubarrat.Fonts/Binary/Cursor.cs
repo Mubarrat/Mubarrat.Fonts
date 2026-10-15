@@ -507,6 +507,52 @@ public ref struct Cursor
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Version16Dot16</seealso>
     public readonly double PeekVersion16Dot16(bool isLittleEndian = false) => PeekUInt32(isLittleEndian) / 65536.0;
 
+    // ───────────────────────── Scalar reads (32-bit float) ─────────────────────────
+
+    /// <summary>Reads a 32-bit IEEE 754 floating-point value in the requested wire byte order and advances the position by 4 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>IEEE 754 binary32.</remarks>
+    /// <seealso cref="PeekSingle(bool)"/>
+    /// <seealso cref="ReadDouble(bool)"/>
+    public float ReadSingle(bool isLittleEndian = false)
+    {
+        float value = _source.ReadSingleAt(_position, isLittleEndian);
+        _position = checked(_position + 4);
+        return value;
+    }
+
+    /// <summary>Reads a 32-bit IEEE 754 floating-point value in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="ReadSingle(bool)"/>
+    public readonly float PeekSingle(bool isLittleEndian = false) => _source.ReadSingleAt(_position, isLittleEndian);
+
+    // ───────────────────────── Scalar reads (64-bit float) ─────────────────────────
+
+    /// <summary>Reads a 64-bit IEEE 754 floating-point value in the requested wire byte order and advances the position by 8 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>IEEE 754 binary64.</remarks>
+    /// <seealso cref="PeekDouble(bool)"/>
+    /// <seealso cref="ReadSingle(bool)"/>
+    public double ReadDouble(bool isLittleEndian = false)
+    {
+        double value = _source.ReadDoubleAt(_position, isLittleEndian);
+        _position = checked(_position + 8);
+        return value;
+    }
+
+    /// <summary>Reads a 64-bit IEEE 754 floating-point value in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="ReadDouble(bool)"/>
+    public readonly double PeekDouble(bool isLittleEndian = false) => _source.ReadDoubleAt(_position, isLittleEndian);
+
     // ───────────────────────── Offset reads ─────────────────────────
 
     /// <summary>Reads an 8-bit offset and advances the position by 1 byte.</summary>
@@ -1120,6 +1166,98 @@ public ref struct Cursor
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
     public readonly void PeekInt64Array(Span<long> destination, bool isLittleEndian = false) =>
         _source.ReadInt64ArrayAt(_position, destination, isLittleEndian);
+
+    // ───────────────────────── Typed arrays (32-bit float) ─────────────────────────
+
+    /// <summary>Reads an array of 32-bit IEEE 754 floating-point values in the requested wire byte order and advances the position.</summary>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read, in native byte order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="PeekSingleArray(int, bool)"/>
+    /// <seealso cref="ReadSingleArray(Span{float}, bool)"/>
+    public float[] ReadSingleArray(int count, bool isLittleEndian = false)
+    {
+        var result = PeekSingleArray(count, isLittleEndian);
+        _position = checked(_position + result.Length * 4);
+        return result;
+    }
+
+    /// <summary>Reads an array of 32-bit IEEE 754 floating-point values in the requested wire byte order without advancing the position.</summary>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read, in native byte order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="ReadSingleArray(int, bool)"/>
+    public readonly float[] PeekSingleArray(int count, bool isLittleEndian = false) =>
+        _source.ReadSingleArrayAt(_position, count, isLittleEndian);
+
+    /// <summary>Fills <paramref name="destination"/> with 32-bit IEEE 754 floating-point values in the requested wire byte order and advances the position.</summary>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="PeekSingleArray(Span{float}, bool)"/>
+    public void ReadSingleArray(Span<float> destination, bool isLittleEndian = false)
+    {
+        PeekSingleArray(destination, isLittleEndian);
+        _position = checked(_position + destination.Length * 4);
+    }
+
+    /// <summary>Fills <paramref name="destination"/> with 32-bit IEEE 754 floating-point values in the requested wire byte order without advancing.</summary>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="ReadSingleArray(Span{float}, bool)"/>
+    public readonly void PeekSingleArray(Span<float> destination, bool isLittleEndian = false) =>
+        _source.ReadSingleArrayAt(_position, destination, isLittleEndian);
+
+    // ───────────────────────── Typed arrays (64-bit float) ─────────────────────────
+
+    /// <summary>Reads an array of 64-bit IEEE 754 floating-point values in the requested wire byte order and advances the position.</summary>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read, in native byte order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="PeekDoubleArray(int, bool)"/>
+    /// <seealso cref="ReadDoubleArray(Span{double}, bool)"/>
+    public double[] ReadDoubleArray(int count, bool isLittleEndian = false)
+    {
+        var result = PeekDoubleArray(count, isLittleEndian);
+        _position = checked(_position + result.Length * 8);
+        return result;
+    }
+
+    /// <summary>Reads an array of 64-bit IEEE 754 floating-point values in the requested wire byte order without advancing the position.</summary>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read, in native byte order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="ReadDoubleArray(int, bool)"/>
+    public readonly double[] PeekDoubleArray(int count, bool isLittleEndian = false) =>
+        _source.ReadDoubleArrayAt(_position, count, isLittleEndian);
+
+    /// <summary>Fills <paramref name="destination"/> with 64-bit IEEE 754 floating-point values in the requested wire byte order and advances the position.</summary>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="PeekDoubleArray(Span{double}, bool)"/>
+    public void ReadDoubleArray(Span<double> destination, bool isLittleEndian = false)
+    {
+        PeekDoubleArray(destination, isLittleEndian);
+        _position = checked(_position + destination.Length * 8);
+    }
+
+    /// <summary>Fills <paramref name="destination"/> with 64-bit IEEE 754 floating-point values in the requested wire byte order without advancing.</summary>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <seealso cref="ReadDoubleArray(Span{double}, bool)"/>
+    public readonly void PeekDoubleArray(Span<double> destination, bool isLittleEndian = false) =>
+        _source.ReadDoubleArrayAt(_position, destination, isLittleEndian);
 
     // ─────────────────── Offset array interpretation ───────────────────
 

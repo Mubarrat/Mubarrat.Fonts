@@ -144,7 +144,7 @@ public sealed record GcidTable : IFontTable<GcidTable>, IRecord<GcidTable>
     /// <seealso cref="NoCid"/>
     public ushort GetCid(int glyphIndex) => TryGetCid(glyphIndex, out var cid) ? cid : NoCid;
 
-    /// <summary>The 142-byte <c>gcid</c> table header. Blittable, no padding.</summary>
+    /// <summary>The 144-byte <c>gcid</c> table header. Blittable, no padding.</summary>
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>The header is followed by <see cref="Count"/> <c>uint16</c> CID values. The total table size is <see cref="Size"/> bytes.</description></item>
