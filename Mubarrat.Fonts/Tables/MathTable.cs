@@ -101,7 +101,7 @@ public sealed record MathTable : IFontTable<MathTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All five fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             MajorVersion = BinaryPrimitives.ReverseEndianness(v.MajorVersion),
@@ -126,7 +126,7 @@ public sealed record MathTable : IFontTable<MathTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/math">OpenType specification: MATH table</seealso>
     public static MathTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.MajorVersion != 1)
             throw new InvalidDataException(
                 $"'MATH'.majorVersion is {header.MajorVersion}, expected 1.");
@@ -217,7 +217,7 @@ public sealed record MathValueRecord : IEndianReversibleHeaderRecord<MathValueRe
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>The value uses <see cref="BinaryPrimitives.ReverseEndianness(short)"/>; the device offset uses <see cref="BinaryPrimitives.ReverseEndianness(ushort)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Value = BinaryPrimitives.ReverseEndianness(v.Value),
@@ -574,7 +574,7 @@ public sealed record MathConstants : IRecord<MathConstants>
         /// <returns>A new prefix with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Prefix ReverseEndianness(Prefix v) => new()
         {
             ScriptPercentScaleDown = BinaryPrimitives.ReverseEndianness(v.ScriptPercentScaleDown),
@@ -602,14 +602,14 @@ public sealed record MathConstants : IRecord<MathConstants>
     public static MathConstants Parse(ref Cursor cursor, object? context)
     {
         // Layout: Prefix (8) | 51 × MathValueRecordHeader (204) | Suffix (2) = 214 bytes.
-        Prefix prefix = cursor.ReadBigEndianStruct<Prefix>();
+        Prefix prefix = cursor.ReadEndianReversibleStruct<Prefix>();
         return new MathConstants
         {
             ScriptPercentScaleDown = prefix.ScriptPercentScaleDown,
             ScriptScriptPercentScaleDown = prefix.ScriptScriptPercentScaleDown,
             DelimitedSubFormulaMinHeight = prefix.DelimitedSubFormulaMinHeight,
             DisplayOperatorMinHeight = prefix.DisplayOperatorMinHeight,
-            Values = cursor.ReadBigEndianHeaderRecordArray<MathValueRecord, MathValueRecord.Header>(ValueCount, new ParentContext(cursor.Source)),
+            Values = cursor.ReadEndianReversibleHeaderRecordArray<MathValueRecord, MathValueRecord.Header>(ValueCount, new ParentContext(cursor.Source)),
             RadicalDegreeBottomRaisePercent = cursor.ReadInt16(),
         };
     }
@@ -693,7 +693,7 @@ public sealed record MathGlyphInfo : IRecord<MathGlyphInfo>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             ItalicsCorrectionOffset = BinaryPrimitives.ReverseEndianness(v.ItalicsCorrectionOffset),
@@ -713,7 +713,7 @@ public sealed record MathGlyphInfo : IRecord<MathGlyphInfo>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/math#mathglyphinfo-table">OpenType specification: MathGlyphInfo table</seealso>
     public static MathGlyphInfo Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new MathGlyphInfo
         {
             ItalicsCorrection = header.ItalicsCorrectionOffset != 0 ? cursor.Source.ParseRecordAt<MathItalicsCorrectionInfo>(header.ItalicsCorrectionOffset) : null,
@@ -773,7 +773,7 @@ public sealed record MathItalicsCorrectionInfo : IRecord<MathItalicsCorrectionIn
     public static MathItalicsCorrectionInfo Parse(ref Cursor cursor, object? context) => new()
     {
         Coverage = cursor.Source.ParseRecordAt<Coverage>(cursor.ReadUInt16()),
-        Corrections = cursor.ReadBigEndianHeaderRecordArray<MathValueRecord, MathValueRecord.Header>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
+        Corrections = cursor.ReadEndianReversibleHeaderRecordArray<MathValueRecord, MathValueRecord.Header>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
     };
 }
 
@@ -822,7 +822,7 @@ public sealed record MathTopAccentAttachment : IRecord<MathTopAccentAttachment>
     public static MathTopAccentAttachment Parse(ref Cursor cursor, object? context) => new()
     {
         Coverage = cursor.Source.ParseRecordAt<Coverage>(cursor.ReadUInt16()),
-        Attachments = cursor.ReadBigEndianHeaderRecordArray<MathValueRecord, MathValueRecord.Header>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
+        Attachments = cursor.ReadEndianReversibleHeaderRecordArray<MathValueRecord, MathValueRecord.Header>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
     };
 }
 
@@ -875,7 +875,7 @@ public sealed record MathKernInfo : IRecord<MathKernInfo>
     public static MathKernInfo Parse(ref Cursor cursor, object? context) => new()
     {
         Coverage = cursor.Source.ParseRecordAt<Coverage>(cursor.ReadUInt16()),
-        Records = cursor.ReadBigEndianHeaderRecordArray<MathKernInfoRecord, MathKernInfoRecord.Header>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
+        Records = cursor.ReadEndianReversibleHeaderRecordArray<MathKernInfoRecord, MathKernInfoRecord.Header>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
     };
 }
 
@@ -970,7 +970,7 @@ public sealed record MathKernInfoRecord : IEndianReversibleHeaderRecord<MathKern
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             TopRight = BinaryPrimitives.ReverseEndianness(v.TopRight),
@@ -1147,7 +1147,7 @@ public sealed record MathVariants : IRecord<MathVariants>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All five fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             MinConnectorOverlap = BinaryPrimitives.ReverseEndianness(v.MinConnectorOverlap),
@@ -1169,7 +1169,7 @@ public sealed record MathVariants : IRecord<MathVariants>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/math#mathvariants-table">OpenType specification: MathVariants table</seealso>
     public static MathVariants Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new MathVariants
         {
             MinConnectorOverlap = header.MinConnectorOverlap,
@@ -1240,7 +1240,7 @@ public sealed record MathGlyphConstruction : IRecord<MathGlyphConstruction>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             AssemblyOffset = BinaryPrimitives.ReverseEndianness(v.AssemblyOffset),
@@ -1260,11 +1260,11 @@ public sealed record MathGlyphConstruction : IRecord<MathGlyphConstruction>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/math#mathglyphconstruction-table">OpenType specification: MathGlyphConstruction table</seealso>
     public static MathGlyphConstruction Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new MathGlyphConstruction
         {
             Assembly = header.AssemblyOffset != 0 ? cursor.Source.ParseRecordAt<GlyphAssembly>(header.AssemblyOffset) : null,
-            Variants = cursor.ReadBigEndianStructArray<MathGlyphVariantRecord>(header.VariantCount),
+            Variants = cursor.ReadEndianReversibleStructArray<MathGlyphVariantRecord>(header.VariantCount),
         };
     }
 }
@@ -1297,7 +1297,7 @@ public record struct MathGlyphVariantRecord : IEndianReversibleStruct<MathGlyphV
     /// <returns>A new record with both fields reversed.</returns>
     /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     public static MathGlyphVariantRecord ReverseEndianness(MathGlyphVariantRecord v) => new()
     {
         VariantGlyph = BinaryPrimitives.ReverseEndianness(v.VariantGlyph),
@@ -1347,7 +1347,7 @@ public sealed record GlyphAssembly : IRecord<GlyphAssembly>
     public static GlyphAssembly Parse(ref Cursor cursor, object? context) => new()
     {
         ItalicsCorrection = cursor.ReadRecord<MathValueRecord>(new ParentContext(cursor.Source)),
-        Parts = cursor.ReadBigEndianStructArray<GlyphPartRecord>(cursor.ReadUInt16())
+        Parts = cursor.ReadEndianReversibleStructArray<GlyphPartRecord>(cursor.ReadUInt16())
     };
 }
 
@@ -1401,7 +1401,7 @@ public record struct GlyphPartRecord : IEndianReversibleStruct<GlyphPartRecord>
     /// <returns>A new record with each multi-byte field reversed.</returns>
     /// <remarks>All five fields are <c>uint16</c> and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     public static GlyphPartRecord ReverseEndianness(GlyphPartRecord v) => new()
     {
         GlyphId = BinaryPrimitives.ReverseEndianness(v.GlyphId),

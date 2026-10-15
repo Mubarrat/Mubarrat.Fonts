@@ -126,7 +126,7 @@ public sealed record SbixTable : IFontTable<SbixTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/sbix">OpenType specification: sbix header</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -165,7 +165,7 @@ public sealed record SbixTable : IFontTable<SbixTable>
 
         long tableLength = cursor.Source.Length;
 
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != 1)
             throw new InvalidDataException($"'sbix'.version is {header.Version}, expected 1.");
@@ -389,7 +389,7 @@ public sealed record SbixGlyphData : IRecord<SbixGlyphData>
             throw new InvalidDataException(
                 $"'sbix' glyph data length is {ctx.Length}, expected at least {Header.Size}.");
 
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         int payloadLength = ctx.Length - Header.Size;
         byte[] payload = payloadLength > 0 ? cursor.ReadBytes(payloadLength) : [];
@@ -449,7 +449,7 @@ public sealed record SbixGlyphData : IRecord<SbixGlyphData>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The two coordinate fields use <see cref="BinaryPrimitives.ReverseEndianness(short)"/>; the graphic type uses <see cref="Tag.ReverseEndianness(Tag)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/sbix">OpenType specification: sbix glyph data</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {

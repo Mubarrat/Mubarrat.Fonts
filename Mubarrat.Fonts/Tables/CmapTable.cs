@@ -231,7 +231,7 @@ public sealed record CmapTable : IFontTable<CmapTable>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap">OpenType specification: cmap header</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -284,7 +284,7 @@ public sealed record CmapTable : IFontTable<CmapTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap">OpenType specification: cmap encoding records</seealso>
         public static EncodingRecordHeader ReverseEndianness(EncodingRecordHeader v) => new()
         {
@@ -313,11 +313,11 @@ public sealed record CmapTable : IFontTable<CmapTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap">OpenType specification: cmap table</seealso>
     static CmapTable IRecord<CmapTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Version != 0)
             throw new InvalidDataException($"'cmap'.version is {header.Version}, expected 0.");
 
-        var records = cursor.ReadBigEndianHeaderRecordArray<CmapEncodingRecord, EncodingRecordHeader>(
+        var records = cursor.ReadEndianReversibleHeaderRecordArray<CmapEncodingRecord, EncodingRecordHeader>(
             header.NumTables, new ParentContext(cursor.Source));
 
         return new CmapTable
@@ -556,7 +556,7 @@ public sealed record CmapFormat0 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
         ref Cursor cursor, object? context)
     {
         CmapSubtableContext ctx = CmapFormatHelpers.GetContext(context);
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Length != 262)
             throw new InvalidDataException(
@@ -598,7 +598,7 @@ public sealed record CmapFormat0 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-0-byte-encoding-table">OpenType specification: format 0</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -724,7 +724,7 @@ public sealed record CmapFormat2 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
             if (idx > numSubHeaders) numSubHeaders = idx;
         }
 
-        SubHeader[] subHeaders = cursor.ReadBigEndianStructArray<SubHeader>(numSubHeaders);
+        SubHeader[] subHeaders = cursor.ReadEndianReversibleStructArray<SubHeader>(numSubHeaders);
 
         // Remaining bytes are the glyph index array. The subtable header is 6 bytes,
         // subHeaderKeys is 512, each subHeader is 8.
@@ -793,7 +793,7 @@ public sealed record CmapFormat2 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
         /// <returns>A new subheader with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-2-high-byte-mapping-through-table">OpenType specification: format 2</seealso>
         public static SubHeader ReverseEndianness(SubHeader v) => new()
         {
@@ -941,7 +941,7 @@ public sealed record CmapFormat4 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
         ref Cursor cursor, object? context)
     {
         CmapSubtableContext ctx = CmapFormatHelpers.GetContext(context);
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         int segCount = header.SegCountX2 / 2;
         if (segCount == 0)
@@ -1030,7 +1030,7 @@ public sealed record CmapFormat4 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All six fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-4-segment-mapping-to-delta-values">OpenType specification: format 4</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -1098,7 +1098,7 @@ public sealed record CmapFormat6 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
         ref Cursor cursor, object? context)
     {
         CmapSubtableContext ctx = CmapFormatHelpers.GetContext(context);
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Length != 10 + header.EntryCount * 2)
             throw new InvalidDataException(
@@ -1151,7 +1151,7 @@ public sealed record CmapFormat6 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-6-trimmed-table-mapping">OpenType specification: format 6</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -1236,7 +1236,7 @@ public sealed record CmapFormat8 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
     static CmapFormat8 IDerivedRecord<CmapSubtable, CmapFormat8>.Parse(ref Cursor cursor, object? context)
     {
         CmapSubtableContext ctx = CmapFormatHelpers.GetContext(context);
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         byte[] is32 = cursor.ReadBytes(8192);
 
@@ -1251,7 +1251,7 @@ public sealed record CmapFormat8 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
             PlatformId = ctx.PlatformId,
             EncodingId = ctx.EncodingId,
             Is32 = is32,
-            Groups = cursor.ReadBigEndianStructArray<SequentialMapGroup>((int)numGroups),
+            Groups = cursor.ReadEndianReversibleStructArray<SequentialMapGroup>((int)numGroups),
         };
     }
 
@@ -1289,7 +1289,7 @@ public sealed record CmapFormat8 : CmapSubtable, IDerivedRecord<CmapSubtable, Cm
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-8-mixed-16-bit-and-32-bit-coverage">OpenType specification: format 8</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -1353,7 +1353,7 @@ public sealed record CmapFormat10 : CmapSubtable, IDerivedRecord<CmapSubtable, C
     static CmapFormat10 IDerivedRecord<CmapSubtable, CmapFormat10>.Parse(ref Cursor cursor, object? context)
     {
         CmapSubtableContext ctx = CmapFormatHelpers.GetContext(context);
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.NumChars > 1_000_000)
             throw new InvalidDataException(
@@ -1412,7 +1412,7 @@ public sealed record CmapFormat10 : CmapSubtable, IDerivedRecord<CmapSubtable, C
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All five fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-10-trimmed-array">OpenType specification: format 10</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -1469,7 +1469,7 @@ public record struct SequentialMapGroup : IEndianReversibleStruct<SequentialMapG
     /// <returns>A new group with each multi-byte field reversed.</returns>
     /// <remarks>All three fields are <c>uint32</c> and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-12-segmented-coverage">OpenType specification: format 12</seealso>
     public static SequentialMapGroup ReverseEndianness(SequentialMapGroup v) => new()
     {
@@ -1557,7 +1557,7 @@ public sealed record CmapFormat12 : CmapSubtable, IDerivedRecord<CmapSubtable, C
         ref Cursor cursor, object? context)
     {
         CmapSubtableContext ctx = CmapFormatHelpers.GetContext(context);
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.NumGroups > 1_000_000)
             throw new InvalidDataException(
@@ -1568,7 +1568,7 @@ public sealed record CmapFormat12 : CmapSubtable, IDerivedRecord<CmapSubtable, C
             Format = 12,
             PlatformId = ctx.PlatformId,
             EncodingId = ctx.EncodingId,
-            Groups = cursor.ReadBigEndianStructArray<SequentialMapGroup>((int)header.NumGroups),
+            Groups = cursor.ReadEndianReversibleStructArray<SequentialMapGroup>((int)header.NumGroups),
         };
     }
 
@@ -1610,7 +1610,7 @@ public sealed record CmapFormat12 : CmapSubtable, IDerivedRecord<CmapSubtable, C
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-12-segmented-coverage">OpenType specification: format 12</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -1677,7 +1677,7 @@ public sealed record CmapFormat13 : CmapSubtable, IDerivedRecord<CmapSubtable, C
         ref Cursor cursor, object? context)
     {
         CmapSubtableContext ctx = CmapFormatHelpers.GetContext(context);
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.NumGroups > 1_000_000)
             throw new InvalidDataException(
@@ -1688,7 +1688,7 @@ public sealed record CmapFormat13 : CmapSubtable, IDerivedRecord<CmapSubtable, C
             Format = 13,
             PlatformId = ctx.PlatformId,
             EncodingId = ctx.EncodingId,
-            Groups = cursor.ReadBigEndianStructArray<SequentialMapGroup>((int)header.NumGroups),
+            Groups = cursor.ReadEndianReversibleStructArray<SequentialMapGroup>((int)header.NumGroups),
         };
     }
 
@@ -1731,7 +1731,7 @@ public sealed record CmapFormat13 : CmapSubtable, IDerivedRecord<CmapSubtable, C
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-13-many-to-one-range-mappings">OpenType specification: format 13</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -1856,14 +1856,14 @@ public sealed record CmapFormat14 : CmapSubtable, IDerivedRecord<CmapSubtable, C
         ref Cursor cursor, object? context)
     {
         CmapSubtableContext ctx = CmapFormatHelpers.GetContext(context);
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.NumRecords > 10_000)
             throw new InvalidDataException(
                 $"'cmap' format 14 subtable declares {header.NumRecords} variation selectors, which exceeds the safety limit.");
 
         int n = (int)header.NumRecords;
-        VariationSelectorRecord[] records = cursor.ReadBigEndianStructArray<VariationSelectorRecord>(n);
+        VariationSelectorRecord[] records = cursor.ReadEndianReversibleStructArray<VariationSelectorRecord>(n);
 
         var defaults = new DefaultUVSTable?[n];
         var nonDefaults = new NonDefaultUVSTable?[n];
@@ -1917,7 +1917,7 @@ public sealed record CmapFormat14 : CmapSubtable, IDerivedRecord<CmapSubtable, C
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint32</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cmap#format-14-unicode-variation-sequences">OpenType specification: format 14</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -2053,7 +2053,7 @@ public sealed record CmapFormat14 : CmapSubtable, IDerivedRecord<CmapSubtable, C
 
             return new DefaultUVSTable
             {
-                Ranges = cursor.ReadBigEndianStructArray<UnicodeRange>((int)numRanges),
+                Ranges = cursor.ReadEndianReversibleStructArray<UnicodeRange>((int)numRanges),
             };
         }
     }
@@ -2130,7 +2130,7 @@ public sealed record CmapFormat14 : CmapSubtable, IDerivedRecord<CmapSubtable, C
 
             return new NonDefaultUVSTable
             {
-                Mappings = cursor.ReadBigEndianStructArray<UVSMapping>((int)numMappings),
+                Mappings = cursor.ReadEndianReversibleStructArray<UVSMapping>((int)numMappings),
             };
         }
     }

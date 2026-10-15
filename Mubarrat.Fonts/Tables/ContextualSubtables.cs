@@ -7,7 +7,7 @@ namespace Mubarrat.Fonts.Tables;
 /// <summary>A SequenceLookupRecord: a nested lookup to apply at a specific position in the input sequence. Shared by every contextual and chained contextual subtable format.</summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>Blittable, size 4, no padding. Fixed-layout arrays of these are read in one call via <see cref="Cursor.ReadBigEndianStructArray{T}(int)"/>.</description></item>
+/// <item><description>Blittable, size 4, no padding. Fixed-layout arrays of these are read in one call via <see cref="Cursor.ReadEndianReversibleStructArray{T}(int, bool)"/>.</description></item>
 /// <item><description>Each record pairs a position in the matched input sequence with an index into the enclosing LookupList; the referenced lookup is applied as if invoked directly at that position.</description></item>
 /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
 /// <item><description>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#sequencelookuprecord">SequenceLookupRecord</see> in the OpenType specification.</description></item>
@@ -39,7 +39,7 @@ public record struct SequenceLookupRecord : IEndianReversibleStruct<SequenceLook
     /// <returns>A new record with both fields reversed.</returns>
     /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#sequencelookuprecord">OpenType specification: SequenceLookupRecord</seealso>
     public static SequenceLookupRecord ReverseEndianness(SequenceLookupRecord v) => new()
     {
@@ -211,7 +211,7 @@ public sealed record SequenceRule : IRecord<SequenceRule>
         return new()
         {
             InputSequence = cursor.ReadUInt16Array(glyphCount - 1),
-            LookupRecords = cursor.ReadBigEndianStructArray<SequenceLookupRecord>(lookupCount),
+            LookupRecords = cursor.ReadEndianReversibleStructArray<SequenceLookupRecord>(lookupCount),
         };
     }
 }
@@ -345,7 +345,7 @@ public sealed record ClassSequenceRule : IRecord<ClassSequenceRule>
         return new()
         {
             InputSequence = cursor.ReadUInt16Array(glyphCount - 1),
-            LookupRecords = cursor.ReadBigEndianStructArray<SequenceLookupRecord>(lookupCount),
+            LookupRecords = cursor.ReadEndianReversibleStructArray<SequenceLookupRecord>(lookupCount),
         };
     }
 }
@@ -394,7 +394,7 @@ public sealed record SequenceContextFormat3 : SequenceContext, IDerivedRecord<Se
         {
             Format = 3,
             Coverages = cursor.ReadOffset16ArrayPeekRecord<Coverage>(glyphCount, context),
-            LookupRecords = cursor.ReadBigEndianStructArray<SequenceLookupRecord>(lookupCount),
+            LookupRecords = cursor.ReadEndianReversibleStructArray<SequenceLookupRecord>(lookupCount),
         };
     }
 }
@@ -577,7 +577,7 @@ public sealed record ChainedSequenceRule : IRecord<ChainedSequenceRule>
         BacktrackSequence = cursor.ReadUInt16Array(cursor.ReadUInt16()),
         InputSequence = cursor.ReadUInt16Array(cursor.ReadUInt16() - 1),
         LookaheadSequence = cursor.ReadUInt16Array(cursor.ReadUInt16()),
-        LookupRecords = cursor.ReadBigEndianStructArray<SequenceLookupRecord>(cursor.ReadUInt16()),
+        LookupRecords = cursor.ReadEndianReversibleStructArray<SequenceLookupRecord>(cursor.ReadUInt16()),
     };
 }
 
@@ -742,7 +742,7 @@ public sealed record ChainedClassSequenceRule : IRecord<ChainedClassSequenceRule
         BacktrackSequence = cursor.ReadUInt16Array(cursor.ReadUInt16()),
         InputSequence = cursor.ReadUInt16Array(cursor.ReadUInt16() - 1),
         LookaheadSequence = cursor.ReadUInt16Array(cursor.ReadUInt16()),
-        LookupRecords = cursor.ReadBigEndianStructArray<SequenceLookupRecord>(cursor.ReadUInt16()),
+        LookupRecords = cursor.ReadEndianReversibleStructArray<SequenceLookupRecord>(cursor.ReadUInt16()),
     };
 }
 
@@ -805,6 +805,6 @@ public sealed record ChainedSequenceContextFormat3 : ChainedSequenceContext, IDe
         BacktrackCoverages = cursor.ReadOffset16ArrayPeekRecord<Coverage>(cursor.ReadUInt16(), context),
         InputCoverages = cursor.ReadOffset16ArrayPeekRecord<Coverage>(cursor.ReadUInt16(), context),
         LookaheadCoverages = cursor.ReadOffset16ArrayPeekRecord<Coverage>(cursor.ReadUInt16(), context),
-        LookupRecords = cursor.ReadBigEndianStructArray<SequenceLookupRecord>(cursor.ReadUInt16()),
+        LookupRecords = cursor.ReadEndianReversibleStructArray<SequenceLookupRecord>(cursor.ReadUInt16()),
     };
 }

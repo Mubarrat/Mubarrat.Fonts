@@ -359,41 +359,133 @@ public enum FontDirectionHint : short
 }
 
 /// <summary>Represents the bit flags stored in the <c>head</c> table's <c>flags</c> field.</summary>
-/// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">The flags describe baseline, sidebearing, instruction, optimization, and font-type properties.</see></remarks>
-/// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType <c>flags</c></seealso>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>Bits 0–3 describe baseline and scaling properties common to every font.</description></item>
+/// <item><description>Bits 4–5 were defined by Apple Advanced Typography for advance-width changes and vertical layout.</description></item>
+/// <item><description>Bit 6 is reserved and must be zero.</description></item>
+/// <item><description>Bits 7–10 are defined by Apple Advanced Typography for line layout optimization; they are marked reserved in the OpenType specification.</description></item>
+/// <item><description>Bits 11–14 describe the font's production history.</description></item>
+/// </list>
+/// <para>The OpenType specification and the Apple TrueType Reference Manual disagree on the meaning of bits 7–10. OpenType leaves them reserved, while Apple assigns them line-layout semantics used by the AAT shaper. Both readings are compatible: a font that sets them is asserting an AAT-relevant property that non-AAT consumers may ignore.</para>
+/// </remarks>
+/// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
+/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html">TrueType Reference Manual: The <c>head</c> table</seealso>
 [Flags]
 public enum HeadFlags : ushort
 {
     /// <summary>No flags are set.</summary>
+    /// <value>The constant <c>0</c>.</value>
     None = 0,
 
     /// <summary>Bit 0: the font baseline is at y = 0.</summary>
+    /// <remarks>When set, glyph outlines are positioned so the baseline sits at the y = 0 coordinate. When clear, the baseline is at the value stored in the <c>head.yMin</c> field of the glyph bounding box.</remarks>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
     BaselineAtY0 = 1 << 0,
 
     /// <summary>Bit 1: the left sidebearing point is at x = 0.</summary>
+    /// <remarks>When set, glyph outlines are positioned so their left sidebearing sits at the x = 0 coordinate. When clear, the left sidebearing is at the value stored in the <c>head.xMin</c> field of the glyph bounding box.</remarks>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
     LeftSidebearingAtX0 = 1 << 1,
 
     /// <summary>Bit 2: instructions may depend on point size.</summary>
+    /// <remarks>When clear, the font scaler may assume the hinting bytecode is independent of the size the glyph is rendered at.</remarks>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
     InstructionsDependOnPointSize = 1 << 2,
 
-    /// <summary>Bit 3: scaler computations should use integer pixels per em.</summary>
+    /// <summary>Bit 3: the scaler should round the point size to an integer number of pixels per em before selecting a size.</summary>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
     ForceIntegerPPEM = 1 << 3,
 
     /// <summary>Bit 4: instructions may alter advance widths.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The flag is used by the Microsoft implementation of the TrueType scaler.</description></item>
+    /// <item><description>It is set by fonts whose hinting bytecode changes the advance width of glyphs at some sizes.</description></item>
+    /// <item><description>The Apple TrueType Reference Manual names this bit <c>instructionsChangeAdvanceWidths</c>.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
     InstructionsAlterAdvanceWidth = 1 << 4,
 
-    /// <summary>Bit 5: Apple vertical layout.</summary>
+    /// <summary>Bit 5: the font is intended for vertical layout and its glyphs are drawn so that an x coordinate of 0 is the desired vertical baseline.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The flag is defined by Apple Advanced Typography and is documented in the Apple TrueType Reference Manual.</description></item>
+    /// <item><description>The Apple manual names the bit <c>xPositionSpecifiesBaseline</c>.</description></item>
+    /// <item><description>It is unrelated to bit 1, which concerns the horizontal sidebearing point.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html">TrueType Reference Manual: The <c>head</c> table</seealso>
     AppleVerticalLayout = 1 << 5,
 
+    /// <summary>Bit 6: reserved.</summary>
+    /// <remarks>The bit must be zero in a conforming font. It is exposed for round-tripping and validation.</remarks>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html">TrueType Reference Manual: The <c>head</c> table</seealso>
+    Reserved = 1 << 6,
+
+    /// <summary>Bit 7: rendering from this font is incorrect without the intervention of a layout engine.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>An example is an Arabic font, whose glyphs must be joined and reordered by a shaping engine to produce linguistically correct output.</description></item>
+    /// <item><description>The flag is defined by Apple Advanced Typography and is documented in the Apple TrueType Reference Manual.</description></item>
+    /// <item><description>OpenType leaves the bit reserved; a font that sets it is asserting an AAT-relevant property that non-AAT consumers may ignore.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html">TrueType Reference Manual: The <c>head</c> table</seealso>
+    FontRequiresLayout = 1 << 7,
+
+    /// <summary>Bit 8: the font contains metamorphosis table effects that happen by default.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The flag signals that a state machine in the metamorphosis tables transforms the glyph stream even when the caller requests no features.</description></item>
+    /// <item><description>The flag is defined by Apple Advanced Typography and is documented in the Apple TrueType Reference Manual.</description></item>
+    /// <item><description>OpenType leaves the bit reserved.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html">TrueType Reference Manual: The <c>head</c> table</seealso>
+    FontHasNormalLayout = 1 << 8,
+
+    /// <summary>Bit 9: the font contains strong right-to-left glyphs.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>A layout engine can read the flag to decide whether a bidirectional reordering pass is needed before display.</description></item>
+    /// <item><description>The strong directional property is defined by the <c>prop</c> table.</description></item>
+    /// <item><description>The flag is defined by Apple Advanced Typography and is documented in the Apple TrueType Reference Manual.</description></item>
+    /// <item><description>OpenType leaves the bit reserved.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html">TrueType Reference Manual: The <c>head</c> table</seealso>
+    FontCanReorder = 1 << 9,
+
+    /// <summary>Bit 10: the font contains metamorphosis table entries for Indic-style rearrangement.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The flag signals the presence of reordering rules for scripts whose glyphs are not stored in visual order, such as Devanagari.</description></item>
+    /// <item><description>The flag is defined by Apple Advanced Typography and is documented in the Apple TrueType Reference Manual.</description></item>
+    /// <item><description>OpenType leaves the bit reserved.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6head.html">TrueType Reference Manual: The <c>head</c> table</seealso>
+    FontCanRearrange = 1 << 10,
+
     /// <summary>Bit 11: the font data is lossless after an optimizing transformation or compression.</summary>
+    /// <remarks>When set, the producer asserts that any transformation applied to the font preserved the original data. See the OpenType specification for the full meaning.</remarks>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
     Lossless = 1 << 11,
 
-    /// <summary>Bit 12: the font has been converted while preserving compatible metrics.</summary>
+    /// <summary>Bit 12: the font was converted while preserving metrics compatible with the original.</summary>
+    /// <remarks>The flag is used by font conversion tools to signal that a substitute font is metric-compatible with the font it replaces.</remarks>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
     Converted = 1 << 12,
 
     /// <summary>Bit 13: the font has been optimized for ClearType.</summary>
+    /// <remarks>Advisory; consumers may use the flag to select ClearType-specific rendering behaviour.</remarks>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
     ClearTypeOptimized = 1 << 13,
 
     /// <summary>Bit 14: the font is a Last Resort font.</summary>
+    /// <remarks>A Last Resort font is one whose glyphs cover every Unicode code point with a visible placeholder that identifies the block the code point belongs to.</remarks>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/head#flags">OpenType specification: <c>head</c>, <c>flags</c></seealso>
     LastResort = 1 << 14,
 }

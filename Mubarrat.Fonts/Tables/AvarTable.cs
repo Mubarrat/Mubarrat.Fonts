@@ -150,7 +150,7 @@ public sealed record AvarTable : IFontTable<AvarTable>
     /// <inheritdoc/>
     public static AvarTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.MajorVersion != 1)
             throw new InvalidDataException($"'avar'.majorVersion is {header.MajorVersion}, expected 1.");
@@ -164,7 +164,7 @@ public sealed record AvarTable : IFontTable<AvarTable>
             if (count == 0)
                 throw new InvalidDataException($"'avar' axis {a} has an empty segment map.");
 
-            maps[a] = cursor.ReadBigEndianStructArray<AxisValueMap>(count);
+            maps[a] = cursor.ReadEndianReversibleStructArray<AxisValueMap>(count);
         }
 
         return new AvarTable

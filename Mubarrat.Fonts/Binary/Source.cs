@@ -9,7 +9,7 @@ namespace Mubarrat.Fonts.Binary;
 /// <remarks>
 /// <list type="bullet">
 /// <item><description><see cref="Source"/> is the query-time representation of a table's backing bytes: table objects that expose accessors (e.g. <c>Loca</c>, <c>Coverage</c>, <c>CmapFormat12</c>) store a <see cref="Source"/> plus a base offset and read fields on demand.</description></item>
-/// <item><description>All multi-byte values are big-endian on disk. The scalar readers compose them explicitly and the array readers swap in place when <see cref="BitConverter.IsLittleEndian"/> is <c>true</c>; there is no host-endian assumption anywhere.</description></item>
+/// <item><description>All multi-byte values are big-endian on disk by default. Readers take an optional <c>isLittleEndian</c> flag that selects the wire byte order; the reader reverses only when the wire order disagrees with the host order, so the same code is correct on little- and big-endian machines.</description></item>
 /// <item><description>Implementations must be safe for concurrent reads at different offsets. The font stream (or buffer) must remain open for the lifetime of any table obtained from it.</description></item>
 /// </list>
 /// <para>For the on-disk layout of every primitive read by this type, see <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification, Data Types</see>.</para>
@@ -25,14 +25,14 @@ namespace Mubarrat.Fonts.Binary;
     "RS0026:Do not add multiple public overloads with optional parameters",
     Scope = "type",
     Target = "~T:Mubarrat.Fonts.OpenType.Binary.Source",
-    Justification = "Overloads are disambiguated by the type of their first parameter (int count vs Span<T> destination); the trailing optional 'context' cannot introduce ambiguity between them.")]
+    Justification = "Overloads are disambiguated by the type of their first parameter (int count vs Span<T> destination); the trailing optional 'context' and 'isLittleEndian' cannot introduce ambiguity between them.")]
 public abstract class Source : IDisposable
 {
     // ────────────────────────────── Constants ──────────────────────────────
 
     /// <summary>Seconds between 1904-01-01 (OpenType LONGDATETIME epoch) and 1970-01-01 (Unix epoch).</summary>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">LONGDATETIME data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadLongDateTimeAt(long)"/>
+    /// <seealso cref="ReadLongDateTimeAt(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: LONGDATETIME</seealso>
     public const long OpenTypeEpochOffset = 2082844800L;
 
@@ -148,208 +148,229 @@ public abstract class Source : IDisposable
 
     // ───────────────────────── Scalar reads (16) ─────────────────────────
 
-    /// <summary>Reads a big-endian unsigned 16-bit integer at an absolute offset.</summary>
+    /// <summary>Reads a 16-bit unsigned integer at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt16At(long)"/>
-    /// <seealso cref="ReadUInt16ArrayAt(long, int)"/>
+    /// <remarks>The bytes are read as-is and reversed only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt16At(long, bool)"/>
+    /// <seealso cref="ReadUInt16ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint16</seealso>
-    public ushort ReadUInt16At(long offset)
+    public ushort ReadUInt16At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 2, out var span))
-            return BinaryPrimitives.ReadUInt16BigEndian(span);
+            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt16BigEndian(span) : BinaryPrimitives.ReadUInt16LittleEndian(span);
         Span<byte> buffer = stackalloc byte[2];
         ReadAt(offset, buffer);
-        return BinaryPrimitives.ReadUInt16BigEndian(buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt16BigEndian(buffer) : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
     }
 
-    /// <summary>Reads a big-endian signed 16-bit integer at an absolute offset.</summary>
+    /// <summary>Reads a 16-bit signed integer at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt16At(long)"/>
-    /// <seealso cref="ReadInt16ArrayAt(long, int)"/>
+    /// <remarks>The bytes are read as-is and reversed only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt16At(long, bool)"/>
+    /// <seealso cref="ReadInt16ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int16</seealso>
-    public short ReadInt16At(long offset)
+    public short ReadInt16At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 2, out var span))
-            return BinaryPrimitives.ReadInt16BigEndian(span);
+            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt16BigEndian(span) : BinaryPrimitives.ReadInt16LittleEndian(span);
         Span<byte> buffer = stackalloc byte[2];
         ReadAt(offset, buffer);
-        return BinaryPrimitives.ReadInt16BigEndian(buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt16BigEndian(buffer) : BinaryPrimitives.ReadInt16LittleEndian(buffer);
     }
 
     // ───────────────────────── Scalar reads (24) ─────────────────────────
 
-    /// <summary>Reads a big-endian unsigned 24-bit integer at an absolute offset.</summary>
+    /// <summary>Reads a 24-bit unsigned integer at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt24At(long)"/>
+    /// <remarks>The bytes are read as-is and reversed only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt24At(long, bool)"/>
     /// <seealso cref="UInt24"/>
-    /// <seealso cref="ReadUInt24ArrayAt(long, int)"/>
+    /// <seealso cref="ReadUInt24ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
-    public UInt24 ReadUInt24At(long offset)
+    public UInt24 ReadUInt24At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 3, out var span))
-            return UInt24.ReadBigEndian(span);
+        {
+            UInt24 value1 = MemoryMarshal.Read<UInt24>(span);
+            return BitConverter.IsLittleEndian != isLittleEndian ? UInt24.ReverseEndianness(value1) : value1;
+        }
         Span<byte> buffer = stackalloc byte[3];
         ReadAt(offset, buffer);
-        return UInt24.ReadBigEndian(buffer);
+        UInt24 value = MemoryMarshal.Read<UInt24>(buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? UInt24.ReverseEndianness(value) : value;
     }
 
-    /// <summary>Reads a big-endian signed 24-bit integer at an absolute offset.</summary>
+    /// <summary>Reads a 24-bit signed integer at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt24At(long)"/>
+    /// <remarks>The bytes are read as-is and reversed only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt24At(long, bool)"/>
     /// <seealso cref="Int24"/>
-    /// <seealso cref="ReadInt24ArrayAt(long, int)"/>
+    /// <seealso cref="ReadInt24ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
-    public Int24 ReadInt24At(long offset)
+    public Int24 ReadInt24At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 3, out var span))
-            return Int24.ReadBigEndian(span);
+        {
+            Int24 value1 = MemoryMarshal.Read<Int24>(span);
+            return BitConverter.IsLittleEndian != isLittleEndian ? Int24.ReverseEndianness(value1) : value1;
+        }
         Span<byte> buffer = stackalloc byte[3];
         ReadAt(offset, buffer);
-        return Int24.ReadBigEndian(buffer);
+        Int24 value = MemoryMarshal.Read<Int24>(buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? Int24.ReverseEndianness(value) : value;
     }
 
     // ───────────────────────── Scalar reads (32) ─────────────────────────
 
-    /// <summary>Reads a big-endian unsigned 32-bit integer at an absolute offset.</summary>
+    /// <summary>Reads a 32-bit unsigned integer at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt32At(long)"/>
-    /// <seealso cref="ReadUInt32ArrayAt(long, int)"/>
+    /// <remarks>The bytes are read as-is and reversed only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt32At(long, bool)"/>
+    /// <seealso cref="ReadUInt32ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
-    public uint ReadUInt32At(long offset)
+    public uint ReadUInt32At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 4, out var span))
-            return BinaryPrimitives.ReadUInt32BigEndian(span);
+            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt32BigEndian(span) : BinaryPrimitives.ReadUInt32LittleEndian(span);
         Span<byte> buffer = stackalloc byte[4];
         ReadAt(offset, buffer);
-        return BinaryPrimitives.ReadUInt32BigEndian(buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt32BigEndian(buffer) : BinaryPrimitives.ReadUInt32LittleEndian(buffer);
     }
 
-    /// <summary>Reads a big-endian signed 32-bit integer at an absolute offset.</summary>
+    /// <summary>Reads a 32-bit signed integer at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt32At(long)"/>
-    /// <seealso cref="ReadInt32ArrayAt(long, int)"/>
+    /// <remarks>The bytes are read as-is and reversed only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt32At(long, bool)"/>
+    /// <seealso cref="ReadInt32ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
-    public int ReadInt32At(long offset)
+    public int ReadInt32At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 4, out var span))
-            return BinaryPrimitives.ReadInt32BigEndian(span);
+            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt32BigEndian(span) : BinaryPrimitives.ReadInt32LittleEndian(span);
         Span<byte> buffer = stackalloc byte[4];
         ReadAt(offset, buffer);
-        return BinaryPrimitives.ReadInt32BigEndian(buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt32BigEndian(buffer) : BinaryPrimitives.ReadInt32LittleEndian(buffer);
     }
 
     // ───────────────────────── Scalar reads (64) ─────────────────────────
 
-    /// <summary>Reads a big-endian unsigned 64-bit integer at an absolute offset.</summary>
+    /// <summary>Reads a 64-bit unsigned integer at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt64At(long)"/>
-    /// <seealso cref="ReadUInt64ArrayAt(long, int)"/>
+    /// <remarks>The bytes are read as-is and reversed only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt64At(long, bool)"/>
+    /// <seealso cref="ReadUInt64ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
-    public ulong ReadUInt64At(long offset)
+    public ulong ReadUInt64At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 8, out var span))
-            return BinaryPrimitives.ReadUInt64BigEndian(span);
+            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt64BigEndian(span) : BinaryPrimitives.ReadUInt64LittleEndian(span);
         Span<byte> buffer = stackalloc byte[8];
         ReadAt(offset, buffer);
-        return BinaryPrimitives.ReadUInt64BigEndian(buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt64BigEndian(buffer) : BinaryPrimitives.ReadUInt64LittleEndian(buffer);
     }
 
-    /// <summary>Reads a big-endian signed 64-bit integer at an absolute offset.</summary>
+    /// <summary>Reads a 64-bit signed integer at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt64At(long)"/>
-    /// <seealso cref="ReadInt64ArrayAt(long, int)"/>
+    /// <remarks>The bytes are read as-is and reversed only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt64At(long, bool)"/>
+    /// <seealso cref="ReadInt64ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
-    public long ReadInt64At(long offset)
+    public long ReadInt64At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 8, out var span))
-            return BinaryPrimitives.ReadInt64BigEndian(span);
+            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt64BigEndian(span) : BinaryPrimitives.ReadInt64LittleEndian(span);
         Span<byte> buffer = stackalloc byte[8];
         ReadAt(offset, buffer);
-        return BinaryPrimitives.ReadInt64BigEndian(buffer);
+        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt64BigEndian(buffer) : BinaryPrimitives.ReadInt64LittleEndian(buffer);
     }
 
     // ───────────────────────── Semantic scalars ─────────────────────────
 
-    /// <summary>Reads a 16.16 fixed-point value at an absolute offset.</summary>
+    /// <summary>Reads a 16.16 fixed-point value at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The <see cref="Fixed"/> value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The <see cref="Fixed"/> value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Fixed data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="Fixed"/>
-    /// <seealso cref="ReadF2Dot14At(long)"/>
+    /// <seealso cref="ReadF2Dot14At(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Fixed</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Fixed ReadFixedAt(long offset) => (Fixed)ReadInt32At(offset);
+    public Fixed ReadFixedAt(long offset, bool isLittleEndian = false) => (Fixed)ReadInt32At(offset, isLittleEndian);
 
-    /// <summary>Reads an F2DOT14 value at an absolute offset.</summary>
+    /// <summary>Reads an F2DOT14 value at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The <see cref="F2Dot14"/> value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The <see cref="F2Dot14"/> value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">F2DOT14 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="F2Dot14"/>
-    /// <seealso cref="ReadFixedAt(long)"/>
+    /// <seealso cref="ReadFixedAt(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: F2DOT14</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public F2Dot14 ReadF2Dot14At(long offset) => (F2Dot14)ReadInt16At(offset);
+    public F2Dot14 ReadF2Dot14At(long offset, bool isLittleEndian = false) => (F2Dot14)ReadInt16At(offset, isLittleEndian);
 
-    /// <summary>Reads a Version16Dot16 value at an absolute offset.</summary>
+    /// <summary>Reads a Version16Dot16 value at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <paramref name="offset"/>, decoded as a <see cref="double"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Version16Dot16 data type</see> in the OpenType specification.</remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Version16Dot16</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double ReadVersion16Dot16At(long offset) => ReadUInt32At(offset) / 65536.0;
+    public double ReadVersion16Dot16At(long offset, bool isLittleEndian = false) => ReadUInt32At(offset, isLittleEndian) / 65536.0;
 
-    /// <summary>Reads a 4-byte tag at an absolute offset.</summary>
+    /// <summary>Reads a 4-byte tag at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The <see cref="Tag"/> value at <paramref name="offset"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Tag data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="Tag"/>
-    /// <seealso cref="ReadOffset32At(long)"/>
+    /// <seealso cref="ReadOffset32At(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Tag</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Tag ReadTagAt(long offset) => new(ReadUInt32At(offset));
+    public Tag ReadTagAt(long offset, bool isLittleEndian = false) => new(ReadUInt32At(offset, isLittleEndian));
 
-    /// <summary>Reads a LONGDATETIME at an absolute offset.</summary>
+    /// <summary>Reads a LONGDATETIME at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A <see cref="DateTime"/> in UTC, converted from the 1904 epoch to the Unix epoch.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
@@ -357,30 +378,32 @@ public abstract class Source : IDisposable
     /// <seealso cref="OpenTypeEpochOffset"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: LONGDATETIME</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DateTime ReadLongDateTimeAt(long offset) =>
-        DateTime.UnixEpoch.AddSeconds(ReadInt64At(offset) - OpenTypeEpochOffset);
+    public DateTime ReadLongDateTimeAt(long offset, bool isLittleEndian = false) =>
+        DateTime.UnixEpoch.AddSeconds(ReadInt64At(offset, isLittleEndian) - OpenTypeEpochOffset);
 
-    /// <summary>Reads an FWORD (signed 16-bit) at an absolute offset.</summary>
+    /// <summary>Reads an FWORD (signed 16-bit) at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">FWORD data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUFWordAt(long)"/>
+    /// <seealso cref="ReadUFWordAt(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: FWORD</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public short ReadFWordAt(long offset) => ReadInt16At(offset);
+    public short ReadFWordAt(long offset, bool isLittleEndian = false) => ReadInt16At(offset, isLittleEndian);
 
-    /// <summary>Reads a UFWORD (unsigned 16-bit) at an absolute offset.</summary>
+    /// <summary>Reads a UFWORD (unsigned 16-bit) at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">UFWORD data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadFWordAt(long)"/>
+    /// <seealso cref="ReadFWordAt(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: UFWORD</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ushort ReadUFWordAt(long offset) => ReadUInt16At(offset);
+    public ushort ReadUFWordAt(long offset, bool isLittleEndian = false) => ReadUInt16At(offset, isLittleEndian);
 
     // ───────────────────────── Offset reads ─────────────────────────
 
@@ -390,51 +413,54 @@ public abstract class Source : IDisposable
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16At(long)"/>
-    /// <seealso cref="ReadOffset24At(long)"/>
-    /// <seealso cref="ReadOffset32At(long)"/>
+    /// <seealso cref="ReadOffset16At(long, bool)"/>
+    /// <seealso cref="ReadOffset24At(long, bool)"/>
+    /// <seealso cref="ReadOffset32At(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte ReadOffset8At(long offset) => ReadUInt8At(offset);
 
-    /// <summary>Reads a 16-bit offset at an absolute offset.</summary>
+    /// <summary>Reads a 16-bit offset at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The offset value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The offset value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="ReadOffset8At(long)"/>
-    /// <seealso cref="ReadOffset24At(long)"/>
-    /// <seealso cref="ReadOffset32At(long)"/>
+    /// <seealso cref="ReadOffset24At(long, bool)"/>
+    /// <seealso cref="ReadOffset32At(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ushort ReadOffset16At(long offset) => ReadUInt16At(offset);
+    public ushort ReadOffset16At(long offset, bool isLittleEndian = false) => ReadUInt16At(offset, isLittleEndian);
 
-    /// <summary>Reads a 24-bit offset at an absolute offset.</summary>
+    /// <summary>Reads a 24-bit offset at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The offset value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The offset value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="ReadOffset8At(long)"/>
-    /// <seealso cref="ReadOffset16At(long)"/>
-    /// <seealso cref="ReadOffset32At(long)"/>
+    /// <seealso cref="ReadOffset16At(long, bool)"/>
+    /// <seealso cref="ReadOffset32At(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public UInt24 ReadOffset24At(long offset) => ReadUInt24At(offset);
+    public UInt24 ReadOffset24At(long offset, bool isLittleEndian = false) => ReadUInt24At(offset, isLittleEndian);
 
-    /// <summary>Reads a 32-bit offset at an absolute offset.</summary>
+    /// <summary>Reads a 32-bit offset at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
-    /// <returns>The offset value at <paramref name="offset"/>.</returns>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The offset value at <paramref name="offset"/>, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="ReadOffset8At(long)"/>
-    /// <seealso cref="ReadOffset16At(long)"/>
-    /// <seealso cref="ReadOffset24At(long)"/>
+    /// <seealso cref="ReadOffset16At(long, bool)"/>
+    /// <seealso cref="ReadOffset24At(long, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint ReadOffset32At(long offset) => ReadUInt32At(offset);
+    public uint ReadOffset32At(long offset, bool isLittleEndian = false) => ReadUInt32At(offset, isLittleEndian);
 
     // ───────────────────────── Byte arrays ─────────────────────────
 
@@ -530,277 +556,293 @@ public abstract class Source : IDisposable
 
     // ───────────────────────── Typed arrays (16-bit) ─────────────────────────
 
-    /// <summary>Reads an array of big-endian unsigned 16-bit integers at an absolute offset.</summary>
+    /// <summary>Reads an array of 16-bit unsigned integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The bytes are read as-is and then reversed in place on little-endian hosts. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt16ArrayAt(long, int)"/>
-    /// <seealso cref="ReadInt16ArrayAt(long, Span{short})"/>
+    /// <remarks>The bytes are read as-is and reversed in place only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt16ArrayAt(long, int, bool)"/>
+    /// <seealso cref="ReadInt16ArrayAt(long, Span{short}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint16</seealso>
-    public void ReadUInt16ArrayAt(long offset, scoped Span<ushort> destination)
+    public void ReadUInt16ArrayAt(long offset, scoped Span<ushort> destination, bool isLittleEndian = false)
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
-        if (BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != isLittleEndian)
             BinaryPrimitives.ReverseEndianness(destination, destination);
     }
 
-    /// <summary>Reads an array of big-endian signed 16-bit integers at an absolute offset.</summary>
+    /// <summary>Reads an array of 16-bit signed integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The bytes are read as-is and then reversed in place on little-endian hosts. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt16ArrayAt(long, int)"/>
-    /// <seealso cref="ReadUInt16ArrayAt(long, Span{ushort})"/>
+    /// <remarks>The bytes are read as-is and reversed in place only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt16ArrayAt(long, int, bool)"/>
+    /// <seealso cref="ReadUInt16ArrayAt(long, Span{ushort}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int16</seealso>
-    public void ReadInt16ArrayAt(long offset, scoped Span<short> destination)
+    public void ReadInt16ArrayAt(long offset, scoped Span<short> destination, bool isLittleEndian = false)
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
-        if (BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != isLittleEndian)
             BinaryPrimitives.ReverseEndianness(destination, destination);
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian unsigned 16-bit integers at an absolute offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 16-bit unsigned integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt16ArrayAt(long, Span{ushort})"/>
+    /// <seealso cref="ReadUInt16ArrayAt(long, Span{ushort}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint16</seealso>
-    public ushort[] ReadUInt16ArrayAt(long offset, int count)
+    public ushort[] ReadUInt16ArrayAt(long offset, int count, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new ushort[count];
-        ReadUInt16ArrayAt(offset, result);
+        ReadUInt16ArrayAt(offset, result, isLittleEndian);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian signed 16-bit integers at an absolute offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 16-bit signed integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt16ArrayAt(long, Span{short})"/>
+    /// <seealso cref="ReadInt16ArrayAt(long, Span{short}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int16</seealso>
-    public short[] ReadInt16ArrayAt(long offset, int count)
+    public short[] ReadInt16ArrayAt(long offset, int count, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new short[count];
-        ReadInt16ArrayAt(offset, result);
+        ReadInt16ArrayAt(offset, result, isLittleEndian);
         return result;
     }
 
     // ───────────────────────── Typed arrays (24-bit) ─────────────────────────
 
-    /// <summary>Reads an array of big-endian unsigned 24-bit integers at an absolute offset.</summary>
+    /// <summary>Reads an array of 24-bit unsigned integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>Reversal is performed per element because <see cref="BinaryPrimitives.ReverseEndianness(ReadOnlySpan{ushort}, Span{ushort})"/> has no 24-bit overload. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
+    /// <remarks>Reversal is performed per element because <see cref="BinaryPrimitives.ReverseEndianness(ReadOnlySpan{ushort}, Span{ushort})"/> has no 24-bit overload, and only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="UInt24"/>
-    /// <seealso cref="ReadUInt24ArrayAt(long, int)"/>
+    /// <seealso cref="ReadUInt24ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
-    public void ReadUInt24ArrayAt(long offset, scoped Span<UInt24> destination)
+    public void ReadUInt24ArrayAt(long offset, scoped Span<UInt24> destination, bool isLittleEndian = false)
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
-        if (BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != isLittleEndian)
             for (int i = 0; i < destination.Length; i++)
                 destination[i] = UInt24.ReverseEndianness(destination[i]);
     }
 
-    /// <summary>Reads an array of big-endian signed 24-bit integers at an absolute offset.</summary>
+    /// <summary>Reads an array of 24-bit signed integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>Reversal is performed per element. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
+    /// <remarks>Reversal is performed per element, and only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="Int24"/>
-    /// <seealso cref="ReadInt24ArrayAt(long, int)"/>
+    /// <seealso cref="ReadInt24ArrayAt(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
-    public void ReadInt24ArrayAt(long offset, scoped Span<Int24> destination)
+    public void ReadInt24ArrayAt(long offset, scoped Span<Int24> destination, bool isLittleEndian = false)
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
-        if (BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != isLittleEndian)
             for (int i = 0; i < destination.Length; i++)
                 destination[i] = Int24.ReverseEndianness(destination[i]);
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian unsigned 24-bit integers at an absolute offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 24-bit unsigned integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="UInt24"/>
-    /// <seealso cref="ReadUInt24ArrayAt(long, Span{UInt24})"/>
+    /// <seealso cref="ReadUInt24ArrayAt(long, Span{UInt24}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
-    public UInt24[] ReadUInt24ArrayAt(long offset, int count)
+    public UInt24[] ReadUInt24ArrayAt(long offset, int count, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new UInt24[count];
-        ReadUInt24ArrayAt(offset, result);
+        ReadUInt24ArrayAt(offset, result, isLittleEndian);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian signed 24-bit integers at an absolute offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 24-bit signed integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="Int24"/>
-    /// <seealso cref="ReadInt24ArrayAt(long, Span{Int24})"/>
+    /// <seealso cref="ReadInt24ArrayAt(long, Span{Int24}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
-    public Int24[] ReadInt24ArrayAt(long offset, int count)
+    public Int24[] ReadInt24ArrayAt(long offset, int count, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new Int24[count];
-        ReadInt24ArrayAt(offset, result);
+        ReadInt24ArrayAt(offset, result, isLittleEndian);
         return result;
     }
 
     // ───────────────────────── Typed arrays (32-bit) ─────────────────────────
 
-    /// <summary>Reads an array of big-endian unsigned 32-bit integers at an absolute offset.</summary>
+    /// <summary>Reads an array of 32-bit unsigned integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The bytes are read as-is and then reversed in place on little-endian hosts. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt32ArrayAt(long, int)"/>
-    /// <seealso cref="ReadInt32ArrayAt(long, Span{int})"/>
+    /// <remarks>The bytes are read as-is and reversed in place only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt32ArrayAt(long, int, bool)"/>
+    /// <seealso cref="ReadInt32ArrayAt(long, Span{int}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
-    public void ReadUInt32ArrayAt(long offset, scoped Span<uint> destination)
+    public void ReadUInt32ArrayAt(long offset, scoped Span<uint> destination, bool isLittleEndian = false)
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
-        if (BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != isLittleEndian)
             BinaryPrimitives.ReverseEndianness(destination, destination);
     }
 
-    /// <summary>Reads an array of big-endian signed 32-bit integers at an absolute offset.</summary>
+    /// <summary>Reads an array of 32-bit signed integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The bytes are read as-is and then reversed in place on little-endian hosts. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt32ArrayAt(long, int)"/>
-    /// <seealso cref="ReadUInt32ArrayAt(long, Span{uint})"/>
+    /// <remarks>The bytes are read as-is and reversed in place only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt32ArrayAt(long, int, bool)"/>
+    /// <seealso cref="ReadUInt32ArrayAt(long, Span{uint}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
-    public void ReadInt32ArrayAt(long offset, scoped Span<int> destination)
+    public void ReadInt32ArrayAt(long offset, scoped Span<int> destination, bool isLittleEndian = false)
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
-        if (BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != isLittleEndian)
             BinaryPrimitives.ReverseEndianness(destination, destination);
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian unsigned 32-bit integers at an absolute offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 32-bit unsigned integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt32ArrayAt(long, Span{uint})"/>
+    /// <seealso cref="ReadUInt32ArrayAt(long, Span{uint}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
-    public uint[] ReadUInt32ArrayAt(long offset, int count)
+    public uint[] ReadUInt32ArrayAt(long offset, int count, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new uint[count];
-        ReadUInt32ArrayAt(offset, result);
+        ReadUInt32ArrayAt(offset, result, isLittleEndian);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian signed 32-bit integers at an absolute offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 32-bit signed integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt32ArrayAt(long, Span{int})"/>
+    /// <seealso cref="ReadInt32ArrayAt(long, Span{int}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
-    public int[] ReadInt32ArrayAt(long offset, int count)
+    public int[] ReadInt32ArrayAt(long offset, int count, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new int[count];
-        ReadInt32ArrayAt(offset, result);
+        ReadInt32ArrayAt(offset, result, isLittleEndian);
         return result;
     }
 
     // ───────────────────────── Typed arrays (64-bit) ─────────────────────────
 
-    /// <summary>Reads an array of big-endian unsigned 64-bit integers at an absolute offset.</summary>
+    /// <summary>Reads an array of 64-bit unsigned integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The bytes are read as-is and then reversed in place on little-endian hosts. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt64ArrayAt(long, int)"/>
-    /// <seealso cref="ReadInt64ArrayAt(long, Span{long})"/>
+    /// <remarks>The bytes are read as-is and reversed in place only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt64ArrayAt(long, int, bool)"/>
+    /// <seealso cref="ReadInt64ArrayAt(long, Span{long}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
-    public void ReadUInt64ArrayAt(long offset, scoped Span<ulong> destination)
+    public void ReadUInt64ArrayAt(long offset, scoped Span<ulong> destination, bool isLittleEndian = false)
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
-        if (BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != isLittleEndian)
             BinaryPrimitives.ReverseEndianness(destination, destination);
     }
 
-    /// <summary>Reads an array of big-endian signed 64-bit integers at an absolute offset.</summary>
+    /// <summary>Reads an array of 64-bit signed integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The bytes are read as-is and then reversed in place on little-endian hosts. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt64ArrayAt(long, int)"/>
-    /// <seealso cref="ReadUInt64ArrayAt(long, Span{ulong})"/>
+    /// <remarks>The bytes are read as-is and reversed in place only when the wire order disagrees with the host order. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt64ArrayAt(long, int, bool)"/>
+    /// <seealso cref="ReadUInt64ArrayAt(long, Span{ulong}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
-    public void ReadInt64ArrayAt(long offset, scoped Span<long> destination)
+    public void ReadInt64ArrayAt(long offset, scoped Span<long> destination, bool isLittleEndian = false)
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
-        if (BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != isLittleEndian)
             BinaryPrimitives.ReverseEndianness(destination, destination);
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian unsigned 64-bit integers at an absolute offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 64-bit unsigned integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt64ArrayAt(long, Span{ulong})"/>
+    /// <seealso cref="ReadUInt64ArrayAt(long, Span{ulong}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
-    public ulong[] ReadUInt64ArrayAt(long offset, int count)
+    public ulong[] ReadUInt64ArrayAt(long offset, int count, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new ulong[count];
-        ReadUInt64ArrayAt(offset, result);
+        ReadUInt64ArrayAt(offset, result, isLittleEndian);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian signed 64-bit integers at an absolute offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 64-bit signed integers at an absolute offset in the requested wire byte order.</summary>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt64ArrayAt(long, Span{long})"/>
+    /// <seealso cref="ReadInt64ArrayAt(long, Span{long}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
-    public long[] ReadInt64ArrayAt(long offset, int count)
+    public long[] ReadInt64ArrayAt(long offset, int count, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new long[count];
-        ReadInt64ArrayAt(offset, result);
+        ReadInt64ArrayAt(offset, result, isLittleEndian);
         return result;
     }
 
@@ -816,9 +858,9 @@ public abstract class Source : IDisposable
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayInterpretAt{T}(long, int, Func{ushort, T})"/>
-    /// <seealso cref="ReadOffset24ArrayInterpretAt{T}(long, int, Func{UInt24, T})"/>
-    /// <seealso cref="ReadOffset32ArrayInterpretAt{T}(long, int, Func{uint, T})"/>
+    /// <seealso cref="ReadOffset16ArrayInterpretAt{T}(long, int, Func{ushort, T}, bool)"/>
+    /// <seealso cref="ReadOffset24ArrayInterpretAt{T}(long, int, Func{UInt24, T}, bool)"/>
+    /// <seealso cref="ReadOffset32ArrayInterpretAt{T}(long, int, Func{uint, T}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
     public T[] ReadOffset8ArrayInterpretAt<T>(long offset, int count, Func<byte, T> interpreter)
     {
@@ -838,6 +880,7 @@ public abstract class Source : IDisposable
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="interpreter">The function applied to each offset value.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of interpreted values, one per offset.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
@@ -845,13 +888,13 @@ public abstract class Source : IDisposable
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="ReadOffset8ArrayInterpretAt{T}(long, int, Func{byte, T})"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public T[] ReadOffset16ArrayInterpretAt<T>(long offset, int count, Func<ushort, T> interpreter)
+    public T[] ReadOffset16ArrayInterpretAt<T>(long offset, int count, Func<ushort, T> interpreter, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         ArgumentNullException.ThrowIfNull(interpreter);
         if (count == 0) return [];
 
-        var offsets = ReadUInt16ArrayAt(offset, count);
+        var offsets = ReadUInt16ArrayAt(offset, count, isLittleEndian);
         var result = new T[count];
         for (int i = 0; i < count; i++)
             result[i] = interpreter(offsets[i]);
@@ -863,6 +906,7 @@ public abstract class Source : IDisposable
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="interpreter">The function applied to each offset value.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of interpreted values, one per offset.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
@@ -871,13 +915,13 @@ public abstract class Source : IDisposable
     /// <seealso cref="ReadOffset8ArrayInterpretAt{T}(long, int, Func{byte, T})"/>
     /// <seealso cref="UInt24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public T[] ReadOffset24ArrayInterpretAt<T>(long offset, int count, Func<UInt24, T> interpreter)
+    public T[] ReadOffset24ArrayInterpretAt<T>(long offset, int count, Func<UInt24, T> interpreter, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         ArgumentNullException.ThrowIfNull(interpreter);
         if (count == 0) return [];
 
-        var offsets = ReadUInt24ArrayAt(offset, count);
+        var offsets = ReadUInt24ArrayAt(offset, count, isLittleEndian);
         var result = new T[count];
         for (int i = 0; i < count; i++)
             result[i] = interpreter(offsets[i]);
@@ -889,6 +933,7 @@ public abstract class Source : IDisposable
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="interpreter">The function applied to each offset value.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of interpreted values, one per offset.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
@@ -896,13 +941,13 @@ public abstract class Source : IDisposable
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="ReadOffset8ArrayInterpretAt{T}(long, int, Func{byte, T})"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public T[] ReadOffset32ArrayInterpretAt<T>(long offset, int count, Func<uint, T> interpreter)
+    public T[] ReadOffset32ArrayInterpretAt<T>(long offset, int count, Func<uint, T> interpreter, bool isLittleEndian = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         ArgumentNullException.ThrowIfNull(interpreter);
         if (count == 0) return [];
 
-        var offsets = ReadUInt32ArrayAt(offset, count);
+        var offsets = ReadUInt32ArrayAt(offset, count, isLittleEndian);
         var result = new T[count];
         for (int i = 0; i < count; i++)
             result[i] = interpreter(offsets[i]);
@@ -914,17 +959,18 @@ public abstract class Source : IDisposable
     /// <summary>Parses a record of type <typeparamref name="T"/> at an absolute offset.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
     /// <param name="offset">Absolute offset of the record.</param>
-    /// <param name="context">External values the record needs, or <c>null</c> when the record's own bytes are sufficient.</param>
+    /// <param name="context">External values the record needs, or <c>null</c> when the record's own bytes are sufficient. A record that needs endianness information receives it through the context, not through a parameter on this method.</param>
     /// <returns>The parsed record.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>The cursor passed to the record is created with <see cref="CreateOffsetCursor(long, long)"/>, so the record's internal offsets resolve relative to <paramref name="offset"/>.</description></item>
+    /// <item><description>The record determines its own wire byte order.</description></item>
     /// <item><description>This is a convenience wrapper over <c>T.Parse(ref cursor, context)</c>; use <see cref="CreateCursor(long)"/> directly when you need to inspect the cursor afterwards.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="ParseRecordArrayAt{T}(long, int, object?)"/>
-    /// <seealso cref="ReadOffset8ArrayParseRecordAt{T}(long, int, object?)"/>
+    /// <seealso cref="ReadOffset16ArrayParseRecordAt{T}(long, int, object?, bool)"/>
     /// <seealso cref="IRecord{T}"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T ParseRecordAt<T>(long offset, object? context = null) where T : IRecord<T>
@@ -941,7 +987,7 @@ public abstract class Source : IDisposable
     /// <returns>A new array of parsed records, one per record, in source order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>Records are parsed sequentially; the offset is advanced by the bytes each record consumed.</remarks>
+    /// <remarks>Records are parsed sequentially; the offset is advanced by the bytes each record consumed. Each record determines its own wire byte order.</remarks>
     /// <seealso cref="ParseRecordAt{T}(long, object?)"/>
     /// <seealso cref="ParseRecordArrayAt{T}(long, Span{T}, object?)"/>
     /// <seealso cref="IRecord{T}"/>
@@ -966,9 +1012,9 @@ public abstract class Source : IDisposable
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>The offsets are relative to the source origin. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayParseRecordAt{T}(long, int, object?)"/>
-    /// <seealso cref="ReadOffset24ArrayParseRecordAt{T}(long, int, object?)"/>
-    /// <seealso cref="ReadOffset32ArrayParseRecordAt{T}(long, int, object?)"/>
+    /// <seealso cref="ReadOffset16ArrayParseRecordAt{T}(long, int, object?, bool)"/>
+    /// <seealso cref="ReadOffset24ArrayParseRecordAt{T}(long, int, object?, bool)"/>
+    /// <seealso cref="ReadOffset32ArrayParseRecordAt{T}(long, int, object?, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
     public T[] ReadOffset8ArrayParseRecordAt<T>(long offset, int count, object? context = null)
         where T : IRecord<T>
@@ -985,19 +1031,20 @@ public abstract class Source : IDisposable
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of parsed records, one per offset, in source order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="ReadOffset8ArrayParseRecordAt{T}(long, int, object?)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public T[] ReadOffset16ArrayParseRecordAt<T>(long offset, int count, object? context = null)
+    public T[] ReadOffset16ArrayParseRecordAt<T>(long offset, int count, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (count == 0) return [];
         var result = new T[count];
-        ReadOffset16ArrayParseRecordAt(offset, result, context);
+        ReadOffset16ArrayParseRecordAt(offset, result, context, isLittleEndian);
         return result;
     }
 
@@ -1006,19 +1053,20 @@ public abstract class Source : IDisposable
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of parsed records, one per offset, in source order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="ReadOffset8ArrayParseRecordAt{T}(long, int, object?)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public T[] ReadOffset24ArrayParseRecordAt<T>(long offset, int count, object? context = null)
+    public T[] ReadOffset24ArrayParseRecordAt<T>(long offset, int count, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (count == 0) return [];
         var result = new T[count];
-        ReadOffset24ArrayParseRecordAt(offset, result, context);
+        ReadOffset24ArrayParseRecordAt(offset, result, context, isLittleEndian);
         return result;
     }
 
@@ -1027,19 +1075,20 @@ public abstract class Source : IDisposable
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of parsed records, one per offset, in source order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="ReadOffset8ArrayParseRecordAt{T}(long, int, object?)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public T[] ReadOffset32ArrayParseRecordAt<T>(long offset, int count, object? context = null)
+    public T[] ReadOffset32ArrayParseRecordAt<T>(long offset, int count, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (count == 0) return [];
         var result = new T[count];
-        ReadOffset32ArrayParseRecordAt(offset, result, context);
+        ReadOffset32ArrayParseRecordAt(offset, result, context, isLittleEndian);
         return result;
     }
 
@@ -1051,7 +1100,7 @@ public abstract class Source : IDisposable
     /// <param name="destination">The span to fill. Its length determines how many records are parsed. An empty span is a no-op.</param>
     /// <param name="context">External values passed to each parse, or <c>null</c>.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>Records are parsed sequentially. After each record, the cursor position is added to the offset so the next record begins immediately after the bytes the previous one consumed.</remarks>
+    /// <remarks>Records are parsed sequentially. After each record, the cursor position is added to the offset so the next record begins immediately after the bytes the previous one consumed. Each record determines its own wire byte order.</remarks>
     /// <seealso cref="ParseRecordArrayAt{T}(long, int, object?)"/>
     /// <seealso cref="IRecord{T}"/>
     public void ParseRecordArrayAt<T>(long offset, scoped Span<T> destination, object? context = null)
@@ -1092,15 +1141,16 @@ public abstract class Source : IDisposable
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayParseRecordAt{T}(long, int, object?)"/>
+    /// <seealso cref="ReadOffset16ArrayParseRecordAt{T}(long, int, object?, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public void ReadOffset16ArrayParseRecordAt<T>(long offset, scoped Span<T> destination, object? context = null)
+    public void ReadOffset16ArrayParseRecordAt<T>(long offset, scoped Span<T> destination, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
         if (destination.IsEmpty) return;
-        var offsets = ReadUInt16ArrayAt(offset, destination.Length);
+        var offsets = ReadUInt16ArrayAt(offset, destination.Length, isLittleEndian);
         for (int i = 0; i < destination.Length; i++)
             destination[i] = ParseRecordAt<T>(offsets[i], context);
     }
@@ -1110,15 +1160,16 @@ public abstract class Source : IDisposable
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset24ArrayParseRecordAt{T}(long, int, object?)"/>
+    /// <seealso cref="ReadOffset24ArrayParseRecordAt{T}(long, int, object?, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public void ReadOffset24ArrayParseRecordAt<T>(long offset, scoped Span<T> destination, object? context = null)
+    public void ReadOffset24ArrayParseRecordAt<T>(long offset, scoped Span<T> destination, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
         if (destination.IsEmpty) return;
-        var offsets = ReadUInt24ArrayAt(offset, destination.Length);
+        var offsets = ReadUInt24ArrayAt(offset, destination.Length, isLittleEndian);
         for (int i = 0; i < destination.Length; i++)
             destination[i] = ParseRecordAt<T>(offsets[i], context);
     }
@@ -1128,15 +1179,16 @@ public abstract class Source : IDisposable
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset32ArrayParseRecordAt{T}(long, int, object?)"/>
+    /// <seealso cref="ReadOffset32ArrayParseRecordAt{T}(long, int, object?, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public void ReadOffset32ArrayParseRecordAt<T>(long offset, scoped Span<T> destination, object? context = null)
+    public void ReadOffset32ArrayParseRecordAt<T>(long offset, scoped Span<T> destination, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
         if (destination.IsEmpty) return;
-        var offsets = ReadUInt32ArrayAt(offset, destination.Length);
+        var offsets = ReadUInt32ArrayAt(offset, destination.Length, isLittleEndian);
         for (int i = 0; i < destination.Length; i++)
             destination[i] = ParseRecordAt<T>(offsets[i], context);
     }
@@ -1145,10 +1197,13 @@ public abstract class Source : IDisposable
     //
     // ReadStructAt<T> reinterprets raw bytes as T with no endianness conversion. The caller
     // is responsible for swapping multi-byte fields when the on-disk byte order does not
-    // match the host.
+    // match the host. The method is endian-independent by construction, so it takes no
+    // isLittleEndian argument.
     //
-    // ReadBigEndianStructAt<T> reads bytes that are known to be big-endian on disk and
-    // calls T.SwapEndianness() on little-endian hosts. T must implement IBigEndianStruct.
+    // ReadEndianReversibleStructAt<T> reads bytes that follow the IEndianReversibleStruct<T>
+    // convention and reverses multi-byte fields when the wire byte order disagrees with the
+    // host order. It takes an isLittleEndian argument that describes the wire order; the
+    // default is false, matching the OpenType big-endian convention.
     //
     // Both require T to be unmanaged, sequentially laid out, and padded to the same size as
     // its fields. The struct layout is the caller's responsibility.
@@ -1162,11 +1217,11 @@ public abstract class Source : IDisposable
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>The caller is responsible for swapping multi-byte fields when the on-disk byte order does not match the host.</description></item>
-    /// <item><description>For big-endian structs, use <see cref="ReadEndianReversibleStructAt{T}(long)"/> instead.</description></item>
+    /// <item><description>For structs that follow the <see cref="IEndianReversibleStruct{T}"/> convention, use <see cref="ReadEndianReversibleStructAt{T}(long, bool)"/> instead.</description></item>
     /// <item><description>See <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType Data Types</see> for the on-disk format of primitive fields.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="ReadEndianReversibleStructAt{T}(long)"/>
+    /// <seealso cref="ReadEndianReversibleStructAt{T}(long, bool)"/>
     /// <seealso cref="ReadStructArrayAt{T}(long, int)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1183,7 +1238,7 @@ public abstract class Source : IDisposable
     /// <param name="destination">Span to fill.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <seealso cref="ReadEndianReversibleStructArrayAt{T}(long, Span{T})"/>
+    /// <seealso cref="ReadEndianReversibleStructArrayAt{T}(long, Span{T}, bool)"/>
     /// <seealso cref="ReadStructArrayAt{T}(long, int)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
     public void ReadStructArrayAt<T>(long offset, scoped Span<T> destination) where T : unmanaged
@@ -1210,68 +1265,78 @@ public abstract class Source : IDisposable
         return result;
     }
 
-    /// <summary>Reads a big-endian unmanaged struct of type <typeparamref name="T"/> at an absolute offset, swapping multi-byte fields to native order on little-endian hosts.</summary>
+    /// <summary>Reads an endian-reversible unmanaged struct of type <typeparamref name="T"/> at an absolute offset, reversing multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="offset">Absolute offset within the source.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the struct's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value read, with multi-byte fields in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>This is the reader to use for every OpenType header or record struct, since the format is defined as big-endian on disk. See <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType Data Types</see>.</remarks>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>Reversal is applied only when <see cref="BitConverter.IsLittleEndian"/> disagrees with <paramref name="isLittleEndian"/>, so the method is correct on both little- and big-endian hosts.</description></item>
+    /// <item><description>This is the reader to use for every OpenType header or record struct; the OpenType wire format is big-endian, so the default argument covers the common case.</description></item>
+    /// <item><description>See <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType Data Types</see> for the on-disk format of primitive fields.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="ReadStructAt{T}(long)"/>
-    /// <seealso cref="ReadEndianReversibleStructArrayAt{T}(long, int)"/>
+    /// <seealso cref="ReadEndianReversibleStructArrayAt{T}(long, int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T ReadEndianReversibleStructAt<T>(long offset) where T : unmanaged, IEndianReversibleStruct<T>
+    public T ReadEndianReversibleStructAt<T>(long offset, bool isLittleEndian = false)
+        where T : unmanaged, IEndianReversibleStruct<T>
     {
         T value = default;
         ReadAt(offset, MemoryMarshal.AsBytes(new Span<T>(ref value)));
-        return BitConverter.IsLittleEndian ? T.ReverseEndianness(value) : value;
+        return BitConverter.IsLittleEndian != isLittleEndian ? T.ReverseEndianness(value) : value;
     }
 
-    /// <summary>Reads <paramref name="destination"/>.Length big-endian unmanaged structs of type <typeparamref name="T"/> at an absolute offset, swapping multi-byte fields to native order on little-endian hosts.</summary>
+    /// <summary>Reads <paramref name="destination"/>.Length endian-reversible unmanaged structs of type <typeparamref name="T"/> at an absolute offset, reversing multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="destination">Span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>Reversal is performed per element on little-endian hosts.</remarks>
+    /// <remarks>Reversal is performed per element only when <see cref="BitConverter.IsLittleEndian"/> disagrees with <paramref name="isLittleEndian"/>.</remarks>
     /// <seealso cref="ReadStructArrayAt{T}(long, Span{T})"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
-    public void ReadEndianReversibleStructArrayAt<T>(long offset, scoped Span<T> destination)
+    public void ReadEndianReversibleStructArrayAt<T>(long offset, scoped Span<T> destination, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
         if (destination.IsEmpty) return;
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
-        if (BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian != isLittleEndian)
             for (int i = 0; i < destination.Length; i++)
                 destination[i] = T.ReverseEndianness(destination[i]);
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian unmanaged structs of type <typeparamref name="T"/> at an absolute offset, swapping multi-byte fields to native order on little-endian hosts.</summary>
+    /// <summary>Reads <paramref name="count"/> endian-reversible unmanaged structs of type <typeparamref name="T"/> at an absolute offset, reversing multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="offset">Absolute offset within the source.</param>
     /// <param name="count">The number of elements to read. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <seealso cref="ReadEndianReversibleStructArrayAt{T}(long, Span{T})"/>
-    /// <seealso cref="ReadEndianReversibleStructAt{T}(long)"/>
+    /// <seealso cref="ReadEndianReversibleStructArrayAt{T}(long, Span{T}, bool)"/>
+    /// <seealso cref="ReadEndianReversibleStructAt{T}(long, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
-    public T[] ReadEndianReversibleStructArrayAt<T>(long offset, int count)
+    public T[] ReadEndianReversibleStructArrayAt<T>(long offset, int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new T[count];
-        ReadEndianReversibleStructArrayAt(offset, result);
+        ReadEndianReversibleStructArrayAt(offset, result, isLittleEndian);
         return result;
     }
 
     // ─────────────── Offset array + struct reads ───────────────
 
-    /// <summary>Reads <paramref name="count"/> 8-bit offsets at <paramref name="offset"/> and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed.</summary>
+    /// <summary>Reads <paramref name="count"/> 8-bit offsets at <paramref name="offset"/> and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
@@ -1279,7 +1344,7 @@ public abstract class Source : IDisposable
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset8ArrayPeekEndianReversibleStructAt{T}(long, int)"/>
+    /// <seealso cref="ReadOffset8ArrayPeekEndianReversibleStructAt{T}(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
     public T[] ReadOffset8ArrayPeekStructAt<T>(long offset, int count) where T : unmanaged
     {
@@ -1291,70 +1356,74 @@ public abstract class Source : IDisposable
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 16-bit offsets at <paramref name="offset"/> and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed.</summary>
+    /// <summary>Reads <paramref name="count"/> 16-bit offsets at <paramref name="offset"/> and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayPeekEndianReversibleStructAt{T}(long, int)"/>
+    /// <seealso cref="ReadOffset16ArrayPeekEndianReversibleStructAt{T}(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public T[] ReadOffset16ArrayPeekStructAt<T>(long offset, int count) where T : unmanaged
+    public T[] ReadOffset16ArrayPeekStructAt<T>(long offset, int count, bool isLittleEndian = false) where T : unmanaged
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        var offsets = ReadUInt16ArrayAt(offset, count);
+        var offsets = ReadUInt16ArrayAt(offset, count, isLittleEndian);
         var result = new T[count];
         for (int i = 0; i < count; i++)
             result[i] = ReadStructAt<T>(offsets[i]);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 24-bit offsets at <paramref name="offset"/> and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed.</summary>
+    /// <summary>Reads <paramref name="count"/> 24-bit offsets at <paramref name="offset"/> and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset24ArrayPeekEndianReversibleStructAt{T}(long, int)"/>
+    /// <seealso cref="ReadOffset24ArrayPeekEndianReversibleStructAt{T}(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public T[] ReadOffset24ArrayPeekStructAt<T>(long offset, int count) where T : unmanaged
+    public T[] ReadOffset24ArrayPeekStructAt<T>(long offset, int count, bool isLittleEndian = false) where T : unmanaged
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        var offsets = ReadUInt24ArrayAt(offset, count);
+        var offsets = ReadUInt24ArrayAt(offset, count, isLittleEndian);
         var result = new T[count];
         for (int i = 0; i < count; i++)
             result[i] = ReadStructAt<T>(offsets[i]);   // UInt24 → uint → long
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 32-bit offsets at <paramref name="offset"/> and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed.</summary>
+    /// <summary>Reads <paramref name="count"/> 32-bit offsets at <paramref name="offset"/> and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset32ArrayPeekEndianReversibleStructAt{T}(long, int)"/>
+    /// <seealso cref="ReadOffset32ArrayPeekEndianReversibleStructAt{T}(long, int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public T[] ReadOffset32ArrayPeekStructAt<T>(long offset, int count) where T : unmanaged
+    public T[] ReadOffset32ArrayPeekStructAt<T>(long offset, int count, bool isLittleEndian = false) where T : unmanaged
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        var offsets = ReadUInt32ArrayAt(offset, count);
+        var offsets = ReadUInt32ArrayAt(offset, count, isLittleEndian);
         var result = new T[count];
         for (int i = 0; i < count; i++)
             result[i] = ReadStructAt<T>(offsets[i]);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 8-bit offsets at <paramref name="offset"/> and reads a big-endian struct of type <typeparamref name="T"/> at each offset, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Reads <paramref name="count"/> 8-bit offsets at <paramref name="offset"/> and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset, reversing multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
@@ -1362,80 +1431,83 @@ public abstract class Source : IDisposable
     /// <seealso cref="ReadOffset8ArrayPeekStructAt{T}(long, int)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
-    public T[] ReadOffset8ArrayPeekEndianReversibleStructAt<T>(long offset, int count)
+    public T[] ReadOffset8ArrayPeekEndianReversibleStructAt<T>(long offset, int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         var offsets = ReadUInt8ArrayAt(offset, count);
         var result = new T[count];
         for (int i = 0; i < count; i++)
-            result[i] = ReadEndianReversibleStructAt<T>(offsets[i]);
+            result[i] = ReadEndianReversibleStructAt<T>(offsets[i], isLittleEndian);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 16-bit offsets at <paramref name="offset"/> and reads a big-endian struct of type <typeparamref name="T"/> at each offset, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Reads <paramref name="count"/> 16-bit offsets at <paramref name="offset"/> and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset, reversing multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' and structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayPeekStructAt{T}(long, int)"/>
+    /// <seealso cref="ReadOffset16ArrayPeekStructAt{T}(long, int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public T[] ReadOffset16ArrayPeekEndianReversibleStructAt<T>(long offset, int count)
+    public T[] ReadOffset16ArrayPeekEndianReversibleStructAt<T>(long offset, int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        var offsets = ReadUInt16ArrayAt(offset, count);
+        var offsets = ReadUInt16ArrayAt(offset, count, isLittleEndian);
         var result = new T[count];
         for (int i = 0; i < count; i++)
-            result[i] = ReadEndianReversibleStructAt<T>(offsets[i]);
+            result[i] = ReadEndianReversibleStructAt<T>(offsets[i], isLittleEndian);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 24-bit offsets at <paramref name="offset"/> and reads a big-endian struct of type <typeparamref name="T"/> at each offset, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Reads <paramref name="count"/> 24-bit offsets at <paramref name="offset"/> and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset, reversing multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' and structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset24ArrayPeekStructAt{T}(long, int)"/>
+    /// <seealso cref="ReadOffset24ArrayPeekStructAt{T}(long, int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public T[] ReadOffset24ArrayPeekEndianReversibleStructAt<T>(long offset, int count)
+    public T[] ReadOffset24ArrayPeekEndianReversibleStructAt<T>(long offset, int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        var offsets = ReadUInt24ArrayAt(offset, count);
+        var offsets = ReadUInt24ArrayAt(offset, count, isLittleEndian);
         var result = new T[count];
         for (int i = 0; i < count; i++)
-            result[i] = ReadEndianReversibleStructAt<T>(offsets[i]);
+            result[i] = ReadEndianReversibleStructAt<T>(offsets[i], isLittleEndian);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 32-bit offsets at <paramref name="offset"/> and reads a big-endian struct of type <typeparamref name="T"/> at each offset, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Reads <paramref name="count"/> 32-bit offsets at <paramref name="offset"/> and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset, reversing multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="offset">Absolute offset of the offset array.</param>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' and structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native byte order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="offset"/> is negative, or <paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset32ArrayPeekStructAt{T}(long, int)"/>
+    /// <seealso cref="ReadOffset32ArrayPeekStructAt{T}(long, int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public T[] ReadOffset32ArrayPeekEndianReversibleStructAt<T>(long offset, int count)
+    public T[] ReadOffset32ArrayPeekEndianReversibleStructAt<T>(long offset, int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        var offsets = ReadUInt32ArrayAt(offset, count);
+        var offsets = ReadUInt32ArrayAt(offset, count, isLittleEndian);
         var result = new T[count];
         for (int i = 0; i < count; i++)
-            result[i] = ReadEndianReversibleStructAt<T>(offsets[i]);
+            result[i] = ReadEndianReversibleStructAt<T>(offsets[i], isLittleEndian);
         return result;
     }
 
@@ -1512,7 +1584,7 @@ public abstract class Source : IDisposable
     /// <item><description>After this call returns, any further read throws <see cref="ObjectDisposedException"/> or produces undefined results depending on the backing.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="IDisposable"/>
+    /// <seealso cref="System.IDisposable"/>
     /// <seealso href="https://learn.microsoft.com/en-us/dotnet/api/system.idisposable">.NET API: <c>IDisposable</c></seealso>
     public abstract void Dispose();
 }

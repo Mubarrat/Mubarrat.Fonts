@@ -99,7 +99,7 @@ public sealed record VdmxTable : IFontTable<VdmxTable>
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>The ratio-range array is fixed-layout and read through <see cref="Cursor.ReadStructArray{T}(int)"/>; its entries are byte-only so no endianness reversal is needed.</description></item>
-    /// <item><description>The group array is read through <see cref="Cursor.ReadOffset16ArrayPeekRecord{T}(int, object?)"/>, which resolves each offset to a fully-parsed <see cref="VdmxGroup"/>.</description></item>
+    /// <item><description>The group array is read through <see cref="Cursor.ReadOffset16ArrayPeekRecord{T}(int, object?, bool)"/>, which resolves each offset to a fully-parsed <see cref="VdmxGroup"/>.</description></item>
     /// <item><description>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/vdmx">VDMX table</see> chapter in the OpenType specification.</description></item>
     /// </list>
     /// </remarks>
@@ -109,7 +109,7 @@ public sealed record VdmxTable : IFontTable<VdmxTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/vdmx">OpenType specification: VDMX table</seealso>
     public static VdmxTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version is not (0 or 1))
             throw new InvalidDataException(
@@ -164,7 +164,7 @@ public sealed record VdmxTable : IFontTable<VdmxTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Version = BinaryPrimitives.ReverseEndianness(v.Version),
@@ -279,12 +279,12 @@ public sealed record VdmxGroup : IRecord<VdmxGroup>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/vdmx">OpenType specification: VDMX groups</seealso>
     public static VdmxGroup Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new VdmxGroup
         {
             StartSize = header.StartSize,
             EndSize = header.EndSize,
-            Records = cursor.ReadBigEndianStructArray<VdmxRecord>(header.Recs),
+            Records = cursor.ReadEndianReversibleStructArray<VdmxRecord>(header.Recs),
         };
     }
 
@@ -325,7 +325,7 @@ public sealed record VdmxGroup : IRecord<VdmxGroup>
         /// <returns>A new header with the record count reversed; the two byte fields are copied through.</returns>
         /// <remarks>Only <see cref="Recs"/> is multi-byte; the two pixel-height fields are single bytes and require no reversal.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => v with
         {
             Recs = BinaryPrimitives.ReverseEndianness(v.Recs)
@@ -370,7 +370,7 @@ public record struct VdmxRecord : IEndianReversibleStruct<VdmxRecord>
     /// <returns>A new record with each multi-byte field reversed.</returns>
     /// <remarks>The pixel-height field uses <see cref="BinaryPrimitives.ReverseEndianness(ushort)"/>; the two signed y values use <see cref="BinaryPrimitives.ReverseEndianness(short)"/>.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     public static VdmxRecord ReverseEndianness(VdmxRecord v) => new()
     {
         YPelHeight = BinaryPrimitives.ReverseEndianness(v.YPelHeight),

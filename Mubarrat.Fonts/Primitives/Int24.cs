@@ -26,7 +26,7 @@ namespace Mubarrat.Fonts.Primitives;
 /// <seealso cref="F2Dot14"/>
 /// <seealso cref="Tag"/>
 /// <seealso cref="IEndianReversibleStruct{T}"/>
-/// <seealso cref="Source.ReadUInt24At(long)"/>
+/// <seealso cref="Source.ReadUInt24At"/>
 /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
 /// <seealso href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/integral-numeric-types">C# reference: Integral numeric types</seealso>
 [StructLayout(LayoutKind.Sequential, Size = 3, Pack = 1)]
@@ -277,14 +277,14 @@ public readonly struct Int24 :
     /// <returns>An <see cref="Int24"/> whose three in-memory bytes are in reversed order.</returns>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The operation is unconditional. The host-endianness check is applied by the reader (<see cref="Source.ReadEndianReversibleStructAt{T}(long)"/>), not by this method.</description></item>
+    /// <item><description>The operation is unconditional. The host-endianness check is applied by the reader (<see cref="Source.ReadEndianReversibleStructAt{T}"/>), not by this method.</description></item>
     /// <item><description>Symmetric: <c>ReverseEndianness(ReverseEndianness(x)) == x</c> for every <c>x</c>.</description></item>
     /// <item><description>Because this struct stores its bytes natively (unlike <see cref="Fixed"/>), a reverse is a pure byte swap; the numeric <see cref="Value"/> changes to the opposite 24-bit interpretation.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="FromBigEndianBytes(byte, byte, byte)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
+    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Int24 ReverseEndianness(Int24 value) => new(value._b2, value._b1, value._b0);

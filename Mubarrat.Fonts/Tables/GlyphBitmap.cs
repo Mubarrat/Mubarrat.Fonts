@@ -1,4 +1,7 @@
 ﻿using Mubarrat.Fonts.Binary;
+using System.Buffers.Binary;
+using System.Data;
+using System.Runtime.InteropServices;
 
 namespace Mubarrat.Fonts.Tables;
 
@@ -6,13 +9,15 @@ namespace Mubarrat.Fonts.Tables;
 /// <remarks>
 /// <list type="bullet">
 /// <item><description>The image format determines which fields are populated. Exactly one metrics source applies per format: <see cref="SmallMetrics"/> for formats 1, 2, 8, 17; <see cref="BigMetrics"/> for formats 6, 7, 9, 18; <see cref="MetricsInSubtable"/> for formats 5 and 19, where the metrics live in the enclosing EBLC/CBLC subtable rather than the bitmap record. The other two metrics properties are <c>null</c>.</description></item>
-/// <item><description>The payload is similarly format-specific. Exactly one of <see cref="PixelData"/>, <see cref="Components"/>, or <see cref="PngData"/> is non-empty; the other two are the default empty list.</description></item>
+/// <item><description>The payload is format-specific. For formats 1, 2, 5, 6, and 7 it is the packed bitmap in <see cref="PixelData"/>; for formats 8 and 9 it is the component array in <see cref="Components"/>; for formats 17, 18, and 19 it is the PNG stream in <see cref="PngData"/>. Format 4 is the exception: it carries none of the three, and its Huffman trees and encoded glyph data live in <see cref="GlyphBitmapFormat4.WhiteTreeBytes"/>, <see cref="GlyphBitmapFormat4.BlackTreeBytes"/>, and <see cref="GlyphBitmapFormat4.GlyphDataBytes"/>.</description></item>
+/// <item><description>Format 4 is defined only by Apple's <c>bdat</c> table; the other ten formats are defined by OpenType's <c>EBDT</c> and <c>CBDT</c> tables.</description></item>
 /// <item><description>Dispatch is by the image format field of the enclosing index subtable, carried to the parser through <see cref="GlyphBitmapContext"/>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebdt#ebdtsubtable-formats">EBDT subtable formats</see> in the OpenType specification.</description></item>
 /// <item><description>Declared as a <c>record</c>, so equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
 /// </list>
 /// </remarks>
 /// <seealso cref="GlyphBitmapFormat1"/>
 /// <seealso cref="GlyphBitmapFormat2"/>
+/// <seealso cref="GlyphBitmapFormat4"/>
 /// <seealso cref="GlyphBitmapFormat5"/>
 /// <seealso cref="GlyphBitmapFormat6"/>
 /// <seealso cref="GlyphBitmapFormat7"/>
@@ -29,11 +34,15 @@ namespace Mubarrat.Fonts.Tables;
 public abstract record GlyphBitmap : IRecord<GlyphBitmap>, IBaseRecord<GlyphBitmap>
 {
     /// <summary>Gets the image format number that produced this bitmap.</summary>
-    /// <value>The image format discriminant from the enclosing index subtable, ranging over the ten formats this hierarchy implements.</value>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebdt#ebdtsubtable-formats">EBDT subtable formats</see> in the OpenType specification.</remarks>
+    /// <value>One of 1, 2, 4, 5, 6, 7, 8, 9, 17, 18, or 19.</value>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>Formats 1, 2, 5, 6, and 7 are shared between the OpenType <c>EBDT</c>/<c>CBDT</c> tables and the Apple <c>bdat</c> table.</description></item>
+    /// <item><description>Format 4 is defined only by Apple's <c>bdat</c>. Formats 8 and 9 are defined only by OpenType <c>EBDT</c>. Formats 17, 18, and 19 are defined only by OpenType <c>CBDT</c>.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="GlyphBitmapContext.ImageFormat"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebdt#ebdtsubtable-formats">OpenType specification: EBDT subtable formats</seealso>
-    public ushort ImageFormat { get; init; }
+    public abstract ushort ImageFormat { get; }
 
     /// <summary>Gets the big metrics, or <c>null</c> when small metrics or metrics-in-EBLC were used.</summary>
     /// <value>The <see cref="BigGlyphMetrics"/> for formats 6, 7, 9, and 18; <c>null</c> for all other formats.</value>
@@ -124,6 +133,7 @@ public abstract record GlyphBitmap : IRecord<GlyphBitmap>, IBaseRecord<GlyphBitm
         {
             1 => IBaseRecord<GlyphBitmap>.Parse<GlyphBitmapFormat1>(ref cursor, ctx),
             2 => IBaseRecord<GlyphBitmap>.Parse<GlyphBitmapFormat2>(ref cursor, ctx),
+            4 => IBaseRecord<GlyphBitmap>.Parse<GlyphBitmapFormat4>(ref cursor, ctx),
             5 => IBaseRecord<GlyphBitmap>.Parse<GlyphBitmapFormat5>(ref cursor, ctx),
             6 => IBaseRecord<GlyphBitmap>.Parse<GlyphBitmapFormat6>(ref cursor, ctx),
             7 => IBaseRecord<GlyphBitmap>.Parse<GlyphBitmapFormat7>(ref cursor, ctx),
@@ -159,11 +169,11 @@ public abstract record GlyphBitmap : IRecord<GlyphBitmap>, IBaseRecord<GlyphBitm
 
 /// <summary>Context supplied to <see cref="IRecord{T}.Parse"/>: the image format to dispatch on, the record's declared byte extent, and the metrics carried by the enclosing index subtable (used by formats 5 and 19).</summary>
 /// <param name="ImageFormat">The image format from the enclosing index subtable.</param>
-/// <param name="Length">The record's declared byte extent.</param>
+/// <param name="Length">The record's declared byte extent. Used by formats 1, 2, 5, 6, and 7; ignored by the others.</param>
 /// <param name="SubtableMetrics">The metrics from the enclosing index subtable, or <c>null</c> when the subtable carries none. Only formats 5 and 19 read this value.</param>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description><see cref="Length"/> is used by formats 1, 2, 6, and 7 to derive the pixel-data byte count; formats that carry an explicit length field in the record itself (17, 18, 19) do not use it.</description></item>
+/// <item><description><see cref="Length"/> is used by formats 1, 2, 6, and 7 to derive the pixel-data byte count after subtracting the metrics header; by format 5, where the entire record is pixel data; and by no others. Formats 8 and 9 declare their own component counts, formats 17, 18, and 19 declare their own PNG byte length, and format 4 has a fixed twelve-byte layout with no pixel payload at all.</description></item>
 /// <item><description>The context is a record type, so it is a reference type and passing it through <see cref="IRecord{T}.Parse"/> does not copy the fields.</description></item>
 /// <item><description>Declared as a <c>record</c>, so equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
 /// </list>
@@ -199,6 +209,9 @@ public sealed record GlyphBitmapFormat1
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat1>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 1;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/> carrying the record's declared length.</param>
     /// <returns>The parsed format-1 bitmap.</returns>
@@ -212,7 +225,6 @@ public sealed record GlyphBitmapFormat1
         var ctx = (GlyphBitmapContext)context!;
         return new GlyphBitmapFormat1
         {
-            ImageFormat = 1,
             SmallMetrics = cursor.ReadStruct<SmallGlyphMetrics>(),
             PixelData = cursor.ReadBytes(ctx.Length - 5),
         };
@@ -242,6 +254,9 @@ public sealed record GlyphBitmapFormat2
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat2>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 2;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/> carrying the record's declared length.</param>
     /// <returns>The parsed format-2 bitmap.</returns>
@@ -255,9 +270,153 @@ public sealed record GlyphBitmapFormat2
         var ctx = (GlyphBitmapContext)context!;
         return new GlyphBitmapFormat2
         {
-            ImageFormat = 2,
             SmallMetrics = cursor.ReadStruct<SmallGlyphMetrics>(),
             PixelData = cursor.ReadBytes(ctx.Length - 5),
+        };
+    }
+}
+
+/// <summary>Apple <c>bdat</c> format 4: compressed bitmap data with shared Huffman trees. The record carries three table-relative offsets into a shared region that follows every format 4 record in the table, where the white tree, black tree, and encoded glyph data live.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>Unlike every other format, the record does not contain the bitmap data and does not carry a length. It holds three <c>uint32</c> offsets that are relative to the start of the enclosing <c>bdat</c> table, which is the source the record's cursor is scoped to. The offsets are consumed during parse and are not exposed on the parsed record; a consumer that needs them can read <see cref="Header"/> directly from a fresh cursor at the record's start.</description></item>
+/// <item><description>The three regions are laid out consecutively in the order white tree, black tree, glyph data. The parser validates that the offsets are strictly ascending and uses the offset of the next region as the exclusive end of the current one; the glyph data region ends at the end of the table-scoped source.</description></item>
+/// <item><description>The library does not decode the Huffman trees or expand the compressed glyph data. The record exposes the raw bytes of each region for a downstream decoder; walking the trees and expanding the encoding is a codec, not a struct.</description></item>
+/// <item><description>The offsets are inter-record: every format 4 record in a <c>bdat</c> table points into the same shared region, so two records whose white-tree offsets are identical share a white tree. A consumer that needs to correlate regions across records can do so by reading each record's <see cref="Header"/> and comparing the offsets.</description></item>
+/// <item><description>Declared as a <c>sealed record</c>, so the compiler-generated <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
+/// <item><description>The base <see cref="GlyphBitmap"/> payload arrays <see cref="GlyphBitmap.PixelData"/>, <see cref="GlyphBitmap.Components"/>, and <see cref="GlyphBitmap.PngData"/> are all empty on a format 4 record. Format 4 is the only format in the hierarchy that does not use them.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6bdat.html">bitmap data table</see> in the Apple TrueType Reference Manual.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="GlyphBitmap"/>
+/// <seealso cref="BdatTable"/>
+/// <seealso cref="Header"/>
+/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6bdat.html">TrueType Reference Manual: The <c>bdat</c> table</seealso>
+public sealed record GlyphBitmapFormat4
+    : GlyphBitmap,
+      IDerivedRecord<GlyphBitmap, GlyphBitmapFormat4>
+{
+    /// <inheritdoc/>
+    /// <value>The constant <c>4</c>.</value>
+    public override ushort ImageFormat => 4;
+
+    /// <summary>Gets the raw bytes of the white binary search tree.</summary>
+    /// <value>The bytes of the white tree, materialized during parse; empty when the region has zero length.</value>
+    /// <remarks>The parser does not walk the tree. The bytes are exposed as-is for a downstream Huffman decoder to interpret.</remarks>
+    /// <seealso cref="BlackTreeBytes"/>
+    /// <seealso cref="GlyphDataBytes"/>
+    public IReadOnlyList<byte> WhiteTreeBytes { get; init; } = [];
+
+    /// <summary>Gets the raw bytes of the black binary search tree.</summary>
+    /// <value>The bytes of the black tree, materialized during parse; empty when the region has zero length.</value>
+    /// <remarks>The parser does not walk the tree. The bytes are exposed as-is for a downstream Huffman decoder to interpret.</remarks>
+    /// <seealso cref="WhiteTreeBytes"/>
+    /// <seealso cref="GlyphDataBytes"/>
+    public IReadOnlyList<byte> BlackTreeBytes { get; init; } = [];
+
+    /// <summary>Gets the raw Huffman-encoded glyph data.</summary>
+    /// <value>The encoded glyph data bytes, materialized during parse; empty when the region has zero length.</value>
+    /// <remarks>The parser does not decode the encoding. The bytes are exposed as-is for a downstream Huffman decoder to interpret.</remarks>
+    /// <seealso cref="WhiteTreeBytes"/>
+    /// <seealso cref="BlackTreeBytes"/>
+    public IReadOnlyList<byte> GlyphDataBytes { get; init; } = [];
+
+    /// <inheritdoc/>
+    /// <param name="cursor">Cursor positioned at the first byte of the record. The cursor's source must be the <c>bdat</c> table-scoped source; the record's three offsets are resolved against it.</param>
+    /// <param name="context">A <see cref="GlyphBitmapContext"/>. Format 4 does not use the context's length or metrics fields; the context is required only because the dispatcher contract supplies one.</param>
+    /// <returns>The parsed format-4 bitmap record with its three region byte arrays materialized.</returns>
+    /// <exception cref="InvalidDataException">The three offsets are not strictly ascending, or the glyph data offset exceeds the table-scoped source length.</exception>
+    /// <exception cref="EndOfStreamException">The record's twelve bytes extend past the end of the table-scoped source.</exception>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The three regions are read eagerly during parse, matching the materialization policy of every other record in the hierarchy.</description></item>
+    /// <item><description>The white tree region ends where the black tree begins, the black tree region ends where the glyph data begins, and the glyph data region ends at the end of the table-scoped source. The specification does not carry explicit lengths for any of the three regions.</description></item>
+    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6bdat.html">bitmap data table</see> in the Apple TrueType Reference Manual.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="GlyphBitmapContext"/>
+    /// <seealso cref="Header"/>
+    /// <seealso cref="BdatTable"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6bdat.html">TrueType Reference Manual: The <c>bdat</c> table</seealso>
+    static GlyphBitmapFormat4 IDerivedRecord<GlyphBitmap, GlyphBitmapFormat4>.Parse(
+        ref Cursor cursor, object? context)
+    {
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
+
+        long tableLength = cursor.Source.Length;
+
+        if (header.WhiteTreeOffset >= header.BlackTreeOffset)
+        {
+            throw new InvalidDataException(
+                $"'bdat' format 4 whiteTreeOffset {header.WhiteTreeOffset} is not less than blackTreeOffset {header.BlackTreeOffset}.");
+        }
+
+        if (header.BlackTreeOffset >= header.GlyphDataOffset)
+        {
+            throw new InvalidDataException(
+                $"'bdat' format 4 blackTreeOffset {header.BlackTreeOffset} is not less than glyphDataOffset {header.GlyphDataOffset}.");
+        }
+
+        if (header.GlyphDataOffset > tableLength)
+        {
+            throw new InvalidDataException(
+                $"'bdat' format 4 glyphDataOffset {header.GlyphDataOffset} exceeds the table length {tableLength}.");
+        }
+
+        int whiteTreeLength = checked((int)(header.BlackTreeOffset - header.WhiteTreeOffset));
+        int blackTreeLength = checked((int)(header.GlyphDataOffset - header.BlackTreeOffset));
+        int glyphDataLength = checked((int)(tableLength - header.GlyphDataOffset));
+
+        return new()
+        {
+            WhiteTreeBytes = whiteTreeLength > 0 ? cursor.Source.ReadBytesAt(header.WhiteTreeOffset, whiteTreeLength) : [],
+            BlackTreeBytes = blackTreeLength > 0 ? cursor.Source.ReadBytesAt(header.BlackTreeOffset, blackTreeLength) : [],
+            GlyphDataBytes = glyphDataLength > 0 ? cursor.Source.ReadBytesAt(header.GlyphDataOffset, glyphDataLength) : [],
+        };
+    }
+
+    /// <summary>The 12-byte format 4 record: three table-relative offsets into the shared tree and glyph data region. Blittable, no padding.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>All three offsets are relative to the start of the enclosing <c>bdat</c> table, not to the record's own position.</description></item>
+    /// <item><description>The offsets describe an inter-record shared region: every format 4 record in a <c>bdat</c> table points into the same region, and two records that declare the same white-tree offset share a white tree.</description></item>
+    /// <item><description>The header is not retained by <see cref="GlyphBitmapFormat4"/>. A consumer that needs the raw offsets — for round-tripping, validation, or cross-record correlation — can read the header directly from a cursor positioned at the record's first byte.</description></item>
+    /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
+    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6bdat.html">bitmap data table</see> in the Apple TrueType Reference Manual.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="GlyphBitmapFormat4"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6bdat.html">TrueType Reference Manual: The <c>bdat</c> table</seealso>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public record struct Header : IEndianReversibleStruct<Header>
+    {
+        /// <summary>The byte offset of the white tree at byte offset 0, relative to the start of the enclosing <c>bdat</c> table.</summary>
+        /// <seealso cref="BlackTreeOffset"/>
+        /// <seealso cref="GlyphDataOffset"/>
+        public uint WhiteTreeOffset;    // +0
+
+        /// <summary>The byte offset of the black tree at byte offset 4, relative to the start of the enclosing <c>bdat</c> table.</summary>
+        /// <seealso cref="WhiteTreeOffset"/>
+        /// <seealso cref="GlyphDataOffset"/>
+        public uint BlackTreeOffset;    // +4
+
+        /// <summary>The byte offset of the glyph data at byte offset 8, relative to the start of the enclosing <c>bdat</c> table.</summary>
+        /// <seealso cref="WhiteTreeOffset"/>
+        /// <seealso cref="BlackTreeOffset"/>
+        public uint GlyphDataOffset;    // +8
+
+        /// <summary>Reverses the byte order of every field in a <see cref="Header"/>.</summary>
+        /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
+        /// <returns>A new header with each field reversed.</returns>
+        /// <remarks>All three fields are <c>uint32</c> and are reversed independently.</remarks>
+        /// <seealso cref="IEndianReversibleStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
+        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6bdat.html">TrueType Reference Manual: The <c>bdat</c> table</seealso>
+        public static Header ReverseEndianness(Header value) => new()
+        {
+            WhiteTreeOffset = BinaryPrimitives.ReverseEndianness(value.WhiteTreeOffset),
+            BlackTreeOffset = BinaryPrimitives.ReverseEndianness(value.BlackTreeOffset),
+            GlyphDataOffset = BinaryPrimitives.ReverseEndianness(value.GlyphDataOffset),
         };
     }
 }
@@ -287,6 +446,9 @@ public sealed record GlyphBitmapFormat5
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat5>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 5;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/> carrying the record's declared length and the metrics from the enclosing index subtable.</param>
     /// <returns>The parsed format-5 bitmap.</returns>
@@ -300,7 +462,6 @@ public sealed record GlyphBitmapFormat5
         var ctx = (GlyphBitmapContext)context!;
         return new GlyphBitmapFormat5
         {
-            ImageFormat = 5,
             MetricsInSubtable = ctx.SubtableMetrics,
             PixelData = cursor.ReadBytes(ctx.Length),
         };
@@ -330,6 +491,9 @@ public sealed record GlyphBitmapFormat6
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat6>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 6;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/> carrying the record's declared length.</param>
     /// <returns>The parsed format-6 bitmap.</returns>
@@ -343,7 +507,6 @@ public sealed record GlyphBitmapFormat6
         var ctx = (GlyphBitmapContext)context!;
         return new GlyphBitmapFormat6
         {
-            ImageFormat = 6,
             BigMetrics = cursor.ReadStruct<BigGlyphMetrics>(),
             PixelData = cursor.ReadBytes(ctx.Length - 8),
         };
@@ -373,6 +536,9 @@ public sealed record GlyphBitmapFormat7
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat7>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 7;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/> carrying the record's declared length.</param>
     /// <returns>The parsed format-7 bitmap.</returns>
@@ -386,7 +552,6 @@ public sealed record GlyphBitmapFormat7
         var ctx = (GlyphBitmapContext)context!;
         return new GlyphBitmapFormat7
         {
-            ImageFormat = 7,
             BigMetrics = cursor.ReadStruct<BigGlyphMetrics>(),
             PixelData = cursor.ReadBytes(ctx.Length - 8),
         };
@@ -417,6 +582,9 @@ public sealed record GlyphBitmapFormat8
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat8>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 8;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/>. The format-8 layout is entirely self-describing, so the context's length and metrics fields are not read.</param>
     /// <returns>The parsed format-8 composite bitmap.</returns>
@@ -429,12 +597,10 @@ public sealed record GlyphBitmapFormat8
     {
         SmallGlyphMetrics metrics = cursor.ReadStruct<SmallGlyphMetrics>();
         cursor.ReadUInt8();   // pad: aligns numComponents to a 16-bit boundary
-        ushort numComponents = cursor.ReadUInt16();
         return new GlyphBitmapFormat8
         {
-            ImageFormat = 8,
             SmallMetrics = metrics,
-            Components = cursor.ReadBigEndianStructArray<EbdtComponent>(numComponents),
+            Components = cursor.ReadEndianReversibleStructArray<EbdtComponent>(cursor.ReadUInt16()),
         };
     }
 }
@@ -462,6 +628,9 @@ public sealed record GlyphBitmapFormat9
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat9>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 9;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/>. The format-9 layout is entirely self-describing, so the context's length and metrics fields are not read.</param>
     /// <returns>The parsed format-9 composite bitmap.</returns>
@@ -470,17 +639,11 @@ public sealed record GlyphBitmapFormat9
     /// <seealso cref="GlyphBitmapContext"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebdt#ebdtsubtable-formats">OpenType specification: EBDT subtable formats</seealso>
     static GlyphBitmapFormat9 IDerivedRecord<GlyphBitmap, GlyphBitmapFormat9>.Parse(
-        ref Cursor cursor, object? context)
+        ref Cursor cursor, object? context) => new()
     {
-        BigGlyphMetrics metrics = cursor.ReadStruct<BigGlyphMetrics>();
-        ushort numComponents = cursor.ReadUInt16();
-        return new GlyphBitmapFormat9
-        {
-            ImageFormat = 9,
-            BigMetrics = metrics,
-            Components = cursor.ReadBigEndianStructArray<EbdtComponent>(numComponents),
-        };
-    }
+        BigMetrics = cursor.ReadStruct<BigGlyphMetrics>(),
+        Components = cursor.ReadEndianReversibleStructArray<EbdtComponent>(cursor.ReadUInt16()),
+    };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -506,6 +669,9 @@ public sealed record GlyphBitmapFormat17
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat17>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 17;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/>. The PNG length is stored in the record itself, so the context's length field is not read.</param>
     /// <returns>The parsed format-17 bitmap with its PNG bytes in <see cref="GlyphBitmap.PngData"/>.</returns>
@@ -514,17 +680,11 @@ public sealed record GlyphBitmapFormat17
     /// <seealso cref="GlyphBitmapContext"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cbdt">OpenType specification: CBDT table</seealso>
     static GlyphBitmapFormat17 IDerivedRecord<GlyphBitmap, GlyphBitmapFormat17>.Parse(
-        ref Cursor cursor, object? context)
+        ref Cursor cursor, object? context) => new()
     {
-        SmallGlyphMetrics metrics = cursor.ReadStruct<SmallGlyphMetrics>();
-        uint dataLen = cursor.ReadUInt32();
-        return new GlyphBitmapFormat17
-        {
-            ImageFormat = 17,
-            SmallMetrics = metrics,
-            PngData = cursor.ReadBytes(checked((int)dataLen)),
-        };
-    }
+        SmallMetrics = cursor.ReadStruct<SmallGlyphMetrics>(),
+        PngData = cursor.ReadBytes(checked((int)cursor.ReadUInt32())),
+    };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -550,6 +710,9 @@ public sealed record GlyphBitmapFormat18
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat18>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 18;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/>. The PNG length is stored in the record itself, so the context's length field is not read.</param>
     /// <returns>The parsed format-18 bitmap with its PNG bytes in <see cref="GlyphBitmap.PngData"/>.</returns>
@@ -558,17 +721,11 @@ public sealed record GlyphBitmapFormat18
     /// <seealso cref="GlyphBitmapContext"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cbdt">OpenType specification: CBDT table</seealso>
     static GlyphBitmapFormat18 IDerivedRecord<GlyphBitmap, GlyphBitmapFormat18>.Parse(
-        ref Cursor cursor, object? context)
+        ref Cursor cursor, object? context) => new()
     {
-        BigGlyphMetrics metrics = cursor.ReadStruct<BigGlyphMetrics>();
-        uint dataLen = cursor.ReadUInt32();
-        return new GlyphBitmapFormat18
-        {
-            ImageFormat = 18,
-            BigMetrics = metrics,
-            PngData = cursor.ReadBytes(checked((int)dataLen)),
-        };
-    }
+        BigMetrics = cursor.ReadStruct<BigGlyphMetrics>(),
+        PngData = cursor.ReadBytes(checked((int)cursor.ReadUInt32())),
+    };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -595,6 +752,9 @@ public sealed record GlyphBitmapFormat19
       IDerivedRecord<GlyphBitmap, GlyphBitmapFormat19>
 {
     /// <inheritdoc/>
+    public override ushort ImageFormat => 19;
+
+    /// <inheritdoc/>
     /// <param name="cursor">Cursor positioned at the first byte of the record.</param>
     /// <param name="context">A <see cref="GlyphBitmapContext"/> carrying the subtable metrics. The PNG length is stored in the record itself, so the context's length field is not read.</param>
     /// <returns>The parsed format-19 bitmap with its PNG bytes in <see cref="GlyphBitmap.PngData"/> and metrics in <see cref="GlyphBitmap.MetricsInSubtable"/>.</returns>
@@ -603,15 +763,9 @@ public sealed record GlyphBitmapFormat19
     /// <seealso cref="GlyphBitmapContext"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cbdt">OpenType specification: CBDT table</seealso>
     static GlyphBitmapFormat19 IDerivedRecord<GlyphBitmap, GlyphBitmapFormat19>.Parse(
-        ref Cursor cursor, object? context)
+        ref Cursor cursor, object? context) => new()
     {
-        var ctx = (GlyphBitmapContext)context!;
-        uint dataLen = cursor.ReadUInt32();
-        return new GlyphBitmapFormat19
-        {
-            ImageFormat = 19,
-            MetricsInSubtable = ctx.SubtableMetrics,
-            PngData = cursor.ReadBytes(checked((int)dataLen)),
-        };
-    }
+        MetricsInSubtable = ((GlyphBitmapContext)context!).SubtableMetrics,
+        PngData = cursor.ReadBytes(checked((int)cursor.ReadUInt32())),
+    };
 }

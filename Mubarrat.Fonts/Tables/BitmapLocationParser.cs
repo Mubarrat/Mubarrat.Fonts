@@ -49,7 +49,7 @@ public static class BitmapLocationParser
     {
         long tableLength = cursor.Source.Length;
 
-        Header h = cursor.ReadBigEndianStruct<Header>();
+        Header h = cursor.ReadEndianReversibleStruct<Header>();
 
         if (h.MajorVersion != expectedMajor || h.MinorVersion != expectedMinor)
             throw new InvalidDataException(
@@ -68,7 +68,7 @@ public static class BitmapLocationParser
                 $"'{tag}' needs {neededBytes} bytes for {h.NumSizes} strikes but the " +
                 $"declared table length is {tableLength}.");
 
-        BitmapStrike[] strikes = cursor.ReadBigEndianHeaderRecordArray<BitmapStrike, BitmapStrike.Header>(
+        BitmapStrike[] strikes = cursor.ReadEndianReversibleHeaderRecordArray<BitmapStrike, BitmapStrike.Header>(
             (int)h.NumSizes, new ParentContext(cursor.Source));
 
         return (h.MajorVersion, h.MinorVersion, strikes);
@@ -110,7 +110,7 @@ public static class BitmapLocationParser
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The three multi-byte fields are reversed independently; there are no nested structures to recurse into. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType data types</see> for the on-disk widths.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/eblc">OpenType specification: EBLC header</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -325,7 +325,7 @@ public sealed record BitmapStrike : IEndianReversibleHeaderRecord<BitmapStrike, 
         /// </list>
         /// </remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/eblc#bitmapSize-records">OpenType specification: BitmapSize records</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -408,7 +408,7 @@ public sealed record IndexSubtableList : IRecord<IndexSubtableList>
 
         return new IndexSubtableList
         {
-            Records = cursor.ReadBigEndianHeaderRecordArray<IndexSubtableRecord, IndexSubtableRecord.Header>(checked((int)ctx.NumberOfIndexSubtables), new ParentContext(cursor.Source)),
+            Records = cursor.ReadEndianReversibleHeaderRecordArray<IndexSubtableRecord, IndexSubtableRecord.Header>(checked((int)ctx.NumberOfIndexSubtables), new ParentContext(cursor.Source)),
         };
     }
 
@@ -513,7 +513,7 @@ public sealed record IndexSubtableRecord : IEndianReversibleHeaderRecord<IndexSu
         /// <param name="v">The value whose multi-byte fields are to be reversed.</param>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/eblc#indexsubtablearray">OpenType specification: <c>indexSubTableArray</c></seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -685,7 +685,7 @@ public abstract record IndexSubtable : IRecord<IndexSubtable>, IBaseRecord<Index
             throw new InvalidOperationException(
                 $"{nameof(IndexSubtable)}.Parse requires an {nameof(IndexSubtableContext)} context.");
 
-        IndexSubHeader header = cursor.ReadBigEndianStruct<IndexSubHeader>();
+        IndexSubHeader header = cursor.ReadEndianReversibleStruct<IndexSubHeader>();
 
         var formatContext = new IndexSubtableFormatContext(
             ctx.FirstGlyphIndex, ctx.LastGlyphIndex, header);
@@ -739,7 +739,7 @@ public record struct IndexSubHeader : IEndianReversibleStruct<IndexSubHeader>
     /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
     /// <returns>A new header with each multi-byte field reversed.</returns>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/eblc#indexsubheader">OpenType specification: <c>indexSubHeader</c></seealso>
     public static IndexSubHeader ReverseEndianness(IndexSubHeader value) => new()
     {
@@ -1051,7 +1051,7 @@ public sealed record IndexSubtableFormat4
         /// <param name="v">The value whose multi-byte fields are to be reversed.</param>
         /// <returns>A new pair with each multi-byte field reversed.</returns>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/eblc#indexsubtable4">OpenType specification: IndexSubTable4</seealso>
         public static GlyphIdOffsetPair ReverseEndianness(GlyphIdOffsetPair v) => new()
         {
@@ -1081,7 +1081,7 @@ public sealed record IndexSubtableFormat4
         int numGlyphs = checked((int)cursor.ReadUInt32());
 
         // glyphArray has numGlyphs + 1 entries (sentinel).
-        GlyphIdOffsetPair[] pairs = cursor.ReadBigEndianStructArray<GlyphIdOffsetPair>(numGlyphs + 1);
+        GlyphIdOffsetPair[] pairs = cursor.ReadEndianReversibleStructArray<GlyphIdOffsetPair>(numGlyphs + 1);
 
         // Format 4 derives its own glyph range from the array; the enclosing record's
         // range is advisory only.

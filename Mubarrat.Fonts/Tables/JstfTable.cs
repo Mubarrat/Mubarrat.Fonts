@@ -88,7 +88,7 @@ public sealed record JstfTable : IFontTable<JstfTable>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             Major = BinaryPrimitives.ReverseEndianness(value.Major),
@@ -114,12 +114,12 @@ public sealed record JstfTable : IFontTable<JstfTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/jstf">OpenType specification: JSTF table</seealso>
     public static JstfTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Major != 1)
             throw new InvalidDataException($"'JSTF'.majorVersion is {header.Major}, expected 1.");
 
-        var records = cursor.ReadBigEndianStructArray<ScriptHeader>(cursor.ReadUInt16());
+        var records = cursor.ReadEndianReversibleStructArray<ScriptHeader>(cursor.ReadUInt16());
 
         var scripts = new JstfScriptRecord[records.Length];
         for (int i = 0; i < records.Length; i++)
@@ -167,7 +167,7 @@ public sealed record JstfTable : IFontTable<JstfTable>
         /// <returns>A new header with the tag and offset reversed.</returns>
         /// <remarks>The tag uses <see cref="Tag.ReverseEndianness(Tag)"/>; the offset uses <see cref="BinaryPrimitives.ReverseEndianness(ushort)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static ScriptHeader ReverseEndianness(ScriptHeader value) => new()
         {
             Tag = Tag.ReverseEndianness(value.Tag),
@@ -264,7 +264,7 @@ public sealed record JstfScript : IRecord<JstfScript>
     {
         ushort extenderOffset = cursor.ReadOffset16();
         ushort defaultLangSysOffset = cursor.ReadOffset16();
-        var records = cursor.ReadBigEndianStructArray<LangSysHeader>(cursor.ReadUInt16());
+        var records = cursor.ReadEndianReversibleStructArray<LangSysHeader>(cursor.ReadUInt16());
 
         ExtenderGlyph? extender = extenderOffset != 0
             ? cursor.Source.ParseRecordAt<ExtenderGlyph>(extenderOffset)
@@ -320,7 +320,7 @@ public sealed record JstfScript : IRecord<JstfScript>
         /// <returns>A new header with the tag and offset reversed.</returns>
         /// <remarks>The tag uses <see cref="Tag.ReverseEndianness(Tag)"/>; the offset uses <see cref="BinaryPrimitives.ReverseEndianness(ushort)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static LangSysHeader ReverseEndianness(LangSysHeader value) => new()
         {
             Tag = Tag.ReverseEndianness(value.Tag),

@@ -123,8 +123,8 @@ public interface IHeaderRecord<out T, THeader> : IRecord<T> where T : IHeaderRec
 /// <typeparam name="THeader">The header type. A blittable struct that has already been read from the source and implements <see cref="IEndianReversibleStruct{THeader}"/> so its multi-byte fields can be reversed on little-endian hosts. Constrained to <c>unmanaged</c> so it can be passed by <c>in</c> reference without allocation, boxing, or GC interaction.</typeparam>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>This interface is to <see cref="IHeaderRecord{T, THeader}"/> what <see cref="Source.ReadEndianReversibleStructAt{T}(long)"/> is to <see cref="Source.ReadStructAt{T}(long)"/>: the same pattern, with the header's multi-byte fields reversed on little-endian hosts.</description></item>
-/// <item><description>The interface supplies a default implementation of <see cref="IRecord{T}.Parse"/> that reads a <typeparamref name="THeader"/> with <see cref="Cursor.ReadBigEndianStruct{T}"/> and forwards it to <see cref="IHeaderRecord{T, THeader}.FromHeader(in THeader, object?)"/>.</description></item>
+/// <item><description>This interface is to <see cref="IHeaderRecord{T, THeader}"/> what <see cref="Source.ReadEndianReversibleStructAt{T}"/> is to <see cref="Source.ReadStructAt{T}(long)"/>: the same pattern, with the header's multi-byte fields reversed on little-endian hosts.</description></item>
+/// <item><description>The interface supplies a default implementation of <see cref="IRecord{T}.Parse"/> that reads a <typeparamref name="THeader"/> with <see cref="Cursor.ReadEndianReversibleStruct{T}"/> and forwards it to <see cref="IHeaderRecord{T, THeader}.FromHeader(in THeader, object?)"/>.</description></item>
 /// <item><description>The reversal is applied before the header reaches <c>FromHeader</c>, so the record sees native-order field values and does not need to reverse anything itself.</description></item>
 /// <item><description>Use this interface for any header whose on-disk layout includes multi-byte fields stored big-endian. For headers that are all single bytes, implement <see cref="IHeaderRecord{T, THeader}"/> directly.</description></item>
 /// </list>
@@ -132,8 +132,8 @@ public interface IHeaderRecord<out T, THeader> : IRecord<T> where T : IHeaderRec
 /// </remarks>
 /// <seealso cref="IHeaderRecord{T, THeader}"/>
 /// <seealso cref="IEndianReversibleStruct{T}"/>
-/// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
-/// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
+/// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
+/// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
 /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
 public interface IEndianReversibleHeaderRecord<out T, THeader> : IHeaderRecord<T, THeader> where T : IEndianReversibleHeaderRecord<T, THeader> where THeader : unmanaged, IEndianReversibleStruct<THeader>
 {
@@ -146,16 +146,16 @@ public interface IEndianReversibleHeaderRecord<out T, THeader> : IHeaderRecord<T
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>This is an <em>explicit</em> implementation of <see cref="IRecord{T}.Parse"/>: it is reachable only through the interface, not as a public method on the implementing type.</description></item>
-    /// <item><description>The reversal is unconditional inside <see cref="IEndianReversibleStruct{T}.ReverseEndianness(T)"/>; the host-endianness check is applied by <see cref="Cursor.ReadBigEndianStruct{T}"/>, not by this method.</description></item>
+    /// <item><description>The reversal is unconditional inside <see cref="IEndianReversibleStruct{T}.ReverseEndianness(T)"/>; the host-endianness check is applied by <see cref="Cursor.ReadEndianReversibleStruct{T}"/>, not by this method.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso cref="IHeaderRecord{T, THeader}.FromHeader(in THeader, object?)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
     static T IRecord<T>.Parse(ref Cursor cursor, object? context)
     {
-        THeader header = cursor.ReadBigEndianStruct<THeader>();
+        THeader header = cursor.ReadEndianReversibleStruct<THeader>();
         return T.FromHeader(in header, context);
     }
 }
@@ -262,7 +262,7 @@ public interface IHeaderDerivedRecord<TBase, TDerived, THeader> : IDerivedRecord
 /// <remarks>
 /// <list type="bullet">
 /// <item><description>Same as <see cref="IHeaderDerivedRecord{TBase, TDerived, THeader}"/>, with the header reversed on little-endian hosts before <c>FromHeader</c> sees it.</description></item>
-/// <item><description>The reversal is supplied by <see cref="Cursor.ReadBigEndianStruct{T}"/>, which consults <see cref="System.BitConverter.IsLittleEndian"/> and calls <see cref="IEndianReversibleStruct{THeader}.ReverseEndianness(THeader)"/> conditionally.</description></item>
+/// <item><description>The reversal is supplied by <see cref="Cursor.ReadEndianReversibleStruct{T}"/>, which consults <see cref="System.BitConverter.IsLittleEndian"/> and calls <see cref="IEndianReversibleStruct{THeader}.ReverseEndianness(THeader)"/> conditionally.</description></item>
 /// </list>
 /// </remarks>
 /// <seealso cref="IHeaderDerivedRecord{TBase, TDerived, THeader}"/>
@@ -280,16 +280,16 @@ public interface IEndianReversibleHeaderDerivedRecord<TBase, TDerived, THeader> 
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>This is an <em>explicit</em> implementation of <see cref="IDerivedRecord{TBase, TDerived}.Parse"/>: reachable only through the interface.</description></item>
-    /// <item><description>The host-endianness check is applied by <see cref="Cursor.ReadBigEndianStruct{T}"/>; <see cref="IEndianReversibleStruct{THeader}.ReverseEndianness(THeader)"/> itself is unconditional.</description></item>
+    /// <item><description>The host-endianness check is applied by <see cref="Cursor.ReadEndianReversibleStruct{T}"/>; <see cref="IEndianReversibleStruct{THeader}.ReverseEndianness(THeader)"/> itself is unconditional.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso cref="IHeaderDerivedRecord{TBase, TDerived, THeader}.FromHeader(in THeader, object?)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
     static TDerived IDerivedRecord<TBase, TDerived>.Parse(ref Cursor cursor, object? context)
     {
-        THeader header = cursor.ReadBigEndianStruct<THeader>();
+        THeader header = cursor.ReadEndianReversibleStruct<THeader>();
         return TDerived.FromHeader(in header, context);
     }
 }

@@ -216,7 +216,7 @@ public sealed record ColrTable : IFontTable<ColrTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All five fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR header</seealso>
         public static HeaderV0 ReverseEndianness(HeaderV0 v) => new()
         {
@@ -283,7 +283,7 @@ public sealed record ColrTable : IFontTable<ColrTable>
         /// <returns>A new extension with each offset field reversed.</returns>
         /// <remarks>All five fields are <c>uint32</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR v1 header extension</seealso>
         public static HeaderV1 ReverseEndianness(HeaderV1 v) => new()
         {
@@ -314,7 +314,7 @@ public sealed record ColrTable : IFontTable<ColrTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR table</seealso>
     static ColrTable IRecord<ColrTable>.Parse(ref Cursor cursor, object? context)
     {
-        HeaderV0 h0 = cursor.ReadBigEndianStruct<HeaderV0>();
+        HeaderV0 h0 = cursor.ReadEndianReversibleStruct<HeaderV0>();
 
         if (h0.Version is not (0 or 1))
             throw new InvalidDataException($"'COLR'.version is {h0.Version}, expected 0 or 1.");
@@ -333,7 +333,7 @@ public sealed record ColrTable : IFontTable<ColrTable>
 
         // Version 1 header extension: five Offset32 fields immediately after the
         // 14-byte v0 header. The cursor is at +14 after the struct read above.
-        HeaderV1 h1 = cursor.ReadBigEndianStruct<HeaderV1>();
+        HeaderV1 h1 = cursor.ReadEndianReversibleStruct<HeaderV1>();
 
         return new ColrTable
         {
@@ -393,7 +393,7 @@ public record struct BaseGlyphRecord : IEndianReversibleStruct<BaseGlyphRecord>
     /// <returns>A new record with each multi-byte field reversed.</returns>
     /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR v0 base glyph records</seealso>
     public static BaseGlyphRecord ReverseEndianness(BaseGlyphRecord v) => new()
     {
@@ -439,7 +439,7 @@ public record struct LayerRecord : IEndianReversibleStruct<LayerRecord>
     /// <returns>A new record with each multi-byte field reversed.</returns>
     /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR v0 layer records</seealso>
     public static LayerRecord ReverseEndianness(LayerRecord v) => new()
     {
@@ -478,7 +478,7 @@ public sealed record BaseGlyphList : IRecord<BaseGlyphList>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR v1 base glyph list</seealso>
     static BaseGlyphList IRecord<BaseGlyphList>.Parse(ref Cursor cursor, object? context) => new()
     {
-        Records = cursor.ReadBigEndianHeaderRecordArray<BaseGlyphPaintRecord, BaseGlyphPaintRecord.Header>(checked((int)cursor.ReadUInt32()), new ParentContext(cursor.Source)),
+        Records = cursor.ReadEndianReversibleHeaderRecordArray<BaseGlyphPaintRecord, BaseGlyphPaintRecord.Header>(checked((int)cursor.ReadUInt32()), new ParentContext(cursor.Source)),
     };
 }
 
@@ -554,7 +554,7 @@ public sealed record BaseGlyphPaintRecord : IEndianReversibleHeaderRecord<BaseGl
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>Both fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR v1 base glyph list</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -631,13 +631,13 @@ public sealed record ClipList : IRecord<ClipList>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR v1 clip list</seealso>
     static ClipList IRecord<ClipList>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"COLR ClipList format {header.Format} is not defined.");
         return new()
         {
             Format = 1,
-            Records = cursor.ReadBigEndianHeaderRecordArray<ClipRecord, ClipRecord.Header>(checked((int)header.NumClips), new ParentContext(cursor.Source)),
+            Records = cursor.ReadEndianReversibleHeaderRecordArray<ClipRecord, ClipRecord.Header>(checked((int)header.NumClips), new ParentContext(cursor.Source)),
         };
     }
 
@@ -673,7 +673,7 @@ public sealed record ClipList : IRecord<ClipList>
         /// <returns>A new header with <c>NumClips</c> reversed and the byte-width format copied through.</returns>
         /// <remarks>The <c>Format</c> field is a single byte and does not participate in the reversal.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR v1 clip list</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -775,7 +775,7 @@ public sealed record ClipRecord : IEndianReversibleHeaderRecord<ClipRecord, Clip
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The three fields are reversed independently; <see cref="UInt24.ReverseEndianness(UInt24)"/> handles the 24-bit offset.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR v1 clip list</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -863,7 +863,7 @@ public sealed record ClipBox : IRecord<ClipBox>
         {
             case 1:
                 {
-                    var header = cursor.ReadBigEndianStruct<Header>();
+                    var header = cursor.ReadEndianReversibleStruct<Header>();
                     return new ClipBox
                     {
                         Format = 1,
@@ -875,7 +875,7 @@ public sealed record ClipBox : IRecord<ClipBox>
                 }
             case 2:
                 {
-                    var header = cursor.ReadBigEndianStruct<Var<Header>>();
+                    var header = cursor.ReadEndianReversibleStruct<Var<Header>>();
                     return new ClipBox
                     {
                         Format = 2,
@@ -954,7 +954,7 @@ public sealed record ClipBox : IRecord<ClipBox>
         /// <returns>A new header with each multi-byte coordinate field reversed and the byte-width format copied through.</returns>
         /// <remarks>The <c>Format</c> field is a single byte and does not participate in the reversal.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: COLR v1 clip list</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {

@@ -323,7 +323,7 @@ public sealed record PcltTable : IFontTable<PcltTable>
     /// <exception cref="EndOfStreamException">The header extends past the end of the table-scoped source.</exception>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The entire table is a single 54-byte record, read in one call through <see cref="Cursor.ReadBigEndianStruct{T}"/>.</description></item>
+    /// <item><description>The entire table is a single 54-byte record, read in one call through <see cref="Cursor.ReadEndianReversibleStruct{T}"/>.</description></item>
     /// <item><description>The two ASCII fields (<c>typeface</c> and <c>fileName</c>) are extracted from the header's raw byte storage through inline-array spans and decoded as ASCII up to the first NUL.</description></item>
     /// <item><description>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/pclt">PCLT table</see> chapter in the OpenType specification.</description></item>
     /// </list>
@@ -333,7 +333,7 @@ public sealed record PcltTable : IFontTable<PcltTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/pclt">OpenType specification: PCLT table</seealso>
     public static PcltTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         // The two ASCII fields are read out of the header's raw byte storage. No unsafe,
         // no copy — the spans alias the header's inline-array fields.
@@ -504,7 +504,7 @@ public sealed record PcltTable : IFontTable<PcltTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The two inline-array ASCII buffers and the three trailing byte fields are copied through unchanged; only the numeric and packed word fields are reversed.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => v with
         {
             MajorVersion = BinaryPrimitives.ReverseEndianness(v.MajorVersion),

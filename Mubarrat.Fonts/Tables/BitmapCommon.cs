@@ -7,7 +7,7 @@ namespace Mubarrat.Fonts.Tables;
 /// <remarks>
 /// <list type="bullet">
 /// <item><description>Used by the bitmap size tables (<c>EBDT</c>/<c>CBDT</c>) when the strike declares metrics that describe both layout directions. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/eblc#bigglyphmetrics">EBLC, <c>bigGlyphMetrics</c></see> section of the specification.</description></item>
-/// <item><description>Blittable, size 8, no padding. The struct can be read directly via <see cref="Source.ReadEndianReversibleStructAt{T}(long)"/>; every field is one byte, so no endianness conversion is needed.</description></item>
+/// <item><description>Blittable, size 8, no padding. The struct can be read directly via <see cref="Source.ReadEndianReversibleStructAt{T}"/>; every field is one byte, so no endianness conversion is needed.</description></item>
 /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
 /// </list>
 /// </remarks>
@@ -87,7 +87,7 @@ public record struct BigGlyphMetrics
 /// <remarks>
 /// <list type="bullet">
 /// <item><description>Used when the strike declares metrics for only one layout direction; the direction is selected by the strike's flags. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/eblc#smallglyphmetrics">EBLC, <c>smallGlyphMetrics</c></see> section of the specification.</description></item>
-/// <item><description>Blittable, size 5, no padding. The struct can be read directly via <see cref="Source.ReadEndianReversibleStructAt{T}(long)"/>; every field is one byte, so no endianness conversion is needed.</description></item>
+/// <item><description>Blittable, size 5, no padding. The struct can be read directly via <see cref="Source.ReadEndianReversibleStructAt{T}"/>; every field is one byte, so no endianness conversion is needed.</description></item>
 /// <item><description>The same struct is used for both horizontal and vertical strikes; the meaning of <see cref="BearingX"/> and <see cref="BearingY"/> flips depending on the layout direction, as described in their individual docs.</description></item>
 /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
 /// </list>

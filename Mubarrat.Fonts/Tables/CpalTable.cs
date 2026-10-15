@@ -183,7 +183,7 @@ public sealed record CpalTable : IFontTable<CpalTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All five fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cpal">OpenType specification: CPAL header</seealso>
         public static HeaderV0 ReverseEndianness(HeaderV0 v) => new()
         {
@@ -239,7 +239,7 @@ public sealed record CpalTable : IFontTable<CpalTable>
         /// <returns>A new extension with each offset field reversed.</returns>
         /// <remarks>All three fields are <c>uint32</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cpal">OpenType specification: CPAL v1 extension</seealso>
         public static HeaderV1 ReverseEndianness(HeaderV1 v) => new()
         {
@@ -270,7 +270,7 @@ public sealed record CpalTable : IFontTable<CpalTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cpal">OpenType specification: CPAL table</seealso>
     static CpalTable IRecord<CpalTable>.Parse(ref Cursor cursor, object? context)
     {
-        HeaderV0 h0 = cursor.ReadBigEndianStruct<HeaderV0>();
+        HeaderV0 h0 = cursor.ReadEndianReversibleStruct<HeaderV0>();
 
         if (h0.Version is not (0 or 1))
             throw new InvalidDataException($"'CPAL'.version is {h0.Version}, expected 0 or 1.");
@@ -287,7 +287,7 @@ public sealed record CpalTable : IFontTable<CpalTable>
         // Version 1 header extension: three Offset32 values after the index array.
         HeaderV1 h1 = default;
         if (h0.Version >= 1)
-            h1 = cursor.ReadBigEndianStruct<HeaderV1>();
+            h1 = cursor.ReadEndianReversibleStruct<HeaderV1>();
 
         return new CpalTable
         {

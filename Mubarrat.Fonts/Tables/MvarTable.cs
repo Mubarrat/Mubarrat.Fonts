@@ -124,7 +124,7 @@ public sealed record MvarTable : IFontTable<MvarTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/mvar"/>
     public static MvarTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Major != 1)
             throw new InvalidDataException($"'MVAR'.majorVersion is {header.Major}, expected 1.");
@@ -160,7 +160,7 @@ public sealed record MvarTable : IFontTable<MvarTable>
         if (declaredSize == ValueRecordSize)
         {
             // Fast path: declared size matches the struct, one batch read.
-            return cursor.ReadBigEndianStructArray<MvarValueRecord>(count);
+            return cursor.ReadEndianReversibleStructArray<MvarValueRecord>(count);
         }
 
         // Forward-compatible path: records are larger than the fields we understand;
@@ -168,7 +168,7 @@ public sealed record MvarTable : IFontTable<MvarTable>
         var records = new MvarValueRecord[count];
         for (int i = 0; i < count; i++)
         {
-            records[i] = cursor.PeekBigEndianStruct<MvarValueRecord>();
+            records[i] = cursor.PeekEndianReversibleStruct<MvarValueRecord>();
             cursor.Position += declaredSize;
         }
         return records;

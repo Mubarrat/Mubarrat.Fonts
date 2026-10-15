@@ -8,7 +8,7 @@ namespace Mubarrat.Fonts.Tables;
 /// <summary>A (tag, offset) pair used by ScriptList, Script, and FeatureList.</summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>Blittable, size 6, no padding. Fixed-layout arrays are read in one call via <see cref="Cursor.ReadBigEndianStructArray{T}(int)"/>.</description></item>
+/// <item><description>Blittable, size 6, no padding. Fixed-layout arrays are read in one call via <see cref="Cursor.ReadEndianReversibleStructArray{T}(int, bool)"/>.</description></item>
 /// <item><description>The offset is measured from the start of the containing table, not from the record; the parent table owns the meaning of the base.</description></item>
 /// <item><description>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#common-table-formats">Common Table Formats</see> in the OpenType specification.</description></item>
 /// </list>
@@ -35,7 +35,7 @@ public record struct TagOffsetRecord : IEndianReversibleStruct<TagOffsetRecord>
     /// <returns>A new record with the tag and offset reversed.</returns>
     /// <remarks>The tag uses <see cref="Tag.ReverseEndianness(Tag)"/>; the offset uses <see cref="BinaryPrimitives.ReverseEndianness(ushort)"/>.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     public static TagOffsetRecord ReverseEndianness(TagOffsetRecord v) => new()
     {
         Tag = Tag.ReverseEndianness(v.Tag),
@@ -86,7 +86,7 @@ public sealed record ScriptList : IRecord<ScriptList>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#script-list-table">OpenType specification: Script list table</seealso>
     public static ScriptList Parse(ref Cursor cursor, object? context) => new()
     {
-        Scripts = cursor.ReadBigEndianHeaderRecordArray<ScriptRecord, TagOffsetRecord>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
+        Scripts = cursor.ReadEndianReversibleHeaderRecordArray<ScriptRecord, TagOffsetRecord>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
     };
 }
 
@@ -179,11 +179,11 @@ public sealed record Script : IRecord<Script>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#script-table-and-language-system-record">OpenType specification: Script table</seealso>
     public static Script Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new Script
         {
             DefaultLangSys = header.DefaultLangSysOffset != 0 ? cursor.Source.ParseRecordAt<LangSys>(header.DefaultLangSysOffset) : null,
-            LangSysRecords = cursor.ReadBigEndianHeaderRecordArray<LangSysRecord, TagOffsetRecord>(header.LangSysCount, new ParentContext(cursor.Source)),
+            LangSysRecords = cursor.ReadEndianReversibleHeaderRecordArray<LangSysRecord, TagOffsetRecord>(header.LangSysCount, new ParentContext(cursor.Source)),
         };
     }
 
@@ -218,7 +218,7 @@ public sealed record Script : IRecord<Script>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             DefaultLangSysOffset = BinaryPrimitives.ReverseEndianness(v.DefaultLangSysOffset),
@@ -309,7 +309,7 @@ public sealed record LangSys : IRecord<LangSys>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#language-system-table">OpenType specification: Language System table</seealso>
     public static LangSys Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new LangSys
         {
             RequiredFeatureIndex = header.RequiredFeatureIndex,
@@ -351,7 +351,7 @@ public sealed record LangSys : IRecord<LangSys>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             LookupOrderOffset = BinaryPrimitives.ReverseEndianness(v.LookupOrderOffset),

@@ -1,5 +1,4 @@
-using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
+﻿using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Text;
 using Mubarrat.Fonts.Binary;
@@ -7,275 +6,297 @@ using Mubarrat.Fonts.Primitives;
 
 namespace Mubarrat.Fonts.Tables;
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-// gcid — Glyph to CID Mapping Table (Apple Advanced Typography)
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
-/// <summary>The <c>gcid</c> table: maps the glyphs of the font to the character IDs (CIDs) of a named Adobe character collection.</summary>
+/// <summary>The <c>gcid</c> table: the Apple Advanced Typography glyph-to-CID mapping table. Maps each glyph in the font to a CID within a named Adobe character collection.</summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>The table is an Apple Advanced Typography (AAT) table and is not part of OpenType. Apple documents it in the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual, <c>gcid</c> table</see>.</description></item>
-/// <item><description>The table identifies a character collection by a registry, an order, and a supplement version — the three parts of a PostScript collection name such as <c>Adobe-CNS1-4</c>, which <see cref="Collection"/> composes.</description></item>
-/// <item><description><see cref="Cids"/> is indexed by glyph index and starts at glyph 0. A glyph that has no CID in the identified collection is recorded as <see cref="NoCid"/> (<c>0xFFFF</c>).</description></item>
-/// <item><description>Apple states that the declared CID count should not exceed the number of glyphs in the font, so a font may declare fewer CIDs than it has glyphs; <see cref="GetCid(int)"/> reports <see cref="NoCid"/> for the glyphs beyond the declared count.</description></item>
+/// <item><description>The table identifies a character collection by its registry and order — for example, Adobe-CNS1 with supplement version 4 — and stores one <c>uint16</c> CID per glyph, in glyph index order. A glyph that has no CID in the identified collection stores <see cref="NoCid"/>.</description></item>
+/// <item><description>The table is used by AAT when a font needs to interoperate with CID-keyed PostScript workflows. It is a mapping table, not a shaping table: it tells a consumer which CID corresponds to each glyph, but does not describe how glyphs are selected or positioned.</description></item>
+/// <item><description>The specification states that the entry count "should not exceed the number of glyphs in the font". The parser does not enforce the constraint; a validator may flag a mismatch as a rule.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">glyph-to-CID mapping table</see> in the Apple TrueType Reference Manual.</description></item>
 /// </list>
 /// </remarks>
 /// <seealso cref="Header"/>
-/// <seealso cref="GetCid(int)"/>
+/// <seealso cref="MaxpTable"/>
 /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
-public sealed record GcidTable : IFontTable<GcidTable>
+public sealed record GcidTable : IFontTable<GcidTable>, IRecord<GcidTable>
 {
-    /// <summary>Gets the AAT table tag <c>gcid</c>.</summary>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
-    public static Tag Tag => "gcid";
+    /// <summary>The only value the specification permits in the <c>version</c> field.</summary>
+    /// <value>The constant <c>0</c>.</value>
+    /// <seealso cref="Version"/>
+    public const ushort CurrentVersion = 0;
 
-    /// <summary>The CID recorded for a glyph that does not correspond to a CID in the identified collection, <c>0xFFFF</c>.</summary>
-    /// <remarks>The same value is reported by <see cref="GetCid(int)"/> for a glyph index beyond the declared CID count.</remarks>
+    /// <summary>The only value the specification permits in the <c>format</c> field.</summary>
+    /// <value>The constant <c>0</c>.</value>
+    /// <seealso cref="Format"/>
+    public const ushort CurrentFormat = 0;
+
+    /// <summary>The CID value that marks a glyph with no CID in the identified collection.</summary>
+    /// <value>The constant <c>0xFFFF</c>.</value>
+    /// <remarks>A glyph whose entry in <see cref="Cids"/> equals this value has no corresponding CID in the character collection named by <see cref="RegistryName"/> and <see cref="OrderName"/>.</remarks>
     /// <seealso cref="Cids"/>
-    /// <seealso cref="GetCid(int)"/>
     public const ushort NoCid = 0xFFFF;
 
-    /// <summary>The size, in bytes, of the fixed-layout <see cref="Header"/>: 144 bytes, dominated by the two 64-byte name fields.</summary>
-    /// <seealso cref="Header"/>
-    public const int HeaderSize = 144;
+    /// <summary>The fixed number of bytes reserved for each ASCII name field.</summary>
+    /// <value>The constant <c>64</c>.</value>
+    /// <remarks>Both <see cref="RegistryName"/> and <see cref="OrderName"/> occupy a fixed sixty-four-byte field. Unused bytes should be set to zero.</remarks>
+    public const int MaxNameLength = 64;
 
-    /// <summary>Gets the table version.</summary>
-    /// <remarks>The specification sets this field to 0. Parsing rejects any other value because no other version's layout is defined.</remarks>
+    /// <inheritdoc/>
+    public static Tag Tag => "gcid";
+
+    /// <summary>Gets the table version. Always 0.</summary>
+    /// <value>The constant <see cref="CurrentVersion"/>.</value>
+    /// <remarks>The specification defines only one version and requires the field to be zero.</remarks>
+    /// <seealso cref="CurrentVersion"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
     public ushort Version { get; init; }
 
-    /// <summary>Gets the data format of the table.</summary>
-    /// <remarks>The specification sets this field to 0, the only format it defines. Parsing rejects any other value.</remarks>
+    /// <summary>Gets the data format. Always 0.</summary>
+    /// <value>The constant <see cref="CurrentFormat"/>.</value>
+    /// <remarks>The specification defines only one format and requires the field to be zero.</remarks>
+    /// <seealso cref="CurrentFormat"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
     public ushort Format { get; init; }
 
-    /// <summary>Gets the size of the table, including the header, in bytes, as the font declares it.</summary>
-    /// <remarks>The declared size is preserved for round-tripping and for diagnostics; parsing does not rely on it, because the CID array length comes from <see cref="Header.Count"/>.</remarks>
+    /// <summary>Gets the table size in bytes, including the header.</summary>
+    /// <value>The byte offset of the end of the CID array, as declared by the table. The value should equal the actual table length in bytes.</value>
     /// <seealso cref="Cids"/>
     public uint Size { get; init; }
 
-    /// <summary>Gets the registry ID of the character collection, the first part of a collection name.</summary>
-    /// <remarks>For example, an Adobe collection uses registry ID 0, with <see cref="RegistryName"/> set to <c>"Adobe"</c>.</remarks>
+    /// <summary>Gets the registry ID of the character collection.</summary>
+    /// <value>The registry identifier. The specification's example uses <c>0</c> for the Adobe registry.</value>
     /// <seealso cref="RegistryName"/>
     /// <seealso cref="Order"/>
-    /// <seealso cref="Collection"/>
+    /// <seealso cref="OrderName"/>
     public ushort Registry { get; init; }
 
     /// <summary>Gets the registry name of the character collection.</summary>
-    /// <remarks>The value is decoded from the header's fixed-width, NUL-padded ASCII field; unused bytes in that field are set to 0 by a conforming font.</remarks>
+    /// <value>An ASCII string decoded from the table's fixed sixty-four-byte registry name field, stopping at the first null byte. The specification's example uses <c>"Adobe"</c>.</value>
     /// <seealso cref="Registry"/>
-    /// <seealso cref="Collection"/>
-    public string RegistryName { get; init; } = string.Empty;
-
-    /// <summary>Gets the order ID of the character collection, the second part of a collection name.</summary>
-    /// <remarks>For example, the Adobe CNS1 collection uses order ID 2, with <see cref="OrderName"/> set to <c>"CNS1"</c>.</remarks>
     /// <seealso cref="OrderName"/>
-    /// <seealso cref="Collection"/>
+    public required string RegistryName { get; init; }
+
+    /// <summary>Gets the order ID of the character collection.</summary>
+    /// <value>The order identifier. The specification's example uses <c>2</c> for the CNS1 order.</value>
+    /// <seealso cref="OrderName"/>
+    /// <seealso cref="Registry"/>
     public ushort Order { get; init; }
 
     /// <summary>Gets the order name of the character collection.</summary>
-    /// <remarks>The value is decoded from the header's fixed-width, NUL-padded ASCII field; unused bytes in that field are set to 0 by a conforming font.</remarks>
+    /// <value>An ASCII string decoded from the table's fixed sixty-four-byte order name field, stopping at the first null byte. The specification's example uses <c>"CNS1"</c>.</value>
     /// <seealso cref="Order"/>
-    /// <seealso cref="Collection"/>
-    public string OrderName { get; init; } = string.Empty;
+    /// <seealso cref="RegistryName"/>
+    public required string OrderName { get; init; }
 
     /// <summary>Gets the supplement version of the character collection.</summary>
-    /// <remarks>The supplement version is the last part of a collection name; <c>Adobe-CNS1-4</c> has supplement version 4.</remarks>
-    /// <seealso cref="Collection"/>
+    /// <value>The supplement version within the identified registry and order. The specification's example uses <c>4</c> for Adobe-CNS1-4.</value>
+    /// <seealso cref="RegistryName"/>
+    /// <seealso cref="OrderName"/>
     public ushort SupplementVersion { get; init; }
 
-    /// <summary>Gets the CIDs of the font's glyphs, in glyph index order.</summary>
+    /// <summary>Gets the CIDs for the glyphs in the font, in glyph index order.</summary>
+    /// <value>An array whose entry <c>i</c> is the CID for glyph <c>i</c>, or <see cref="NoCid"/> when the glyph has no corresponding CID in the identified character collection.</value>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>Index <c>i</c> is the CID of glyph <c>i</c>, so the array starts at glyph 0 and need not cover every glyph of the font.</description></item>
-    /// <item><description>A glyph with no CID in the identified collection is recorded as <see cref="NoCid"/>.</description></item>
+    /// <item><description>The array length is the table's declared <see cref="Count"/>.</description></item>
+    /// <item><description>The specification states that the count should not exceed the font's glyph count, but does not require it; the parser reads as many entries as the table declares.</description></item>
+    /// <item><description>The array is indexed by glyph ID starting at glyph 0, so an entry's position within the array is the glyph ID it describes.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="GetCid(int)"/>
     /// <seealso cref="Count"/>
     /// <seealso cref="NoCid"/>
-    public IReadOnlyList<ushort> Cids { get; init; } = [];
+    /// <seealso cref="TryGetCid(int, out ushort)"/>
+    public required IReadOnlyList<ushort> Cids { get; init; }
 
-    /// <summary>Gets the number of CIDs the table declares.</summary>
-    /// <remarks>The size of <see cref="Cids"/>, taken from the header's <c>count</c> field. Apple states the value should not exceed the number of glyphs in the font.</remarks>
+    /// <summary>Gets the number of CIDs in the table.</summary>
+    /// <value>The length of <see cref="Cids"/>.</value>
     /// <seealso cref="Cids"/>
     public int Count => Cids.Count;
 
-    /// <summary>Gets the name of the character collection the table identifies, such as <c>Adobe-CNS1-4</c>.</summary>
+    /// <summary>Tries to find the CID for a glyph.</summary>
+    /// <param name="glyphIndex">The glyph index to look up.</param>
+    /// <param name="cid">When this method returns <see langword="true"/>, contains the glyph's CID; otherwise, <see cref="NoCid"/>.</param>
+    /// <returns><see langword="true"/> when the table has an entry for <paramref name="glyphIndex"/>; otherwise, <see langword="false"/>.</returns>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The name is composed from <see cref="RegistryName"/>, <see cref="OrderName"/>, and <see cref="SupplementVersion"/>, which is the form Apple's example spells out.</description></item>
-    /// <item><description>The numeric <see cref="Registry"/> and <see cref="Order"/> IDs identify the same collection by number; this property uses the names because those are what a collection name is written with.</description></item>
+    /// <item><description>The lookup is a bounds check followed by an indexed read, because the array is indexed directly by glyph ID.</description></item>
+    /// <item><description>A glyph whose entry is <see cref="NoCid"/> is reported as <see langword="true"/> with <see cref="NoCid"/>, because the table does have an entry for that glyph; it simply maps to no CID. This is different from a glyph index beyond the array's length, which is reported as <see langword="false"/>.</description></item>
     /// </list>
     /// </remarks>
-    /// <example>
-    /// <code>
-    /// string collection = gcid.Collection; // "Adobe-CNS1-4"
-    /// </code>
-    /// </example>
-    /// <seealso cref="RegistryName"/>
-    /// <seealso cref="OrderName"/>
-    /// <seealso cref="SupplementVersion"/>
-    public string Collection => $"{RegistryName}-{OrderName}-{SupplementVersion}";
-
-    /// <summary>Gets the CID of a glyph.</summary>
-    /// <param name="glyphIndex">The glyph index to look up.</param>
-    /// <returns>The glyph's CID, or <see cref="NoCid"/> when the glyph index is beyond the declared CID count.</returns>
-    /// <remarks>Apple's <c>0xFFFF</c> value ("no CID in the identified collection") and this method's out-of-range answer are deliberately the same, so a caller that treats <see cref="NoCid"/> as "no CID" needs no separate bounds test.</remarks>
-    /// <example>
-    /// <code>
-    /// ushort cid = gcid.GetCid(glyphId);
-    /// bool unmapped = cid == GcidTable.NoCid;
-    /// </code>
-    /// </example>
     /// <seealso cref="Cids"/>
     /// <seealso cref="NoCid"/>
-    public ushort GetCid(int glyphIndex) =>
-        (uint)glyphIndex < (uint)Cids.Count ? Cids[glyphIndex] : NoCid;
+    public bool TryGetCid(int glyphIndex, out ushort cid)
+    {
+        if ((uint)glyphIndex < (uint)Cids.Count)
+        {
+            cid = Cids[glyphIndex];
+            return true;
+        }
 
-    /// <summary>64-byte opaque storage for one of the header's fixed-width ASCII name fields.</summary>
+        cid = NoCid;
+        return false;
+    }
+
+    /// <summary>Gets the CID for a glyph, or <see cref="NoCid"/> when the table has no entry for it.</summary>
+    /// <param name="glyphIndex">The glyph index to look up.</param>
+    /// <returns>The glyph's CID, or <see cref="NoCid"/> when the glyph index is beyond the table's array length.</returns>
+    /// <seealso cref="TryGetCid(int, out ushort)"/>
+    /// <seealso cref="NoCid"/>
+    public ushort GetCid(int glyphIndex) => TryGetCid(glyphIndex, out var cid) ? cid : NoCid;
+
+    /// <summary>The 142-byte <c>gcid</c> table header. Blittable, no padding.</summary>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>An inline-array struct used as a fixed-size byte buffer inside <see cref="Header"/>; a font pads the field with NUL bytes after the collection name.</description></item>
-    /// <item><description>Exposed so that parsing can obtain a <see cref="ReadOnlySpan{T}"/> over the underlying bytes without unsafe code.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="Header"/>
-    /// <seealso cref="MemoryMarshal.AsBytes{T}(ReadOnlySpan{T})"/>
-    [InlineArray(64)]
-    public struct Ascii64 { private byte _element0; }
-
-    /// <summary>The 144-byte fixed-layout <c>gcid</c> table header.</summary>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>Fields are stored in big-endian order at the offsets the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html"><c>gcid</c> table specification</see> defines. The header is followed by <see cref="Count"/> <c>uint16</c> CIDs.</description></item>
-    /// <item><description>The two name fields are opaque byte buffers rather than strings, because the wire format fixes them at 64 bytes each; parsing decodes them into the <see cref="GcidTable.RegistryName"/> and <see cref="GcidTable.OrderName"/> strings.</description></item>
+    /// <item><description>The header is followed by <see cref="Count"/> <c>uint16</c> CID values. The total table size is <see cref="Size"/> bytes.</description></item>
+    /// <item><description>The two name fields are fixed sixty-four-byte buffers holding ASCII C strings. Unused bytes should be set to zero.</description></item>
     /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
+    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">glyph-to-CID mapping table</see> in the Apple TrueType Reference Manual.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="GcidTable"/>
-    /// <seealso cref="Ascii64"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public record struct Header : IEndianReversibleStruct<Header>
     {
-        /// <summary>The table version at byte offset 0.</summary>
-        /// <remarks>Set to 0 by the specification.</remarks>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
-        public ushort Version;           // +0
+        /// <summary>The table version at byte offset 0. Always 0.</summary>
+        /// <value>The constant <see cref="CurrentVersion"/>.</value>
+        public ushort Version;              // +0
 
-        /// <summary>The data format at byte offset 2.</summary>
-        /// <remarks>Set to 0 by the specification.</remarks>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
-        public ushort Format;            // +2
+        /// <summary>The data format at byte offset 2. Always 0.</summary>
+        /// <value>The constant <see cref="CurrentFormat"/>.</value>
+        public ushort Format;               // +2
 
-        /// <summary>The size of the table, including the header, at byte offset 4.</summary>
-        /// <seealso cref="Count"/>
-        public uint Size;                // +4
+        /// <summary>The table size in bytes, including the header, at byte offset 4.</summary>
+        public uint Size;                   // +4
 
-        /// <summary>The registry ID of the character collection at byte offset 8.</summary>
-        /// <seealso cref="RegistryName"/>
-        public ushort Registry;          // +8
+        /// <summary>The registry ID at byte offset 8.</summary>
+        public ushort Registry;             // +8
 
-        /// <summary>The registry name of the character collection at byte offset 10.</summary>
-        /// <remarks>A 64-byte ASCII field, NUL-padded when the name is shorter.</remarks>
-        /// <seealso cref="Ascii64"/>
-        /// <seealso cref="Registry"/>
-        public Ascii64 RegistryName;     // +10  (64 bytes ASCII)
+        /// <summary>The registry name bytes at byte offset 10.</summary>
+        /// <value>A fixed sixty-four-byte field holding an ASCII C string. Unused bytes should be set to zero.</value>
+        public FixedBuffer64 RegistryName;  // +10
 
-        /// <summary>The order ID of the character collection at byte offset 74.</summary>
-        /// <seealso cref="OrderName"/>
-        public ushort Order;             // +74
+        /// <summary>The order ID at byte offset 74.</summary>
+        public ushort Order;                // +74
 
-        /// <summary>The order name of the character collection at byte offset 76.</summary>
-        /// <remarks>A 64-byte ASCII field, NUL-padded when the name is shorter.</remarks>
-        /// <seealso cref="Ascii64"/>
-        /// <seealso cref="Order"/>
-        public Ascii64 OrderName;        // +76  (64 bytes ASCII)
+        /// <summary>The order name bytes at byte offset 76.</summary>
+        /// <value>A fixed sixty-four-byte field holding an ASCII C string. Unused bytes should be set to zero.</value>
+        public FixedBuffer64 OrderName;     // +76
 
-        /// <summary>The supplement version of the character collection at byte offset 140.</summary>
-        /// <seealso cref="Registry"/>
-        /// <seealso cref="Order"/>
-        public ushort SupplementVersion; // +140
+        /// <summary>The supplement version at byte offset 140.</summary>
+        public ushort SupplementVersion;    // +140
 
-        /// <summary>The number of CIDs that follow the header at byte offset 142.</summary>
-        /// <remarks>Apple states this value should not exceed the number of glyphs in the font.</remarks>
-        /// <seealso cref="GcidTable.Cids"/>
-        public ushort Count;             // +142
+        /// <summary>The number of CIDs that follow at byte offset 142.</summary>
+        public ushort Count;                // +142
 
-        /// <summary>Reverses the byte order of every field in a <see cref="Header"/>.</summary>
-        /// <param name="v">The value whose multi-byte fields are to be reversed.</param>
-        /// <returns>A new header with each multi-byte field reversed.</returns>
-        /// <remarks>The two 64-byte ASCII name fields are byte-sized and are copied through unchanged; only the numeric fields are reversed.</remarks>
+        /// <summary>Reverses the byte order of every multi-byte field in a <see cref="Header"/>.</summary>
+        /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
+        /// <returns>A new header with the multi-byte fields reversed and the byte-only fields copied through.</returns>
+        /// <remarks>The two name buffers are byte-only and do not participate in the reversal.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
-        public static Header ReverseEndianness(Header v) => v with
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
+        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
+        public static Header ReverseEndianness(Header value) => new()
         {
-            Version = BinaryPrimitives.ReverseEndianness(v.Version),
-            Format = BinaryPrimitives.ReverseEndianness(v.Format),
-            Size = BinaryPrimitives.ReverseEndianness(v.Size),
-            Registry = BinaryPrimitives.ReverseEndianness(v.Registry),
-            Order = BinaryPrimitives.ReverseEndianness(v.Order),
-            SupplementVersion = BinaryPrimitives.ReverseEndianness(v.SupplementVersion),
-            Count = BinaryPrimitives.ReverseEndianness(v.Count),
+            Version = BinaryPrimitives.ReverseEndianness(value.Version),
+            Format = BinaryPrimitives.ReverseEndianness(value.Format),
+            Size = BinaryPrimitives.ReverseEndianness(value.Size),
+            Registry = BinaryPrimitives.ReverseEndianness(value.Registry),
+            RegistryName = value.RegistryName,
+            Order = BinaryPrimitives.ReverseEndianness(value.Order),
+            OrderName = value.OrderName,
+            SupplementVersion = BinaryPrimitives.ReverseEndianness(value.SupplementVersion),
+            Count = BinaryPrimitives.ReverseEndianness(value.Count),
         };
     }
 
-    /// <summary>Decodes a fixed-width ASCII name field, terminating at the first NUL byte.</summary>
-    /// <param name="name">The raw fixed-width field, NUL-padded on the right when the name is shorter.</param>
-    /// <returns>The decoded ASCII name, trimmed at the first NUL; the whole field when it holds no NUL.</returns>
-    /// <remarks>The decode uses <see cref="Encoding.ASCII"/>, so bytes with the high bit set are replaced with <c>'?'</c> rather than being interpreted as UTF-8 or Latin-1. The specification calls for ASCII.</remarks>
-    /// <seealso cref="Ascii64"/>
-    /// <seealso cref="Encoding.ASCII"/>
-    private static string DecodePaddedAscii(Ascii64 name)
-    {
-        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(new ReadOnlySpan<Ascii64>(in name));
-
-        int length = bytes.IndexOf((byte)0);
-        if (length < 0) length = bytes.Length;
-
-        return Encoding.ASCII.GetString(bytes[..length]);
-    }
-
     /// <inheritdoc/>
-    /// <param name="cursor">Cursor positioned at the first byte of the gcid table.</param>
-    /// <param name="context">Unused. The gcid table is self-contained and declares its own CID count.</param>
-    /// <returns>The parsed gcid table.</returns>
-    /// <exception cref="InvalidDataException">The version or format is not 0, or the declared CID count does not fit in the remaining bytes of the table.</exception>
+    /// <param name="cursor">The cursor positioned at the first byte of the <c>gcid</c> table.</param>
+    /// <param name="context">Unused. The table is self-contained.</param>
+    /// <returns>The parsed <c>gcid</c> table.</returns>
+    /// <exception cref="InvalidDataException">The version is not zero, or the format is not zero.</exception>
     /// <exception cref="EndOfStreamException">The header or the CID array extends past the end of the table-scoped source.</exception>
-    /// <remarks>The CID array length is taken from the header's <c>count</c> field; the reader consumes exactly that many two-byte values, and the table's declared <c>size</c> field is not consulted.</remarks>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The header is read as a single struct, then the CID array is read in one bulk call sized by <see cref="Header.Count"/>.</description></item>
+    /// <item><description>The declared <see cref="Header.Size"/> is not validated against the actual table length. A consumer that wants to check the two agree can compare <see cref="Size"/> against the table's directory entry.</description></item>
+    /// <item><description>The two ASCII name fields are decoded during parse and are not retained on the semantic record as raw buffers.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="Header"/>
-    /// <seealso cref="Cids"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
     static GcidTable IRecord<GcidTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
-        if (header.Version != 0)
-            throw new InvalidDataException($"'gcid'.version is {header.Version}, expected 0.");
-
-        if (header.Format != 0)
-            throw new InvalidDataException($"'gcid'.format is {header.Format}, expected 0.");
-
-        long fitting = cursor.Remaining / 2;
-        if (header.Count > fitting)
+        if (header.Version != CurrentVersion)
         {
             throw new InvalidDataException(
-                $"'gcid'.count is {header.Count}, but only {fitting} CIDs fit in the remaining " +
-                $"{cursor.Remaining} bytes of the table.");
+                $"'gcid'.version is {header.Version}, expected {CurrentVersion}.");
         }
 
-        return new GcidTable
+        if (header.Format != CurrentFormat)
+        {
+            throw new InvalidDataException(
+                $"'gcid'.format is {header.Format}, expected {CurrentFormat}.");
+        }
+
+        ushort[] cids = cursor.ReadUInt16Array(header.Count);
+
+        return new()
         {
             Version = header.Version,
             Format = header.Format,
             Size = header.Size,
             Registry = header.Registry,
-            RegistryName = DecodePaddedAscii(header.RegistryName),
+            RegistryName = DecodeAscii(header.RegistryName.AsSpan()),
             Order = header.Order,
-            OrderName = DecodePaddedAscii(header.OrderName),
+            OrderName = DecodeAscii(header.OrderName.AsSpan()),
             SupplementVersion = header.SupplementVersion,
-            Cids = cursor.ReadUInt16Array(header.Count),
+            Cids = cids,
         };
+    }
+
+    /// <summary>Decodes a fixed-size byte buffer as an ASCII C string, stopping at the first null byte.</summary>
+    /// <param name="bytes">The fixed-size byte buffer.</param>
+    /// <returns>The decoded string, or an empty string when the buffer begins with a null byte.</returns>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The specification states that unused bytes should be set to zero, so the first null byte marks the end of the meaningful content.</description></item>
+    /// <item><description>The bytes are decoded as ASCII, which matches the specification's stated encoding for both name fields.</description></item>
+    /// </list>
+    /// </remarks>
+    private static string DecodeAscii(ReadOnlySpan<byte> bytes)
+    {
+        int end = 0;
+        while (end < bytes.Length && bytes[end] != 0)
+            end++;
+
+        return end == 0 ? string.Empty : Encoding.ASCII.GetString(bytes[..end]);
+    }
+
+    /// <summary>A 64-byte fixed buffer used for the <c>registryName</c> and <c>orderName</c> fields of the <c>gcid</c> table.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The buffer holds an ASCII C string. Unused bytes should be set to zero.</description></item>
+    /// <item><description>The type exists because C# has no first-class fixed-size array in a <c>record struct</c> that composes with <see cref="StructLayoutAttribute"/> and <see cref="Cursor.ReadEndianReversibleStruct{T}"/>.</description></item>
+    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">glyph-to-CID mapping table</see> in the Apple TrueType Reference Manual.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="GcidTable"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
+    [StructLayout(LayoutKind.Sequential, Size = MaxNameLength, Pack = 1)]
+    public unsafe struct FixedBuffer64
+    {
+        /// <summary>The first byte of the fixed buffer.</summary>
+        public byte First;
+
+        /// <summary>Gets the buffer contents as a span.</summary>
+        /// <returns>A span covering the full sixty-four bytes.</returns>
+        public readonly Span<byte> AsSpan()
+        {
+            fixed (byte* p = &First)
+                return new Span<byte>(p, MaxNameLength);
+        }
     }
 }

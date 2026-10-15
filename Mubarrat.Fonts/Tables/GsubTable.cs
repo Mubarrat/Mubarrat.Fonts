@@ -112,7 +112,7 @@ public sealed record GsubTable : IFontTable<GsubTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All five fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             Major = BinaryPrimitives.ReverseEndianness(value.Major),
@@ -143,7 +143,7 @@ public sealed record GsubTable : IFontTable<GsubTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gsub">OpenType specification: GSUB table</seealso>
     public static GsubTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Major != 1)
             throw new InvalidDataException($"'GSUB'.majorVersion is {header.Major}, expected 1.");
@@ -318,7 +318,7 @@ public sealed record SingleSubstFormat1 : SingleSubst, IDerivedRecord<SingleSubs
     static SingleSubstFormat1 IDerivedRecord<SingleSubst, SingleSubstFormat1>.Parse(ref Cursor cursor, object? context)
     {
         // The format word was consumed by SingleSubst.Parse.
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new SingleSubstFormat1
         {
             Format = 1,
@@ -355,7 +355,7 @@ public sealed record SingleSubstFormat1 : SingleSubst, IDerivedRecord<SingleSubs
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>The coverage offset and the delta are each reversed via the corresponding <see cref="BinaryPrimitives"/> overload.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             CoverageOffset = BinaryPrimitives.ReverseEndianness(v.CoverageOffset),
@@ -407,7 +407,7 @@ public sealed record SingleSubstFormat2 : SingleSubst, IDerivedRecord<SingleSubs
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gsub#lookup-type-1-single-substitution-subtable">OpenType specification: Lookup Type 1</seealso>
     static SingleSubstFormat2 IDerivedRecord<SingleSubst, SingleSubstFormat2>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new SingleSubstFormat2
         {
             Format = 2,
@@ -444,7 +444,7 @@ public sealed record SingleSubstFormat2 : SingleSubst, IDerivedRecord<SingleSubs
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             CoverageOffset = BinaryPrimitives.ReverseEndianness(v.CoverageOffset),
@@ -502,7 +502,7 @@ public sealed record MultipleSubst : GsubSubtable, IDerivedRecord<GsubSubtable, 
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gsub#lookup-type-2-multiple-substitution-subtable">OpenType specification: Lookup Type 2</seealso>
     static MultipleSubst IDerivedRecord<GsubSubtable, MultipleSubst>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"MultipleSubst format {header.Format} is not defined.");
         return new MultipleSubst
@@ -546,7 +546,7 @@ public sealed record MultipleSubst : GsubSubtable, IDerivedRecord<GsubSubtable, 
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),
@@ -634,7 +634,7 @@ public sealed record AlternateSubst : GsubSubtable, IDerivedRecord<GsubSubtable,
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gsub#lookup-type-3-alternate-substitution-subtable">OpenType specification: Lookup Type 3</seealso>
     static AlternateSubst IDerivedRecord<GsubSubtable, AlternateSubst>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"AlternateSubst format {header.Format} is not defined.");
 
@@ -679,7 +679,7 @@ public sealed record AlternateSubst : GsubSubtable, IDerivedRecord<GsubSubtable,
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),
@@ -757,7 +757,7 @@ public sealed record LigatureSubst : GsubSubtable, IDerivedRecord<GsubSubtable, 
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gsub#lookup-type-4-ligature-substitution-subtable">OpenType specification: Lookup Type 4</seealso>
     static LigatureSubst IDerivedRecord<GsubSubtable, LigatureSubst>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"LigatureSubst format {header.Format} is not defined.");
 
@@ -802,7 +802,7 @@ public sealed record LigatureSubst : GsubSubtable, IDerivedRecord<GsubSubtable, 
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),
@@ -1001,7 +1001,7 @@ public static class ExtensionSubst
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gsub#lookup-type-7-extension-substitution-subtable">OpenType specification: Lookup Type 7</seealso>
     public static GsubSubtable ParseAndUnwrap(ref Cursor cursor)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"ExtensionSubst format {header.Format} is not defined.");
 
@@ -1049,7 +1049,7 @@ public static class ExtensionSubst
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),
@@ -1118,7 +1118,7 @@ public sealed record ReverseChainSingleSubst
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gsub#lookup-type-8-reverse-chaining-contextual-single-substitution-subtable">OpenType specification: Lookup Type 8</seealso>
     static ReverseChainSingleSubst IDerivedRecord<GsubSubtable, ReverseChainSingleSubst>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"ReverseChainSingleSubst format {header.Format} is not defined.");
 
@@ -1167,7 +1167,7 @@ public sealed record ReverseChainSingleSubst
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),

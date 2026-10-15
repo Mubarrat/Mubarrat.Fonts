@@ -127,7 +127,7 @@ public sealed record MaxpTable : IFontTable<MaxpTable>
 
         // Reads numGlyphs plus the 14 remaining ushorts in one shot. The struct starts at
         // numGlyphs because the version has already been consumed.
-        Header10 h = cursor.ReadBigEndianStruct<Header10>();
+        Header10 h = cursor.ReadEndianReversibleStruct<Header10>();
         return new MaxpTable
         {
             Version = MaxpVersion.Version10,

@@ -70,7 +70,7 @@ public sealed record NameTable : IFontTable<NameTable>
         // Read the raw on-disk records as a struct array in one pass. The struct contains
         // the (length, offset) pair that points into the string storage area; that pair is
         // resolved immediately below and never escapes this method.
-        var rawRecords = cursor.ReadBigEndianStructArray<RawNameRecord>(count);
+        var rawRecords = cursor.ReadEndianReversibleStructArray<RawNameRecord>(count);
 
         var records = new NameRecord[count];
         for (int i = 0; i < count; i++)
@@ -94,7 +94,7 @@ public sealed record NameTable : IFontTable<NameTable>
             ushort langTagCount = cursor.ReadUInt16();
             if (langTagCount > 0)
             {
-                var rawTags = cursor.ReadBigEndianStructArray<RawLangTagRecord>(langTagCount);
+                var rawTags = cursor.ReadEndianReversibleStructArray<RawLangTagRecord>(langTagCount);
 
                 languageTags = new string[langTagCount];
                 for (int i = 0; i < langTagCount; i++)

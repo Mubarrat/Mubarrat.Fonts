@@ -213,7 +213,7 @@ public sealed record GvarTable : IFontTable<GvarTable>
         var face = (FontFace)context!;
         int fvarAxisCount = face.GetTable<FvarTable>().AxisCount;
 
-        Header h = cursor.ReadBigEndianStruct<Header>();
+        Header h = cursor.ReadEndianReversibleStruct<Header>();
 
         if (h.MajorVersion != 1)
             throw new InvalidDataException($"'gvar'.majorVersion is {h.MajorVersion}, expected 1.");

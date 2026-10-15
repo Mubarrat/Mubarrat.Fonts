@@ -158,7 +158,7 @@ public sealed record MetaTable : IFontTable<MetaTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/meta">OpenType specification: meta table</seealso>
     public static MetaTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != 1)
             throw new InvalidDataException($"'meta'.version is {header.Version}, expected 1.");
@@ -172,7 +172,7 @@ public sealed record MetaTable : IFontTable<MetaTable>
                 $"'meta'.dataMapsCount is {header.DataMapsCount}, which exceeds the table's extent.");
 
         int count = (int)header.DataMapsCount;
-        DataMapRecord[] records = cursor.ReadBigEndianStructArray<DataMapRecord>(count);
+        DataMapRecord[] records = cursor.ReadEndianReversibleStructArray<DataMapRecord>(count);
 
         var maps = new MetaDataMap[count];
         for (int i = 0; i < count; i++)
@@ -241,7 +241,7 @@ public sealed record MetaTable : IFontTable<MetaTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are <c>uint32</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Version = BinaryPrimitives.ReverseEndianness(v.Version),
@@ -287,7 +287,7 @@ public sealed record MetaTable : IFontTable<MetaTable>
         /// <returns>A new record with each multi-byte field reversed.</returns>
         /// <remarks>The tag uses <see cref="Tag.ReverseEndianness(Tag)"/>; the two <c>uint32</c> fields are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static DataMapRecord ReverseEndianness(DataMapRecord v) => new()
         {
             Tag = Tag.ReverseEndianness(v.Tag),

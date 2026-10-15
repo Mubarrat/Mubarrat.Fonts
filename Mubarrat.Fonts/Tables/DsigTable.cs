@@ -76,13 +76,13 @@ public sealed record DsigTable : IFontTable<DsigTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/dsig">OpenType specification: DSIG table</seealso>
     public static DsigTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != 1)
             throw new InvalidDataException($"'DSIG'.version is {header.Version}, expected 1.");
 
         SignatureRecord[] records =
-            cursor.ReadBigEndianStructArray<SignatureRecord>(header.NumSignatures);
+            cursor.ReadEndianReversibleStructArray<SignatureRecord>(header.NumSignatures);
 
         Source source = cursor.Source;
         long tableExtent = source.Length;
@@ -184,7 +184,7 @@ public sealed record DsigTable : IFontTable<DsigTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Version = BinaryPrimitives.ReverseEndianness(v.Version),
@@ -236,7 +236,7 @@ public sealed record DsigTable : IFontTable<DsigTable>
         /// <returns>A new record with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint32</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static SignatureRecord ReverseEndianness(SignatureRecord v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),
@@ -282,7 +282,7 @@ public sealed record DsigTable : IFontTable<DsigTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static SignatureBlockHeader ReverseEndianness(SignatureBlockHeader v) => new()
         {
             Reserved1 = BinaryPrimitives.ReverseEndianness(v.Reserved1),

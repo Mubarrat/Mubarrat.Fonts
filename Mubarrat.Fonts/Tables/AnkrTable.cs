@@ -1,341 +1,289 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using Mubarrat.Fonts.Binary;
 using Mubarrat.Fonts.Primitives;
 
 namespace Mubarrat.Fonts.Tables;
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-// ankr — Anchor Point Table (Apple Advanced Typography)
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
-/// <summary>The <c>ankr</c> table: named anchor points inside a glyph's coordinate space, used with <c>kerx</c> to position glyphs relative to one another independent of the control points that draw them.</summary>
+/// <summary>The <c>ankr</c> table: the Apple Advanced Typography anchor point table. Defines anchor points within the coordinate space of a glyph, independent of the control points used to render it, for use by the <c>kerx</c> table.</summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>The table is an Apple Advanced Typography (AAT) table and is not part of OpenType. Apple documents it in the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual, <c>ankr</c> table</see>, which states that it is supported on OS X 10.9 and later and on iOS 7.0 and later.</description></item>
-/// <item><description>An anchor point is a point in the glyph's coordinate space that is independent of the outlines: it can sit anywhere the designer chooses, so two glyphs can be aligned by matching an anchor point of one to an anchor point of the other.</description></item>
-/// <item><description>The twelve-byte <see cref="Header"/> declares two offsets from the start of the table: the lookup table and the glyph data table. The version is a 16-bit field that is set to zero, and the lookup table conventionally begins at <see cref="DefaultLookupTableOffset"/>, which is <c>0x0000000C</c> — immediately after the header, because the header is twelve bytes.</description></item>
-/// <item><description>The lookup value for a glyph is a 16-bit offset from the start of the glyph data table to that glyph's anchor point entry, which is a 32-bit point count followed by that many x and y coordinate pairs. Because zero is a valid offset into the glyph data table, a glyph that has no anchor points must not appear in the lookup table at all.</description></item>
-/// <item><description>The 32-bit count at the start of a glyph data entry is read as an unsigned value and bounds-checked against the table; the coordinate pairs are signed 16-bit values in font design units.</description></item>
-/// <item><description>A format 0 lookup is an untrimmed array with no declared length, so supply a <see cref="FontFace"/> as the parse context when the table may use it: the glyph count is then taken from <c>maxp.numGlyphs</c>, which is what the shared lookup dispatcher expects.</description></item>
+/// <item><description>An anchor point is a named position in a glyph's coordinate space. The <c>kerx</c> table uses them to express kerning adjustments at specific attachment sites rather than at the glyph origin or at control points.</description></item>
+/// <item><description>The table holds a standard Apple Advanced Typography <see cref="LookupTable"/> that maps glyph indices onto byte offsets within a glyph data region. Each glyph data entry holds the glyph's anchor points.</description></item>
+/// <item><description>Because a lookup value of zero is a valid offset into the glyph data region, a glyph with no anchor points must not appear in the lookup table.</description></item>
+/// <item><description>The table is supported on macOS 10.9 and later and on iOS 7.0 and later.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">anchor point table</see> in the Apple TrueType Reference Manual.</description></item>
 /// </list>
 /// </remarks>
-/// <seealso cref="AnchorPoint"/>
-/// <seealso cref="GlyphAnchorPoints"/>
+/// <!--seealso cref="KerxTable"/-->
 /// <seealso cref="LookupTable"/>
+/// <seealso cref="AnkrAnchorPoint"/>
 /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
-/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
-public sealed record AnkrTable : IFontTable<AnkrTable>
+public sealed record AnkrTable : IFontTable<AnkrTable>, IRecord<AnkrTable>
 {
-    /// <summary>Gets the AAT table tag <c>ankr</c>.</summary>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
+    /// <summary>The only value the specification permits in the <c>version</c> field.</summary>
+    /// <value>The constant <c>0</c>.</value>
+    /// <seealso cref="Version"/>
+    public const ushort CurrentVersion = 0;
+
+    /// <inheritdoc/>
     public static Tag Tag => "ankr";
 
-    /// <summary>Gets the table version, which the specification requires to be zero.</summary>
-    /// <remarks>Unlike the other Apple Advanced Typography tables, <c>ankr</c> declares its version as a 16-bit field rather than as a 16.16 fixed-point number.</remarks>
+    /// <summary>Gets the table version. Always 0.</summary>
+    /// <value>The constant <see cref="CurrentVersion"/>.</value>
+    /// <remarks>The specification defines only one version and requires the field to be zero.</remarks>
+    /// <seealso cref="CurrentVersion"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
     public ushort Version { get; init; }
 
-    /// <summary>Gets the flags field, which is currently unused and set to zero.</summary>
-    /// <remarks>The field is preserved rather than validated; a consumer round-tripping the table needs it.</remarks>
+    /// <summary>Gets the table flags.</summary>
+    /// <value>Always <c>0</c> in a conforming font. The specification declares the field unused.</value>
+    /// <remarks>The field is exposed for round-tripping and validation; a validator may flag a non-zero value as non-conforming.</remarks>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
     public ushort Flags { get; init; }
 
-    /// <summary>Gets the offset of the lookup table from the start of the table.</summary>
-    /// <remarks>The specification notes that this value is currently always <see cref="DefaultLookupTableOffset"/>; the declared value is preserved rather than assumed.</remarks>
-    /// <seealso cref="DefaultLookupTableOffset"/>
-    /// <seealso cref="Lookup"/>
-    public uint LookupTableOffset { get; init; }
-
-    /// <summary>Gets the offset of the glyph data table from the start of the table.</summary>
-    /// <remarks>Lookup values are offsets from the start of this region, not from the start of the <c>ankr</c> table.</remarks>
-    /// <seealso cref="GetAnchorPoints(int)"/>
-    public uint GlyphDataTableOffset { get; init; }
-
-    /// <summary>Gets the lookup table that maps glyph indices onto offsets to glyph data entries, relative to the start of the glyph data table.</summary>
+    /// <summary>Gets the lookup table that maps glyph indices to offsets within the glyph data table.</summary>
+    /// <value>The parsed <see cref="LookupTable"/>.</value>
     /// <seealso cref="LookupTable"/>
-    /// <seealso cref="GetAnchorPoints(int)"/>
-    public LookupTable Lookup { get; init; } = null!;
+    /// <seealso cref="AnkrTable.TryGetAnchorPoints(int, out IReadOnlyList{AnkrAnchorPoint})"/>
+    public required LookupTable Lookup { get; init; }
 
-    /// <summary>Gets the anchor points of every glyph the lookup table covers, in ascending glyph order.</summary>
-    /// <remarks>The <c>0xFFFF</c> entry that a binary-searched lookup conventionally ends with is omitted, because no glyph data entry can be attributed to it.</remarks>
-    /// <seealso cref="GetAnchorPoints(int)"/>
-    /// <seealso cref="Count"/>
-    public IReadOnlyList<GlyphAnchorPoints> Glyphs { get; init; } = [];
-
-    /// <summary>Gets the number of glyphs that have anchor points.</summary>
-    /// <seealso cref="Glyphs"/>
-    public int Count => Glyphs.Count;
-
-    /// <summary>Gets the anchor points of a glyph.</summary>
-    /// <param name="glyphIndex">The glyph index to look up.</param>
-    /// <returns>The glyph's anchor points, or an empty list when the table gives the glyph none.</returns>
+    /// <summary>Gets the anchor points of every glyph covered by the lookup table, keyed by glyph index.</summary>
+    /// <value>A dictionary whose keys are the glyph indices the lookup table answers for and whose values are the parsed anchor point arrays.</value>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>An empty list has two possible causes that the parsed table cannot distinguish: the glyph has no entry in the lookup table, or its entry declares a point count of zero.</description></item>
-    /// <item><description>Use <see cref="TryGetAnchorPoints(int, out IReadOnlyList{AnchorPoint})"/> to tell the two apart.</description></item>
+    /// <item><description>The dictionary is populated during parse by enumerating the lookup table's glyph indices and reading each glyph's data entry from the source.</description></item>
+    /// <item><description>Glyphs with no anchor points are absent from the dictionary; the specification forbids them from appearing in the lookup table, so a glyph is either present with a non-empty array or absent.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="Glyphs"/>
-    /// <seealso cref="AnchorPoint"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
-    public IReadOnlyList<AnchorPoint> GetAnchorPoints(int glyphIndex)
-    {
-        if (PointsByGlyph.TryGetValue(glyphIndex, out IReadOnlyList<AnchorPoint>? points))
-            return points;
+    /// <seealso cref="TryGetAnchorPoints(int, out IReadOnlyList{AnkrAnchorPoint})"/>
+    /// <seealso cref="AnkrAnchorPoint"/>
+    public IReadOnlyDictionary<int, IReadOnlyList<AnkrAnchorPoint>> GlyphAnchors { get; init; }
+        = new Dictionary<int, IReadOnlyList<AnkrAnchorPoint>>();
 
-        return [];
-    }
+    /// <summary>Gets the number of glyphs that carry anchor points.</summary>
+    /// <value>The number of entries in <see cref="GlyphAnchors"/>.</value>
+    /// <seealso cref="GlyphAnchors"/>
+    public int AnchoredGlyphCount => GlyphAnchors.Count;
 
-    /// <summary>Tries to get the anchor points of a glyph.</summary>
+    /// <summary>Retrieves the anchor points of a glyph.</summary>
     /// <param name="glyphIndex">The glyph index to look up.</param>
-    /// <param name="anchorPoints">When this method returns <see langword="true"/>, contains the glyph's anchor points; otherwise, an empty list.</param>
-    /// <returns><see langword="true"/> when the glyph has an entry in the lookup table; otherwise, <see langword="false"/>.</returns>
-    /// <remarks>The glyph is reported as having anchor points even when its entry declares a count of zero, because the entry exists and the glyph data table holds data for it.</remarks>
-    /// <seealso cref="GetAnchorPoints(int)"/>
-    public bool TryGetAnchorPoints(int glyphIndex, out IReadOnlyList<AnchorPoint> anchorPoints)
+    /// <param name="anchors">When this method returns <see langword="true"/>, contains the glyph's anchor points; otherwise, an empty array.</param>
+    /// <returns><see langword="true"/> when the glyph carries anchor points; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>A glyph with no entry in the table is reported as <see langword="false"/> rather than as a glyph with zero anchors, matching the specification's requirement that unanchored glyphs be omitted from the lookup table.</remarks>
+    /// <seealso cref="GlyphAnchors"/>
+    /// <seealso cref="AnkrAnchorPoint"/>
+    public bool TryGetAnchorPoints(int glyphIndex, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IReadOnlyList<AnkrAnchorPoint>? anchors)
     {
-        if (PointsByGlyph.TryGetValue(glyphIndex, out IReadOnlyList<AnchorPoint>? points))
+        if (GlyphAnchors.TryGetValue(glyphIndex, out var result))
         {
-            anchorPoints = points;
+            anchors = result;
             return true;
         }
 
-        anchorPoints = [];
+        anchors = null;
         return false;
     }
 
-    /// <summary>The offset of the lookup table the specification currently requires, <c>0x0000000C</c>: twelve bytes, immediately after the header.</summary>
-    /// <seealso cref="LookupTableOffset"/>
-    public const uint DefaultLookupTableOffset = 0x0000000C;
-
-    /// <summary>Size, in bytes, of the fixed-layout <see cref="Header"/>.</summary>
-    /// <remarks>The lookup table conventionally begins at this offset, which is why <see cref="DefaultLookupTableOffset"/> is twelve.</remarks>
+    /// <inheritdoc/>
+    /// <param name="cursor">The cursor positioned at the first byte of the <c>ankr</c> table.</param>
+    /// <param name="context">Unused. The table is self-contained and holds no offsets into other tables.</param>
+    /// <returns>The parsed <c>ankr</c> table with every glyph's anchor points materialized.</returns>
+    /// <exception cref="InvalidDataException">The version is not zero, or a glyph data entry declares more anchor points than the remaining source can hold.</exception>
+    /// <exception cref="EndOfStreamException">The header, the lookup table, or a glyph data entry extends past the end of the table-scoped source.</exception>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The parse is eager: the lookup table is parsed first, then every glyph it covers is walked and its anchor point array materialized.</description></item>
+    /// <item><description>The enumeration of glyph indices covered by the lookup table is performed by pattern matching on the concrete <see cref="LookupTable"/> subtype. Adding a new lookup format requires updating the enumeration helper as well as the lookup type itself.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="LookupTable"/>
+    /// <seealso cref="AnkrAnchorPoint"/>
     /// <seealso cref="Header"/>
-    /// <seealso cref="DefaultLookupTableOffset"/>
-    public const int HeaderSize = 12;
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
+    static AnkrTable IRecord<AnkrTable>.Parse(ref Cursor cursor, object? context)
+    {
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
-    /// <summary>Gets the anchor points of a glyph, indexed by glyph index for constant-time lookup.</summary>
-    /// <remarks>Built alongside <see cref="Glyphs"/> so that a query does not have to scan the list.</remarks>
-    /// <seealso cref="GetAnchorPoints(int)"/>
-    private IReadOnlyDictionary<int, IReadOnlyList<AnchorPoint>> PointsByGlyph { get; init; } =
-        new Dictionary<int, IReadOnlyList<AnchorPoint>>();
+        if (header.Version != CurrentVersion)
+            throw new InvalidDataException($"'ankr'.version is {header.Version}, expected {CurrentVersion}.");
 
-    /// <summary>The twelve-byte fixed-layout <c>ankr</c> table header.</summary>
-    /// <remarks>Fields are stored in big-endian order at the offsets defined by the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html"><c>ankr</c> table specification</see>.</remarks>
+        LookupTable lookup = cursor.Source.ParseRecordAt<LookupTable>(header.LookupTableOffset);
+
+        var glyphAnchors = new Dictionary<int, IReadOnlyList<AnkrAnchorPoint>>();
+        foreach (int glyphIndex in EnumerateLookupGlyphs(lookup))
+        {
+            if (!lookup.TryGetValue(glyphIndex, out uint relativeOffset))
+                continue;
+
+            var entryCursor = cursor.Source.CreateCursor((long)header.GlyphDataTableOffset + relativeOffset);
+            glyphAnchors[glyphIndex] = ReadAnchorPoints(ref entryCursor);
+        }
+
+        return new()
+        {
+            Version = header.Version,
+            Flags = header.Flags,
+            Lookup = lookup,
+            GlyphAnchors = glyphAnchors,
+        };
+    }
+
+    /// <summary>Reads one glyph data entry: an anchor point count followed by that many anchor points.</summary>
+    /// <param name="cursor">The cursor positioned at the entry's leading <c>uint32</c> anchor point count.</param>
+    /// <returns>The glyph's anchor points, or an empty array when the count is zero.</returns>
+    /// <exception cref="InvalidDataException">The declared anchor point count exceeds the remaining source.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past the end of the table-scoped source.</exception>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The count is a <c>uint32</c>, but the specification requires a glyph with no anchors to be absent from the lookup table, so a zero count is treated as an empty anchor array rather than as a malformed entry.</description></item>
+    /// <item><description>The bound check uses <see cref="Cursor.Remaining"/> against the total byte count the anchor array would occupy, which is <c>numPoints * 4</c>. The check is the only sanity limit applied; a well-formed entry cannot overrun.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="AnkrAnchorPoint"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
+    private static IReadOnlyList<AnkrAnchorPoint> ReadAnchorPoints(ref Cursor cursor)
+    {
+        uint numPoints = cursor.ReadUInt32();
+        if (numPoints == 0) return [];
+
+        long requiredBytes = (long)numPoints * AnkrAnchorPoint.SizeInBytes;
+        if (requiredBytes > cursor.Remaining)
+        {
+            throw new InvalidDataException(
+                $"'ankr' glyph data entry declares {numPoints} anchor points ({requiredBytes} bytes), exceeding the remaining table length of {cursor.Remaining} bytes.");
+        }
+
+        return cursor.ReadEndianReversibleStructArray<AnkrAnchorPoint>(checked((int)numPoints));
+    }
+
+    /// <summary>Enumerates the glyph indices that a lookup table can answer for.</summary>
+    /// <param name="lookup">The lookup table to enumerate.</param>
+    /// <returns>The glyph indices the lookup covers, in ascending order for every format.</returns>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The enumeration is implemented by pattern matching on the concrete <see cref="LookupTable"/> subtypes because the base type exposes lookup by glyph index but not the reverse direction.</description></item>
+    /// <item><description>Dense formats (0, 8, 10) enumerate their covered range; sparse formats (2, 4) enumerate each segment's range; format 6 enumerates each entry's glyph.</description></item>
+    /// <item><description>A new lookup format added to <see cref="LookupTable"/> requires a corresponding case here; otherwise glyphs that format covers will be silently skipped.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="LookupTable"/>
+    /// <seealso cref="IRecord{T}.Parse"/>
+    private static IEnumerable<int> EnumerateLookupGlyphs(LookupTable lookup)
+    {
+        switch (lookup)
+        {
+            case LookupTable0 t0:
+                for (int i = 0; i < t0.Values.Count; i++)
+                    yield return i;
+                break;
+
+            case LookupTable2 t2:
+                foreach (var segment in t2.Segments)
+                    for (int glyph = segment.FirstGlyph; glyph <= segment.LastGlyph; glyph++)
+                        yield return glyph;
+                break;
+
+            case LookupTable4 t4:
+                foreach (var segment in t4.Segments)
+                    for (int glyph = segment.FirstGlyph; glyph <= segment.LastGlyph; glyph++)
+                        yield return glyph;
+                break;
+
+            case LookupTable6 t6:
+                foreach (var entry in t6.Entries)
+                    yield return entry.Glyph;
+                break;
+
+            case LookupTable8 t8:
+                for (int i = 0; i < t8.Values.Count; i++)
+                    yield return t8.FirstGlyph + i;
+                break;
+
+            case LookupTable10 t10:
+                for (int i = 0; i < t10.Values.Count; i++)
+                    yield return t10.FirstGlyph + i;
+                break;
+        }
+    }
+
+    /// <summary>The 12-byte <c>ankr</c> table header. Blittable, no padding.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The header is followed by the lookup table at <see cref="LookupTableOffset"/> and the glyph data table at <see cref="GlyphDataTableOffset"/>. The specification requires the lookup table to begin at offset <c>0x0000000C</c>, immediately after the header.</description></item>
+    /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
+    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">anchor point table</see> in the Apple TrueType Reference Manual.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="AnkrTable"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public record struct Header : IEndianReversibleStruct<Header>
     {
-        /// <summary>The table version at byte offset 0, set to zero.</summary>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
-        public ushort Version;              // +0
+        /// <summary>The table version at byte offset 0. Always zero.</summary>
+        /// <value>The constant <see cref="AnkrTable.CurrentVersion"/>.</value>
+        public ushort Version;               // +0
 
-        /// <summary>The flags field at byte offset 2, currently unused and set to zero.</summary>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
-        public ushort Flags;                // +2
+        /// <summary>The table flags at byte offset 2. Always zero.</summary>
+        /// <value>The constant <c>0</c> in a conforming font.</value>
+        public ushort Flags;                 // +2
 
-        /// <summary>The offset of the lookup table from the start of the table at byte offset 4.</summary>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
-        public uint LookupTableOffset;      // +4
+        /// <summary>The byte offset from the table start to the lookup table at byte offset 4.</summary>
+        /// <value>The constant <c>0x0000000C</c> in a conforming font.</value>
+        public uint LookupTableOffset;       // +4
 
-        /// <summary>The offset of the glyph data table from the start of the table at byte offset 8.</summary>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
-        public uint GlyphDataTableOffset;   // +8
+        /// <summary>The byte offset from the table start to the glyph data table at byte offset 8.</summary>
+        public uint GlyphDataTableOffset;    // +8
 
         /// <summary>Reverses the byte order of every field in a <see cref="Header"/>.</summary>
-        public static Header ReverseEndianness(Header v) => new()
+        /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
+        /// <returns>A new header with each field reversed.</returns>
+        public static Header ReverseEndianness(Header value) => new()
         {
-            Version = BinaryPrimitives.ReverseEndianness(v.Version),
-            Flags = BinaryPrimitives.ReverseEndianness(v.Flags),
-            LookupTableOffset = BinaryPrimitives.ReverseEndianness(v.LookupTableOffset),
-            GlyphDataTableOffset = BinaryPrimitives.ReverseEndianness(v.GlyphDataTableOffset),
+            Version = BinaryPrimitives.ReverseEndianness(value.Version),
+            Flags = BinaryPrimitives.ReverseEndianness(value.Flags),
+            LookupTableOffset = BinaryPrimitives.ReverseEndianness(value.LookupTableOffset),
+            GlyphDataTableOffset = BinaryPrimitives.ReverseEndianness(value.GlyphDataTableOffset),
         };
     }
+}
 
-    /// <summary>One anchor point of a glyph.</summary>
-    /// <remarks>The coordinates are signed 16-bit values in the font's design units and are independent of the glyph's control points, so the point need not coincide with any outline point.</remarks>
-    /// <seealso cref="AnkrTable.Glyphs"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct AnchorPoint : IEndianReversibleStruct<AnchorPoint>
+/// <summary>One anchor point in an <c>ankr</c> glyph data entry. Blittable, size 4.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>Anchor points are positions in the glyph's coordinate space, expressed as signed coordinates. They are independent of the glyph's control points and are not part of the outline.</description></item>
+/// <item><description>The specification describes each anchor point as a two-byte signed x-coordinate followed by a two-byte signed y-coordinate.</description></item>
+/// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">anchor point table</see> in the Apple TrueType Reference Manual.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="AnkrTable"/>
+/// <seealso cref="AnkrTable.GlyphAnchors"/>
+/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public record struct AnkrAnchorPoint : IEndianReversibleStruct<AnkrAnchorPoint>
+{
+    /// <summary>The size of one anchor point, in bytes.</summary>
+    /// <value>The constant <c>4</c>.</value>
+    /// <remarks>The size is the sum of the two signed sixteen-bit coordinates.</remarks>
+    public const int SizeInBytes = 4;
+
+    /// <summary>The x-coordinate at byte offset 0.</summary>
+    /// <value>A signed coordinate in the glyph's design space.</value>
+    /// <seealso cref="Y"/>
+    public short X;    // +0
+
+    /// <summary>The y-coordinate at byte offset 2.</summary>
+    /// <value>A signed coordinate in the glyph's design space.</value>
+    /// <seealso cref="X"/>
+    public short Y;    // +2
+
+    /// <summary>Reverses the byte order of every field in an <see cref="AnkrAnchorPoint"/>.</summary>
+    /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
+    /// <returns>A new anchor point with each field reversed.</returns>
+    public static AnkrAnchorPoint ReverseEndianness(AnkrAnchorPoint value) => new()
     {
-        /// <summary>The horizontal coordinate at byte offset 0, in font design units.</summary>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
-        public short X; // +0
-
-        /// <summary>The vertical coordinate at byte offset 2, in font design units.</summary>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ankr.html">TrueType Reference Manual: The <c>ankr</c> table</seealso>
-        public short Y; // +2
-
-        /// <summary>Reverses the byte order of both fields in an <see cref="AnchorPoint"/>.</summary>
-        public static AnchorPoint ReverseEndianness(AnchorPoint v) => new()
-        {
-            X = BinaryPrimitives.ReverseEndianness(v.X),
-            Y = BinaryPrimitives.ReverseEndianness(v.Y),
-        };
-    }
-
-    /// <summary>The anchor points of one glyph, as stored in the table.</summary>
-    /// <remarks>Anchor points are ordered as the font stored them; the order is significant to <c>kerx</c>, which addresses them by index.</remarks>
-    /// <seealso cref="AnkrTable.Glyphs"/>
-    /// <seealso cref="AnchorPoint"/>
-    public sealed record GlyphAnchorPoints
-    {
-        /// <summary>Gets the glyph index the record describes.</summary>
-        public int GlyphIndex { get; init; }
-
-        /// <summary>Gets the glyph's anchor points, in the order the font stored them.</summary>
-        /// <seealso cref="AnchorPoint"/>
-        public IReadOnlyList<AnchorPoint> Points { get; init; } = [];
-    }
-
-    /// <inheritdoc/>
-    /// <param name="cursor">Cursor positioned at the first byte of the <c>ankr</c> table.</param>
-    /// <param name="context">A <see cref="FontFace"/> so that a format 0 lookup can be sized by <c>maxp.numGlyphs</c>, or <see langword="null"/>; a plain <see cref="int"/> glyph count is also accepted.</param>
-    /// <returns>The parsed <c>ankr</c> table.</returns>
-    /// <exception cref="InvalidDataException">The version is not 0, or a glyph data entry declares an impossible anchor point count.</exception>
-    /// <exception cref="EndOfStreamException">The header, the lookup table, or a glyph data entry extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The table's version must be zero, as the specification requires.</description></item>
-    /// <item><description>The lookup table is read at its declared offset rather than assumed to follow the header, so that a font deviating from the conventional <c>0x0000000C</c> still parses.</description></item>
-    /// <item><description>A lookup value of zero is valid for this table, because the values are offsets from the start of the glyph data table; such a glyph is read like any other.</description></item>
-    /// <item><description>A format 0 lookup declares no length of its own, so the glyph count reaches it through <paramref name="context"/>; with no usable context it is read to the end of the table data, which is wrong here because the glyph data table follows the lookup.</description></item>
-    /// </list>
-    /// </remarks>
-    static AnkrTable IRecord<AnkrTable>.Parse(ref Cursor cursor, object? context)
-    {
-        Header header = cursor.ReadBigEndianStruct<Header>();
-
-        if (header.Version != 0)
-            throw new InvalidDataException($"'ankr'.version is {header.Version}, expected 0.");
-
-        Cursor lookupCursor = cursor.Source.CreateOffsetCursor(header.LookupTableOffset);
-        LookupTable lookup = LookupTable.Parse(ref lookupCursor, GetGlyphCountContext(context));
-
-        var entries = new List<GlyphAnchorPoints>();
-        var records = new Dictionary<uint, IReadOnlyList<AnchorPoint>>();
-
-        foreach (int glyph in EnumerateCoveredGlyphs(lookup))
-        {
-            if (glyph == BinSrchHeader.EndOfSearch) continue;
-            if (!lookup.TryGetValue(glyph, out uint offset)) continue;
-
-            if (!records.TryGetValue(offset, out IReadOnlyList<AnchorPoint>? points))
-            {
-                points = ReadAnchorPoints(cursor.Source, (long)header.GlyphDataTableOffset + offset);
-                records[offset] = points;
-            }
-
-            entries.Add(new GlyphAnchorPoints { GlyphIndex = glyph, Points = points });
-        }
-
-        var byGlyph = new Dictionary<int, IReadOnlyList<AnchorPoint>>(entries.Count);
-        foreach (GlyphAnchorPoints glyph in entries)
-            byGlyph[glyph.GlyphIndex] = glyph.Points;
-
-        return new AnkrTable
-        {
-            Version = header.Version,
-            Flags = header.Flags,
-            LookupTableOffset = header.LookupTableOffset,
-            GlyphDataTableOffset = header.GlyphDataTableOffset,
-            Lookup = lookup,
-            Glyphs = entries,
-            PointsByGlyph = byGlyph,
-        };
-    }
-
-    /// <summary>Reads one glyph data entry: a 32-bit point count followed by that many coordinate pairs.</summary>
-    /// <param name="source">The table-scoped source.</param>
-    /// <param name="entryOffset">The absolute offset of the entry, which the caller has already resolved against the glyph data table.</param>
-    /// <returns>The anchor points, in the order the font stored them.</returns>
-    /// <exception cref="InvalidDataException">The declared point count cannot be a valid array length.</exception>
-    /// <exception cref="EndOfStreamException">The coordinate array extends past the end of the table data.</exception>
-    /// <remarks>The count is a 32-bit field, so it is checked against the maximum array length before the coordinates are read; a count that large is a corrupt table rather than a font with that many anchor points.</remarks>
-    private static AnchorPoint[] ReadAnchorPoints(Source source, long entryOffset)
-    {
-        Cursor cursor = source.CreateOffsetCursor(entryOffset);
-        uint numPoints = cursor.ReadUInt32();
-
-        if (numPoints > int.MaxValue)
-        {
-            throw new InvalidDataException(
-                $"'ankr' glyph data entry declares {numPoints} anchor points, which is not a valid count.");
-        }
-
-        return cursor.ReadBigEndianStructArray<AnchorPoint>((int)numPoints);
-    }
-
-    /// <summary>Enumerates every glyph index a lookup table can answer for.</summary>
-    /// <param name="lookup">The lookup table to walk.</param>
-    /// <returns>The glyph indices the lookup covers, in table order.</returns>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>Formats 0, 8, and 10 are dense, so the walk is the glyph range the lookup covers.</description></item>
-    /// <item><description>Formats 2 and 4 declare contiguous segments and format 6 a sorted list of entries, so those walks stop at the glyphs that have an explicit entry.</description></item>
-    /// <item><description>The <c>0xFFFF</c> termination unit that the segment and entry formats conventionally end with is yielded like any other glyph; callers filter it out.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="LookupTable"/>
-    private static IEnumerable<int> EnumerateCoveredGlyphs(LookupTable lookup)
-    {
-        if (lookup is LookupTable2 bySegment)
-        {
-            foreach (LookupSegment segment in bySegment.Segments)
-                for (int glyph = segment.FirstGlyph; glyph <= segment.LastGlyph; glyph++)
-                    yield return glyph;
-
-            yield break;
-        }
-
-        if (lookup is LookupTable4 bySegmentArray)
-        {
-            foreach (LookupSegment4 segment in bySegmentArray.Segments)
-                for (int glyph = segment.FirstGlyph; glyph <= segment.LastGlyph; glyph++)
-                    yield return glyph;
-
-            yield break;
-        }
-
-        if (lookup is LookupTable6 byEntry)
-        {
-            foreach (LookupEntry entry in byEntry.Entries)
-                yield return entry.Glyph;
-
-            yield break;
-        }
-
-        if (lookup is LookupTable8 byTrimmedArray)
-        {
-            for (int i = 0; i < byTrimmedArray.Count; i++)
-                yield return byTrimmedArray.FirstGlyph + i;
-
-            yield break;
-        }
-
-        if (lookup is LookupTable10 byExtendedArray)
-        {
-            for (int i = 0; i < byExtendedArray.Count; i++)
-                yield return byExtendedArray.FirstGlyph + i;
-
-            yield break;
-        }
-
-        for (int glyph = 0; glyph < lookup.Count; glyph++)
-            yield return glyph;
-    }
-
-    /// <summary>Resolves the value a nested lookup table needs in order to read a length-less format 0 array.</summary>
-    /// <param name="context">The context handed to <see cref="IRecord{T}.Parse(ref Cursor, object?)"/>: a <see cref="FontFace"/>, an <see cref="int"/> glyph count, or <see langword="null"/>.</param>
-    /// <returns>The font's glyph count as an <see cref="int"/> when it can be obtained, or <see langword="null"/> so that the lookup is read to the end of the table data.</returns>
-    /// <remarks>A format 0 lookup is a bare array with no declared length, so it must be told how many glyphs the font has. A <see cref="FontFace"/> context supplies the count from <c>maxp.numGlyphs</c>; an <see cref="int"/> context is taken as that count directly. The count is optional because a table that never uses a format 0 lookup does not need it.</remarks>
-    /// <seealso cref="LookupTable.Parse(ref Cursor, object?)"/>
-    private static object? GetGlyphCountContext(object? context) => context switch
-    {
-        int glyphCount => glyphCount,
-        FontFace face when face.Directory.ContainsKey(MaxpTable.Tag) => face.GetTable<MaxpTable>().NumGlyphs,
-        _ => null,
+        X = BinaryPrimitives.ReverseEndianness(value.X),
+        Y = BinaryPrimitives.ReverseEndianness(value.Y),
     };
 }

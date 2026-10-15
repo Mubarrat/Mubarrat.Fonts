@@ -320,7 +320,7 @@ public readonly struct TupleRecord
     /// <returns>The parsed tuple record.</returns>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otvarcommon#tuple-record">OpenType Tuple Record</seealso>
     public static TupleRecord Parse(ref Cursor cursor, int axisCount) =>
-        new(cursor.ReadBigEndianStructArray<F2Dot14>(axisCount));
+        new(cursor.ReadEndianReversibleStructArray<F2Dot14>(axisCount));
 
     /// <inheritdoc/>
     public override string ToString() => $"({string.Join(", ", Coordinates)})";

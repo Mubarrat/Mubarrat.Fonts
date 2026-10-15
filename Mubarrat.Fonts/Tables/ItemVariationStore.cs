@@ -172,7 +172,7 @@ public sealed record VariationRegionList : IRecord<VariationRegionList>
                 $"VariationRegionList regionCount is {regionCount}, which exceeds the safety limit.");
 
         // All regions' coordinates are contiguous: regionCount * axisCount records.
-        var flat = cursor.ReadBigEndianStructArray<AxisRegionCoordinates>(checked(regionCount * axisCount));
+        var flat = cursor.ReadEndianReversibleStructArray<AxisRegionCoordinates>(checked(regionCount * axisCount));
 
         var regions = new VariationRegion[regionCount];
         for (int r = 0; r < regionCount; r++)

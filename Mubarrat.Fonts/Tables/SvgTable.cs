@@ -124,7 +124,7 @@ public sealed record SvgTable : IFontTable<SvgTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/svg">OpenType specification: SVG header</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -182,7 +182,7 @@ public sealed record SvgTable : IFontTable<SvgTable>
         /// <returns>A new record header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/svg">OpenType specification: SVG document record</seealso>
         public static DocumentRecordHeader ReverseEndianness(DocumentRecordHeader v) => new()
         {
@@ -213,7 +213,7 @@ public sealed record SvgTable : IFontTable<SvgTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/svg">OpenType specification: SVG table</seealso>
     static SvgTable IRecord<SvgTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != 0)
             throw new InvalidDataException($"'SVG '.version is {header.Version}, expected 0.");
@@ -228,7 +228,7 @@ public sealed record SvgTable : IFontTable<SvgTable>
             throw new InvalidDataException("'SVG ' document list is empty.");
 
         DocumentRecordHeader[] headers =
-            listCursor.ReadBigEndianStructArray<DocumentRecordHeader>(numEntries);
+            listCursor.ReadEndianReversibleStructArray<DocumentRecordHeader>(numEntries);
 
         var records = new SvgDocumentRecord[numEntries];
         for (int i = 0; i < numEntries; i++)

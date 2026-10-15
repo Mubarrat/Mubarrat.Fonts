@@ -25,8 +25,8 @@ namespace Mubarrat.Fonts.Primitives;
 /// </example>
 /// <seealso cref="IFontTable{T}"/>
 /// <seealso cref="IEndianReversibleStruct{T}"/>
-/// <seealso cref="Source.ReadTagAt(long)"/>
-/// <seealso cref="Cursor.ReadTag()"/>
+/// <seealso cref="Source.ReadTagAt"/>
+/// <seealso cref="Cursor.ReadTag"/>
 /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Tag</seealso>
 /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#table-directory">OpenType specification: Table Directory</seealso>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -139,14 +139,14 @@ public readonly struct Tag : IEquatable<Tag>, IComparable<Tag>, IComparable, IEn
     /// <returns>A <see cref="Tag"/> whose four bytes are in reversed order.</returns>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The operation is unconditional. The host-endianness check is applied by the reader (<see cref="Source.ReadEndianReversibleStructAt{T}(long)"/>, <see cref="Cursor.ReadBigEndianStruct{T}"/>), not by this method.</description></item>
+    /// <item><description>The operation is unconditional. The host-endianness check is applied by the reader (<see cref="Source.ReadEndianReversibleStructAt{T}"/>, <see cref="Cursor.ReadEndianReversibleStruct{T}"/>), not by this method.</description></item>
     /// <item><description>Symmetric: <c>ReverseEndianness(ReverseEndianness(x)) == x</c> for every <c>x</c>.</description></item>
     /// <item><description>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Tag data type</see> in the OpenType specification.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Tag</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Tag ReverseEndianness(Tag value) =>

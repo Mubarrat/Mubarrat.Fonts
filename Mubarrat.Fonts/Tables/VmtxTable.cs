@@ -117,7 +117,7 @@ public sealed record VmtxTable : IFontTable<VmtxTable>
 
         // vmtx has no header. Read the long metrics directly from the cursor; it advances
         // by 4 bytes per record.
-        var longs = cursor.ReadBigEndianStructArray<LongVerMetric>(numberOfVMetrics);
+        var longs = cursor.ReadEndianReversibleStructArray<LongVerMetric>(numberOfVMetrics);
 
         var advanceHeights = new ushort[numberOfVMetrics];
         var topSideBearings = new short[numGlyphs];

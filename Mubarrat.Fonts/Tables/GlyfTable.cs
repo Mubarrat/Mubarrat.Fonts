@@ -20,7 +20,8 @@ namespace Mubarrat.Fonts.Tables;
 /// <seealso cref="Glyph"/>
 /// <seealso cref="SimpleGlyph"/>
 /// <seealso cref="CompositeGlyph"/>
-/// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf">OpenType specification: glyf table</seealso>
+/// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf">OpenType specification: glyf header</seealso>
+/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6glyf.html">TrueType Reference Manual: The <c>glyf</c> table</seealso>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public record struct GlyphHeader : IEndianReversibleStruct<GlyphHeader>
 {
@@ -72,7 +73,7 @@ public record struct GlyphHeader : IEndianReversibleStruct<GlyphHeader>
     /// <returns>A new header with each multi-byte field reversed.</returns>
     /// <remarks>All five fields are <c>int16</c> and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf">OpenType specification: glyf header</seealso>
     public static GlyphHeader ReverseEndianness(GlyphHeader v) => new()
     {
@@ -250,6 +251,17 @@ public enum CompositeGlyphFlags : ushort
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#composite-glyph-description">OpenType specification: <c>WE_HAVE_A_SCALE</c></seealso>
     WeHaveAScale = 0x0008,
 
+    /// <summary>Bit 4: reserved.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>Some older documentation designated this bit for flagging overlapping contours. It is obsolete and ignored by all scalers; bit 10 is the current overlap flag.</description></item>
+    /// <item><description>The bit is exposed for round-tripping and validation. A conforming font leaves it clear.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="OverlapCompound"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6glyf.html">TrueType Reference Manual: The <c>glyf</c> table</seealso>
+    Reserved = 0x0010,
+
     /// <summary>Bit 5: at least one more component follows.</summary>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#composite-glyph-description"><c>MORE_COMPONENTS</c> flag</see> in the OpenType specification.</remarks>
     /// <seealso cref="WeHaveInstructions"/>
@@ -283,23 +295,46 @@ public enum CompositeGlyphFlags : ushort
     UseMyMetrics = 0x0200,
 
     /// <summary>Bit 10: components overlap. When set, it must be set on the first component.</summary>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#composite-glyph-description"><c>OVERLAP_COMPOUND</c> flag</see> in the OpenType specification.</remarks>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The flag should be set if any component glyph has overlapping contours, or if the contours of any two components in the composite can overlap each other.</description></item>
+    /// <item><description>As with <see cref="SimpleGlyphFlags.OverlapSimple"/>, the flag exists for conversion to formats whose fill rule differs, not for TrueType rendering itself.</description></item>
+    /// <item><description>Some older documentation designates bit 4 of the flags word for the same purpose; that bit is obsolete and is ignored by all scalers. See <see cref="Reserved"/>.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="CompositeGlyph.OverlapCompound"/>
+    /// <seealso cref="Reserved"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#composite-glyph-description">OpenType specification: <c>OVERLAP_COMPOUND</c></seealso>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6glyf.html">TrueType Reference Manual: The <c>glyf</c> table</seealso>
     OverlapCompound = 0x0400,
 
     /// <summary>Bit 11: the offset vector is in the component's coordinate system and is scaled.</summary>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#composite-glyph-description"><c>SCALED_COMPONENT_OFFSET</c> flag</see> in the OpenType specification.</remarks>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The flag was added in OpenType 1.8.3 to remove a historical ambiguity. Before the flag existed, whether the offset vector was scaled by the component's transform depended on the scaler implementation.</description></item>
+    /// <item><description>The ambiguity was sharpest for a 45-degree rotation with numerical offsets: the TrueType 1.0 scaler multiplied the scale factor by 2 in that case, while the TrueType 2.0 scaler did not, so the same font rendered differently on the two scalers.</description></item>
+    /// <item><description>The flag-based model eliminates the ambiguity. A renderer that honours the flags renders the component the same way regardless of which historical scaler it emulates.</description></item>
+    /// <item><description>See <see cref="UnscaledComponentOffset"/> for the complementary interpretation.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="UnscaledComponentOffset"/>
     /// <seealso cref="Component.ScaledComponentOffset"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#composite-glyph-description">OpenType specification: <c>SCALED_COMPONENT_OFFSET</c></seealso>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6glyf.html">TrueType Reference Manual: The <c>glyf</c> table</seealso>
     ScaledComponentOffset = 0x0800,
 
     /// <summary>Bit 12: the offset vector is in the parent's coordinate system and is not scaled.</summary>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#composite-glyph-description"><c>UNSCALED_COMPONENT_OFFSET</c> flag</see> in the OpenType specification.</remarks>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The flag was added in OpenType 1.8.3 alongside <see cref="ScaledComponentOffset"/> to remove a historical ambiguity in how the offset vector interacts with the component's transform.</description></item>
+    /// <item><description>The two flags are mutually exclusive in a conforming font; when both are recognised, a renderer may treat either as authoritative or report the font as malformed.</description></item>
+    /// <item><description>When neither flag is set, the offset-scaling behaviour is scaler-dependent; see <see cref="ScaledComponentOffset"/> for the historical detail.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="ScaledComponentOffset"/>
     /// <seealso cref="Component.UnscaledComponentOffset"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#composite-glyph-description">OpenType specification: <c>UNSCALED_COMPONENT_OFFSET</c></seealso>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6glyf.html">TrueType Reference Manual: The <c>glyf</c> table</seealso>
     UnscaledComponentOffset = 0x1000,
 }
 
@@ -469,7 +504,7 @@ public abstract record Glyph : IRecord<Glyph>, IBaseRecord<Glyph>
             throw new InvalidDataException(
                 $"Glyph data block of {ctx.Length - cursor.Position} bytes is too short for a header.");
 
-        GlyphHeader header = cursor.ReadBigEndianStruct<GlyphHeader>();
+        GlyphHeader header = cursor.ReadEndianReversibleStruct<GlyphHeader>();
         GlyphBodyContext bodyCtx = new(header, ctx.Length);
 
         return header.NumberOfContours >= 0
@@ -568,8 +603,15 @@ public sealed record SimpleGlyph : Glyph, IDerivedRecord<Glyph, SimpleGlyph>
 
     /// <summary>True when the glyph declares that its contours may overlap.</summary>
     /// <value><see langword="true"/> when <see cref="SimpleGlyphFlags.OverlapSimple"/> is set on the first flag byte.</value>
-    /// <remarks>The flag may be set on any of the glyph's points, but the specification requires it to be set on the first point when present on any.</remarks>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The flag may be set on any of the glyph's points, but the specification requires it to be set on the first point when present on any; this property reads only the first flag byte.</description></item>
+    /// <item><description>The property exists for consumers that convert the outline to a format with a different fill rule. TrueType rendering does not consult the flag.</description></item>
+    /// <item><description>The flag is set when the outline has overlapping contours in its unhinted form, or when hinting or variation deltas could produce overlap at some size or instance.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="SimpleGlyphFlags.OverlapSimple"/>
+    /// <seealso cref="CompositeGlyph.OverlapCompound"/>
     public bool OverlapSimple { get; init; }
 
     /// <inheritdoc/>
@@ -766,9 +808,16 @@ public enum SimpleGlyphFlags : byte
     YIsSameOrPositiveYShortVector = 0x20,
 
     /// <summary>Bit 6: contours may overlap. When set, it must be set on the first flag byte.</summary>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#simple-glyph-description"><c>OVERLAP_SIMPLE</c> flag</see> in the OpenType specification.</remarks>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>TrueType scalers do not need the flag to render the glyph. It exists for converters that must translate the outline into a format whose fill rule differs.</description></item>
+    /// <item><description>The flag should be set not only when the unhinted outline has overlapping contours, but also when hinting or variation deltas could ever cause contours to overlap at some size or instance.</description></item>
+    /// <item><description>The flag matters most when converting to PostScript Type 1 for Level 2 printers, which use an even-odd fill rule. Overlapping contours that render correctly under the non-zero winding rule produce visible white holes under even-odd, so a converter must simplify any glyph whose flag is set.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="SimpleGlyph.OverlapSimple"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#simple-glyph-description">OpenType specification: <c>OVERLAP_SIMPLE</c></seealso>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6glyf.html">TrueType Reference Manual: The <c>glyf</c> table</seealso>
     OverlapSimple = 0x40,
 
     /// <summary>Bit 7: reserved; must be zero.</summary>
@@ -811,8 +860,15 @@ public sealed record CompositeGlyph : Glyph, IDerivedRecord<Glyph, CompositeGlyp
 
     /// <summary>True when the glyph declares that its components may overlap.</summary>
     /// <value><see langword="true"/> when <see cref="CompositeGlyphFlags.OverlapCompound"/> is set on any component.</value>
-    /// <remarks>The specification requires the flag to be set on the first component when present on any; the parser ORs the flag across all components for robustness.</remarks>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The specification requires the flag to be set on the first component when present on any; the parser ORs the flag across all components for robustness.</description></item>
+    /// <item><description>The property is set when any component glyph has overlapping contours, or when the contours of two components can overlap each other.</description></item>
+    /// <item><description>Like <see cref="SimpleGlyph.OverlapSimple"/>, the flag exists for conversion to formats with a different fill rule, not for TrueType rendering itself.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="CompositeGlyphFlags.OverlapCompound"/>
+    /// <seealso cref="SimpleGlyph.OverlapSimple"/>
     public bool OverlapCompound { get; init; }
 
     /// <inheritdoc/>

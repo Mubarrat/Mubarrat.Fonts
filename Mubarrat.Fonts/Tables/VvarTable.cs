@@ -95,7 +95,7 @@ public sealed record VvarTable : IFontTable<VvarTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/vvar">OpenType <c>VVAR</c> Table</seealso>
     static VvarTable IRecord<VvarTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header h = cursor.ReadBigEndianStruct<Header>();
+        Header h = cursor.ReadEndianReversibleStruct<Header>();
 
         if (h.Major != 1)
             throw new InvalidDataException($"'VVAR'.majorVersion is {h.Major}, expected 1.");

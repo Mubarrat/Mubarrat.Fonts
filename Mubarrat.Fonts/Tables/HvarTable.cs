@@ -94,7 +94,7 @@ public sealed record HvarTable : IFontTable<HvarTable>
     /// <inheritdoc/>
     public static HvarTable Parse(ref Cursor cursor, object? context)
     {
-        Header h = cursor.ReadBigEndianStruct<Header>();
+        Header h = cursor.ReadEndianReversibleStruct<Header>();
 
         if (h.Major != 1)
             throw new InvalidDataException($"'HVAR'.majorVersion is {h.Major}, expected 1.");

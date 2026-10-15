@@ -111,7 +111,7 @@ public sealed record StatTable : IFontTable<StatTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/stat"/>
     public static StatTable Parse(ref Cursor cursor, object? context)
     {
-        HeaderV0 h = cursor.ReadBigEndianStruct<HeaderV0>();
+        HeaderV0 h = cursor.ReadEndianReversibleStruct<HeaderV0>();
 
         if (h.Major != 1)
             throw new InvalidDataException($"'STAT'.majorVersion is {h.Major}, expected 1.");
@@ -149,14 +149,14 @@ public sealed record StatTable : IFontTable<StatTable>
         if (declaredSize == StatAxisRecordSize)
         {
             // Fast path: declared size matches the struct, one batch read.
-            return cursor.ReadBigEndianStructArray<StatAxisRecord>(count);
+            return cursor.ReadEndianReversibleStructArray<StatAxisRecord>(count);
         }
 
         // Forward-compatible path: records are larger than the fields we understand.
         var axes = new StatAxisRecord[count];
         for (int i = 0; i < count; i++)
         {
-            axes[i] = cursor.PeekBigEndianStruct<StatAxisRecord>();
+            axes[i] = cursor.PeekEndianReversibleStruct<StatAxisRecord>();
             cursor.Position += declaredSize;
         }
         return axes;
@@ -423,13 +423,13 @@ public sealed record StatAxisValueFormat4
     static StatAxisValueFormat4 IDerivedRecord<StatAxisValue, StatAxisValueFormat4>.Parse(
         ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new StatAxisValueFormat4
         {
             Format = 4,
             Flags = header.Flags,
             ValueNameID = header.ValueNameID,
-            AxisValues = cursor.ReadBigEndianStructArray<StatAxisValueRecord>(header.AxisCount),
+            AxisValues = cursor.ReadEndianReversibleStructArray<StatAxisValueRecord>(header.AxisCount),
         };
     }
 

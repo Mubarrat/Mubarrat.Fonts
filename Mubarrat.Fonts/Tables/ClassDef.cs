@@ -92,7 +92,7 @@ public abstract record ClassDef : IRecord<ClassDef>, IBaseRecord<ClassDef>
         /// <returns>A new range with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#class-definition-table">OpenType specification: Class Definition table</seealso>
         public static ClassRange ReverseEndianness(ClassRange v) => new()
         {
@@ -209,5 +209,5 @@ public sealed record ClassDefFormat2 : ClassDef, IDerivedRecord<ClassDef, ClassD
     /// <seealso cref="ClassRangeRecords"/>
     /// <seealso cref="ClassRange"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#class-definition-table">OpenType specification: Class Definition table</seealso>
-    static ClassDefFormat2 IDerivedRecord<ClassDef, ClassDefFormat2>.Parse(ref Cursor cursor, object? context) => new() { ClassRangeRecords = cursor.ReadBigEndianStructArray<ClassRange>(cursor.ReadUInt16()) };
+    static ClassDefFormat2 IDerivedRecord<ClassDef, ClassDefFormat2>.Parse(ref Cursor cursor, object? context) => new() { ClassRangeRecords = cursor.ReadEndianReversibleStructArray<ClassRange>(cursor.ReadUInt16()) };
 }

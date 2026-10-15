@@ -10,7 +10,7 @@ namespace Mubarrat.Fonts.Primitives;
 /// <remarks>
 /// <list type="bullet">
 /// <item><description>The wire format is a signed 16-bit big-endian integer whose value is <c>raw / 16384.0</c>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">F2DOT14 data type</see> in the OpenType specification.</description></item>
-/// <item><description>The struct is <c>Pack = 1</c> and blittable; its in-memory layout matches the on-disk layout on both little- and big-endian hosts, so it can be read directly via <see cref="Source.ReadEndianReversibleStructAt{T}(long)"/>.</description></item>
+/// <item><description>The struct is <c>Pack = 1</c> and blittable; its in-memory layout matches the on-disk layout on both little- and big-endian hosts, so it can be read directly via <see cref="Source.ReadEndianReversibleStructAt{T}"/>.</description></item>
 /// <item><description>Endianness conversion is provided by <see cref="ReverseEndianness(F2Dot14)"/> as required by <see cref="IEndianReversibleStruct{T}"/>.</description></item>
 /// <item><description>Conversions to <see cref="double"/> and <see cref="float"/> are implicit; conversions from floating-point types are explicit because they clamp rather than wrap.</description></item>
 /// </list>
@@ -20,7 +20,7 @@ namespace Mubarrat.Fonts.Primitives;
 /// <seealso cref="Int24"/>
 /// <seealso cref="Tag"/>
 /// <seealso cref="IEndianReversibleStruct{T}"/>
-/// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
+/// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
 /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: F2DOT14</seealso>
 /// <seealso href="https://learn.microsoft.com/en-us/dotnet/api/system.numerics">.NET API: <c>System.Numerics</c></seealso>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -164,14 +164,14 @@ public readonly struct F2Dot14 :
     /// <returns>A <see cref="F2Dot14"/> whose bytes are the reverse of <paramref name="value"/>'s.</returns>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The operation is unconditional. The host-endianness check is applied by the reader (<see cref="Source.ReadEndianReversibleStructAt{T}(long)"/>, <see cref="Cursor.ReadBigEndianStruct{T}"/>), not by this method.</description></item>
+    /// <item><description>The operation is unconditional. The host-endianness check is applied by the reader (<see cref="Source.ReadEndianReversibleStructAt{T}"/>, <see cref="Cursor.ReadEndianReversibleStruct{T}"/>), not by this method.</description></item>
     /// <item><description>Symmetric: <c>ReverseEndianness(ReverseEndianness(x)) == x</c> for every <c>x</c>.</description></item>
     /// <item><description>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">F2DOT14 data type</see> in the OpenType specification.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: F2DOT14</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F2Dot14 ReverseEndianness(F2Dot14 value) =>

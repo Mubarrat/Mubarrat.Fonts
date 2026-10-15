@@ -173,7 +173,7 @@ public sealed record GdefTable : IFontTable<GdefTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All six fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static HeaderV0 ReverseEndianness(HeaderV0 v) => new()
         {
             Major = BinaryPrimitives.ReverseEndianness(v.Major),
@@ -202,7 +202,7 @@ public sealed record GdefTable : IFontTable<GdefTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gdef">OpenType specification: GDEF table</seealso>
     static GdefTable IRecord<GdefTable>.Parse(ref Cursor cursor, object? context)
     {
-        HeaderV0 header = cursor.ReadBigEndianStruct<HeaderV0>();
+        HeaderV0 header = cursor.ReadEndianReversibleStruct<HeaderV0>();
         if (header.Major != 1)
             throw new InvalidDataException($"'GDEF'.majorVersion is {header.Major}, expected 1.");
 
@@ -318,7 +318,7 @@ public sealed record AttachList : IRecord<AttachList>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gdef#attachment-point-list-table">OpenType specification: Attachment Point List table</seealso>
     static AttachList IRecord<AttachList>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new AttachList
         {
             Coverage = cursor.Source.ParseRecordAt<Coverage>(header.CoverageOffset),
@@ -356,7 +356,7 @@ public sealed record AttachList : IRecord<AttachList>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             CoverageOffset = BinaryPrimitives.ReverseEndianness(v.CoverageOffset),
@@ -453,7 +453,7 @@ public sealed record LigCaretList : IRecord<LigCaretList>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gdef#ligature-caret-list-table">OpenType specification: Ligature Caret List table</seealso>
     static LigCaretList IRecord<LigCaretList>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new LigCaretList
         {
             Coverage = cursor.Source.ParseRecordAt<Coverage>(header.CoverageOffset),
@@ -491,7 +491,7 @@ public sealed record LigCaretList : IRecord<LigCaretList>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             CoverageOffset = BinaryPrimitives.ReverseEndianness(v.CoverageOffset),
@@ -640,7 +640,7 @@ public sealed record CaretValueFormat1 : CaretValue, IEndianReversibleHeaderDeri
         /// <returns>A new header with the coordinate reversed.</returns>
         /// <remarks>The header contains a single multi-byte field.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Coordinate = BinaryPrimitives.ReverseEndianness(v.Coordinate),
@@ -701,7 +701,7 @@ public sealed record CaretValueFormat2 : CaretValue, IEndianReversibleHeaderDeri
         /// <returns>A new header with the point index reversed.</returns>
         /// <remarks>The header contains a single multi-byte field.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             CaretValuePointIndex = BinaryPrimitives.ReverseEndianness(v.CaretValuePointIndex),
@@ -749,7 +749,7 @@ public sealed record CaretValueFormat3 : CaretValue, IDerivedRecord<CaretValue, 
     static CaretValueFormat3 IDerivedRecord<CaretValue, CaretValueFormat3>.Parse(ref Cursor cursor, object? context)
     {
         // The format word was consumed by CaretValue.Parse.
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new CaretValueFormat3
         {
             Format = 3,
@@ -788,7 +788,7 @@ public sealed record CaretValueFormat3 : CaretValue, IDerivedRecord<CaretValue, 
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Coordinate = BinaryPrimitives.ReverseEndianness(v.Coordinate),
@@ -844,7 +844,7 @@ public sealed record MarkGlyphSets : IRecord<MarkGlyphSets>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gdef#mark-glyph-sets-table">OpenType specification: Mark Glyph Sets table</seealso>
     static MarkGlyphSets IRecord<MarkGlyphSets>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"'GDEF'.MarkGlyphSets.format is {header.Format}, expected 1.");
 
@@ -883,7 +883,7 @@ public sealed record MarkGlyphSets : IRecord<MarkGlyphSets>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),

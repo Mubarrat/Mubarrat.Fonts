@@ -90,7 +90,7 @@ public sealed record EbdtTable : IFontTable<EbdtTable>
         /// <returns>A new header with both version fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c>; there are no byte-only or nested structures to copy through.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebdt">OpenType specification: EBDT header</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -124,7 +124,7 @@ public sealed record EbdtTable : IFontTable<EbdtTable>
             throw new InvalidOperationException(
                 $"{nameof(EbdtTable)}.Parse requires a {nameof(FontFace)} context.");
 
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.MajorVersion != 2 || header.MinorVersion != 0)
             throw new InvalidDataException(
                 $"'EBDT' version is {header.MajorVersion}.{header.MinorVersion}, expected 2.0.");
@@ -163,7 +163,7 @@ public sealed record EbdtTable : IFontTable<EbdtTable>
 /// <remarks>
 /// <list type="bullet">
 /// <item><description>Used by the composite bitmap image formats: <c>EBDT</c> formats 8 and 9, and <c>CBDT</c> formats 18 and 19. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebdt#ebdtsubtable-formats">EBDT subtable formats</see> in the OpenType specification.</description></item>
-/// <item><description>Blittable, size 4, no padding. The struct can be read directly via <see cref="Cursor.ReadBigEndianStruct{T}"/> or <see cref="Source.ReadEndianReversibleStructAt{T}(long)"/>.</description></item>
+/// <item><description>Blittable, size 4, no padding. The struct can be read directly via <see cref="Cursor.ReadEndianReversibleStruct{T}"/> or <see cref="Source.ReadEndianReversibleStructAt{T}"/>.</description></item>
 /// <item><description>Each reference identifies a component glyph plus a signed placement offset. Components are drawn in array order, so later components overlap earlier ones.</description></item>
 /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
 /// </list>
@@ -171,7 +171,7 @@ public sealed record EbdtTable : IFontTable<EbdtTable>
 /// <example>
 /// <code>
 /// // A composite glyph is an array of component references:
-/// EbdtComponent[] components = cursor.ReadBigEndianStructArray&lt;EbdtComponent&gt;(componentCount);
+/// EbdtComponent[] components = cursor.ReadEndianReversibleStructArray&lt;EbdtComponent&gt;(componentCount);
 /// foreach (var c in components)
 ///     Draw(c.GlyphId, x + c.XOffset, y + c.YOffset);
 /// </code>
@@ -212,8 +212,8 @@ public record struct EbdtComponent : IEndianReversibleStruct<EbdtComponent>
     /// <returns>A new reference with <see cref="GlyphId"/> reversed and the two byte-width offsets copied through.</returns>
     /// <remarks>The two offset fields are <c>int8</c> and do not participate in the reversal; only <see cref="GlyphId"/> is <c>uint16</c>.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
-    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
+    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebdt#ebdtsubtable-formats">OpenType specification: EBDT subtable formats</seealso>
     public static EbdtComponent ReverseEndianness(EbdtComponent value) => new()
     {

@@ -112,7 +112,7 @@ public record struct Var<T> : IEndianReversibleStruct<Var<T>> where T : unmanage
     /// <returns>A new wrapper with the wrapped value and the variation index base reversed.</returns>
     /// <remarks>The wrapped value is reversed through its own <see cref="IEndianReversibleStruct{T}.ReverseEndianness(T)"/> implementation.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     public static Var<T> ReverseEndianness(Var<T> v) => new()
     {
         Value = T.ReverseEndianness(v.Value),
@@ -179,7 +179,7 @@ public record struct Affine2x3 : IEndianReversibleStruct<Affine2x3>
     /// <returns>A new matrix with each <see cref="Fixed"/> element reversed.</returns>
     /// <remarks>All six fields are <see cref="Fixed"/> values and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     public static Affine2x3 ReverseEndianness(Affine2x3 v) => new()
     {
         Xx = Fixed.ReverseEndianness(v.Xx),
@@ -232,7 +232,7 @@ public record struct ColorStop : IEndianReversibleStruct<ColorStop>
     /// <returns>A new stop with each multi-byte field reversed.</returns>
     /// <remarks>Both <see cref="F2Dot14"/> fields and the <c>uint16</c> palette index are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     public static ColorStop ReverseEndianness(ColorStop v) => new()
     {
         StopOffset = F2Dot14.ReverseEndianness(v.StopOffset),
@@ -399,11 +399,11 @@ public sealed record ColorLine : IRecord<ColorLine>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>ColorLine</c></seealso>
     static ColorLine IRecord<ColorLine>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new ColorLine
         {
             Extend = header.Extend,
-            Stops = cursor.ReadBigEndianStructArray<ColorStop>(header.NumStops),
+            Stops = cursor.ReadEndianReversibleStructArray<ColorStop>(header.NumStops),
         };
     }
 
@@ -438,7 +438,7 @@ public sealed record ColorLine : IRecord<ColorLine>
         /// <returns>A new header with <c>NumStops</c> reversed and the byte-width extend copied through.</returns>
         /// <remarks>The <c>Extend</c> field is a single byte and does not participate in the reversal.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             Extend = value.Extend,
@@ -490,11 +490,11 @@ public sealed record VarColorLine : IRecord<VarColorLine>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>VarColorLine</c></seealso>
     static VarColorLine IRecord<VarColorLine>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<ColorLine.Header>();
+        var header = cursor.ReadEndianReversibleStruct<ColorLine.Header>();
         return new VarColorLine
         {
             Extend = header.Extend,
-            VarStops = cursor.ReadBigEndianStructArray<Var<ColorStop>>(header.NumStops),
+            VarStops = cursor.ReadEndianReversibleStructArray<Var<ColorStop>>(header.NumStops),
         };
     }
 }
@@ -576,7 +576,7 @@ public sealed record PaintColrLayers : Paint, IEndianReversibleHeaderDerivedReco
         /// <returns>A new header with <c>FirstLayerIndex</c> reversed and the byte-width layer count copied through.</returns>
         /// <remarks>The <c>NumLayers</c> field is a single byte and does not participate in the reversal.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             NumLayers = value.NumLayers,
@@ -656,7 +656,7 @@ public sealed record PaintSolid : Paint, IEndianReversibleHeaderDerivedRecord<Pa
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>Both fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaletteIndex = BinaryPrimitives.ReverseEndianness(value.PaletteIndex),
@@ -787,7 +787,7 @@ public sealed record PaintLinearGradient : Paint, IDerivedRecord<Paint, PaintLin
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintLinearGradient</c></seealso>
     static PaintLinearGradient IDerivedRecord<Paint, PaintLinearGradient>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintLinearGradient
         {
             Format = 4,
@@ -876,7 +876,7 @@ public sealed record PaintLinearGradient : Paint, IDerivedRecord<Paint, PaintLin
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The <c>ColorLineOffset</c> field uses <see cref="UInt24.ReverseEndianness(UInt24)"/>; the coordinate fields are reversed through <see cref="BinaryPrimitives.ReverseEndianness(short)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             ColorLineOffset = UInt24.ReverseEndianness(value.ColorLineOffset),
@@ -969,7 +969,7 @@ public sealed record PaintVarLinearGradient : Paint, IDerivedRecord<Paint, Paint
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarLinearGradient</c></seealso>
     static PaintVarLinearGradient IDerivedRecord<Paint, PaintVarLinearGradient>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintLinearGradient.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintLinearGradient.Header>>();
         return new PaintVarLinearGradient
         {
             Format = 5,
@@ -1053,7 +1053,7 @@ public sealed record PaintRadialGradient : Paint, IDerivedRecord<Paint, PaintRad
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintRadialGradient</c></seealso>
     static PaintRadialGradient IDerivedRecord<Paint, PaintRadialGradient>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintRadialGradient
         {
             Format = 6,
@@ -1144,7 +1144,7 @@ public sealed record PaintRadialGradient : Paint, IDerivedRecord<Paint, PaintRad
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The <c>ColorLineOffset</c> field uses <see cref="UInt24.ReverseEndianness(UInt24)"/>; the coordinate and radius fields are reversed through the corresponding <see cref="BinaryPrimitives"/> overloads.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             ColorLineOffset = UInt24.ReverseEndianness(value.ColorLineOffset),
@@ -1235,7 +1235,7 @@ public sealed record PaintVarRadialGradient : Paint, IDerivedRecord<Paint, Paint
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarRadialGradient</c></seealso>
     static PaintVarRadialGradient IDerivedRecord<Paint, PaintVarRadialGradient>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintRadialGradient.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintRadialGradient.Header>>();
         return new PaintVarRadialGradient
         {
             Format = 7,
@@ -1305,7 +1305,7 @@ public sealed record PaintSweepGradient : Paint, IDerivedRecord<Paint, PaintSwee
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintSweepGradient</c></seealso>
     static PaintSweepGradient IDerivedRecord<Paint, PaintSweepGradient>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintSweepGradient
         {
             Format = 8,
@@ -1372,7 +1372,7 @@ public sealed record PaintSweepGradient : Paint, IDerivedRecord<Paint, PaintSwee
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The <c>ColorLineOffset</c> field uses <see cref="UInt24.ReverseEndianness(UInt24)"/>; the angle fields are reversed through <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             ColorLineOffset = UInt24.ReverseEndianness(value.ColorLineOffset),
@@ -1449,7 +1449,7 @@ public sealed record PaintVarSweepGradient : Paint, IDerivedRecord<Paint, PaintV
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarSweepGradient</c></seealso>
     static PaintVarSweepGradient IDerivedRecord<Paint, PaintVarSweepGradient>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintSweepGradient.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintSweepGradient.Header>>();
         return new PaintVarSweepGradient
         {
             Format = 9,
@@ -1502,7 +1502,7 @@ public sealed record PaintGlyph : Paint, IDerivedRecord<Paint, PaintGlyph>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintGlyph</c></seealso>
     static PaintGlyph IDerivedRecord<Paint, PaintGlyph>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintGlyph
         {
             Format = 10,
@@ -1546,7 +1546,7 @@ public sealed record PaintGlyph : Paint, IDerivedRecord<Paint, PaintGlyph>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The <c>PaintOffset</c> field uses <see cref="UInt24.ReverseEndianness(UInt24)"/>; the glyph ID is reversed through <see cref="BinaryPrimitives.ReverseEndianness(ushort)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -1614,7 +1614,7 @@ public sealed record PaintColrGlyph : Paint, IEndianReversibleHeaderDerivedRecor
         /// <returns>A new header with the glyph ID reversed.</returns>
         /// <remarks>The header contains a single multi-byte field.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             GlyphId = BinaryPrimitives.ReverseEndianness(value.GlyphId),
@@ -1662,7 +1662,7 @@ public sealed record PaintTransform : Paint, IDerivedRecord<Paint, PaintTransfor
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintTransform</c></seealso>
     static PaintTransform IDerivedRecord<Paint, PaintTransform>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintTransform
         {
             Format = 12,
@@ -1707,7 +1707,7 @@ public sealed record PaintTransform : Paint, IDerivedRecord<Paint, PaintTransfor
         /// <returns>A new header with both offsets reversed.</returns>
         /// <remarks>Both fields are <see cref="UInt24"/> values and use <see cref="UInt24.ReverseEndianness(UInt24)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -1763,7 +1763,7 @@ public sealed record PaintVarTransform : Paint, IDerivedRecord<Paint, PaintVarTr
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarTransform</c></seealso>
     static PaintVarTransform IDerivedRecord<Paint, PaintVarTransform>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<PaintTransform.Header>();
+        var header = cursor.ReadEndianReversibleStruct<PaintTransform.Header>();
         return new PaintVarTransform
         {
             Format = 13,
@@ -1817,7 +1817,7 @@ public sealed record PaintTranslate : Paint, IDerivedRecord<Paint, PaintTranslat
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintTranslate</c></seealso>
     static PaintTranslate IDerivedRecord<Paint, PaintTranslate>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintTranslate
         {
             Format = 14,
@@ -1867,7 +1867,7 @@ public sealed record PaintTranslate : Paint, IDerivedRecord<Paint, PaintTranslat
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The <c>PaintOffset</c> field uses <see cref="UInt24.ReverseEndianness(UInt24)"/>; the coordinate fields are reversed through <see cref="BinaryPrimitives.ReverseEndianness(short)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -1931,7 +1931,7 @@ public sealed record PaintVarTranslate : Paint, IDerivedRecord<Paint, PaintVarTr
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarTranslate</c></seealso>
     static PaintVarTranslate IDerivedRecord<Paint, PaintVarTranslate>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintTranslate.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintTranslate.Header>>();
         return new PaintVarTranslate
         {
             Format = 15,
@@ -1990,7 +1990,7 @@ public sealed record PaintScale : Paint, IDerivedRecord<Paint, PaintScale>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintScale</c></seealso>
     static PaintScale IDerivedRecord<Paint, PaintScale>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintScale
         {
             Format = 16,
@@ -2042,7 +2042,7 @@ public sealed record PaintScale : Paint, IDerivedRecord<Paint, PaintScale>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The <c>PaintOffset</c> field uses <see cref="UInt24.ReverseEndianness(UInt24)"/>; the scale fields use <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -2106,7 +2106,7 @@ public sealed record PaintVarScale : Paint, IDerivedRecord<Paint, PaintVarScale>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarScale</c></seealso>
     static PaintVarScale IDerivedRecord<Paint, PaintVarScale>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintScale.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintScale.Header>>();
         return new PaintVarScale
         {
             Format = 17,
@@ -2175,7 +2175,7 @@ public sealed record PaintScaleAroundCenter : Paint, IDerivedRecord<Paint, Paint
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintScaleAroundCenter</c></seealso>
     static PaintScaleAroundCenter IDerivedRecord<Paint, PaintScaleAroundCenter>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintScaleAroundCenter
         {
             Format = 18,
@@ -2243,7 +2243,7 @@ public sealed record PaintScaleAroundCenter : Paint, IDerivedRecord<Paint, Paint
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>Uses <see cref="UInt24.ReverseEndianness(UInt24)"/>, <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>, and <see cref="BinaryPrimitives.ReverseEndianness(short)"/> for the three field types.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -2319,7 +2319,7 @@ public sealed record PaintVarScaleAroundCenter : Paint, IDerivedRecord<Paint, Pa
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarScaleAroundCenter</c></seealso>
     static PaintVarScaleAroundCenter IDerivedRecord<Paint, PaintVarScaleAroundCenter>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintScaleAroundCenter.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintScaleAroundCenter.Header>>();
         return new PaintVarScaleAroundCenter
         {
             Format = 19,
@@ -2372,7 +2372,7 @@ public sealed record PaintScaleUniform : Paint, IDerivedRecord<Paint, PaintScale
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintScaleUniform</c></seealso>
     static PaintScaleUniform IDerivedRecord<Paint, PaintScaleUniform>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintScaleUniform
         {
             Format = 20,
@@ -2415,7 +2415,7 @@ public sealed record PaintScaleUniform : Paint, IDerivedRecord<Paint, PaintScale
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Uses <see cref="UInt24.ReverseEndianness(UInt24)"/> and <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -2468,7 +2468,7 @@ public sealed record PaintVarScaleUniform : Paint, IDerivedRecord<Paint, PaintVa
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarScaleUniform</c></seealso>
     static PaintVarScaleUniform IDerivedRecord<Paint, PaintVarScaleUniform>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintScaleUniform.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintScaleUniform.Header>>();
         return new PaintVarScaleUniform
         {
             Format = 21,
@@ -2530,7 +2530,7 @@ public sealed record PaintScaleUniformAroundCenter : Paint, IDerivedRecord<Paint
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintScaleUniformAroundCenter</c></seealso>
     static PaintScaleUniformAroundCenter IDerivedRecord<Paint, PaintScaleUniformAroundCenter>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintScaleUniformAroundCenter
         {
             Format = 22,
@@ -2589,7 +2589,7 @@ public sealed record PaintScaleUniformAroundCenter : Paint, IDerivedRecord<Paint
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>Uses <see cref="UInt24.ReverseEndianness(UInt24)"/>, <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>, and <see cref="BinaryPrimitives.ReverseEndianness(short)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -2658,7 +2658,7 @@ public sealed record PaintVarScaleUniformAroundCenter : Paint, IDerivedRecord<Pa
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarScaleUniformAroundCenter</c></seealso>
     static PaintVarScaleUniformAroundCenter IDerivedRecord<Paint, PaintVarScaleUniformAroundCenter>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintScaleUniformAroundCenter.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintScaleUniformAroundCenter.Header>>();
         return new PaintVarScaleUniformAroundCenter
         {
             Format = 23,
@@ -2709,7 +2709,7 @@ public sealed record PaintRotate : Paint, IDerivedRecord<Paint, PaintRotate>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintRotate</c></seealso>
     static PaintRotate IDerivedRecord<Paint, PaintRotate>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintRotate
         {
             Format = 24,
@@ -2752,7 +2752,7 @@ public sealed record PaintRotate : Paint, IDerivedRecord<Paint, PaintRotate>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Uses <see cref="UInt24.ReverseEndianness(UInt24)"/> and <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -2805,7 +2805,7 @@ public sealed record PaintVarRotate : Paint, IDerivedRecord<Paint, PaintVarRotat
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarRotate</c></seealso>
     static PaintVarRotate IDerivedRecord<Paint, PaintVarRotate>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintRotate.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintRotate.Header>>();
         return new PaintVarRotate
         {
             Format = 25,
@@ -2867,7 +2867,7 @@ public sealed record PaintRotateAroundCenter : Paint, IDerivedRecord<Paint, Pain
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintRotateAroundCenter</c></seealso>
     static PaintRotateAroundCenter IDerivedRecord<Paint, PaintRotateAroundCenter>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintRotateAroundCenter
         {
             Format = 26,
@@ -2926,7 +2926,7 @@ public sealed record PaintRotateAroundCenter : Paint, IDerivedRecord<Paint, Pain
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>Uses <see cref="UInt24.ReverseEndianness(UInt24)"/>, <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>, and <see cref="BinaryPrimitives.ReverseEndianness(short)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -2994,7 +2994,7 @@ public sealed record PaintVarRotateAroundCenter : Paint, IDerivedRecord<Paint, P
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarRotateAroundCenter</c></seealso>
     static PaintVarRotateAroundCenter IDerivedRecord<Paint, PaintVarRotateAroundCenter>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintRotateAroundCenter.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintRotateAroundCenter.Header>>();
         return new PaintVarRotateAroundCenter
         {
             Format = 27,
@@ -3053,7 +3053,7 @@ public sealed record PaintSkew : Paint, IDerivedRecord<Paint, PaintSkew>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintSkew</c></seealso>
     static PaintSkew IDerivedRecord<Paint, PaintSkew>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintSkew
         {
             Format = 28,
@@ -3105,7 +3105,7 @@ public sealed record PaintSkew : Paint, IDerivedRecord<Paint, PaintSkew>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>Uses <see cref="UInt24.ReverseEndianness(UInt24)"/> and <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -3166,7 +3166,7 @@ public sealed record PaintVarSkew : Paint, IDerivedRecord<Paint, PaintVarSkew>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarSkew</c></seealso>
     static PaintVarSkew IDerivedRecord<Paint, PaintVarSkew>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintSkew.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintSkew.Header>>();
         return new PaintVarSkew
         {
             Format = 29,
@@ -3235,7 +3235,7 @@ public sealed record PaintSkewAroundCenter : Paint, IDerivedRecord<Paint, PaintS
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintSkewAroundCenter</c></seealso>
     static PaintSkewAroundCenter IDerivedRecord<Paint, PaintSkewAroundCenter>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintSkewAroundCenter
         {
             Format = 30,
@@ -3303,7 +3303,7 @@ public sealed record PaintSkewAroundCenter : Paint, IDerivedRecord<Paint, PaintS
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>Uses <see cref="UInt24.ReverseEndianness(UInt24)"/>, <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>, and <see cref="BinaryPrimitives.ReverseEndianness(short)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             PaintOffset = UInt24.ReverseEndianness(value.PaintOffset),
@@ -3378,7 +3378,7 @@ public sealed record PaintVarSkewAroundCenter : Paint, IDerivedRecord<Paint, Pai
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintVarSkewAroundCenter</c></seealso>
     static PaintVarSkewAroundCenter IDerivedRecord<Paint, PaintVarSkewAroundCenter>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Var<PaintSkewAroundCenter.Header>>();
+        var header = cursor.ReadEndianReversibleStruct<Var<PaintSkewAroundCenter.Header>>();
         return new PaintVarSkewAroundCenter
         {
             Format = 31,
@@ -3439,7 +3439,7 @@ public sealed record PaintComposite : Paint, IDerivedRecord<Paint, PaintComposit
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/colr">OpenType specification: <c>PaintComposite</c></seealso>
     static PaintComposite IDerivedRecord<Paint, PaintComposite>.Parse(ref Cursor cursor, object? context)
     {
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new PaintComposite
         {
             Format = 32,
@@ -3495,7 +3495,7 @@ public sealed record PaintComposite : Paint, IDerivedRecord<Paint, PaintComposit
         /// <returns>A new header with the two offsets reversed and the byte-width composite mode copied through.</returns>
         /// <remarks>The <c>CompositeMode</c> field is a single byte and does not participate in the reversal.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             SourceOffset = UInt24.ReverseEndianness(value.SourceOffset),

@@ -254,7 +254,7 @@ public sealed record Os2Table : IFontTable<Os2Table>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/os2">OpenType specification: <c>OS/2</c> table</seealso>
     static Os2Table IRecord<Os2Table>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version > 5)
             throw new InvalidDataException($"'OS/2'.version is {header.Version}, expected 0 through 5.");
@@ -263,17 +263,17 @@ public sealed record Os2Table : IFontTable<Os2Table>
         // version 0 tables that truncate after usWinDescent but still claim a higher version.
         Header1? h1 = null;
         if (header.Version >= 1)
-            h1 = cursor.ReadBigEndianStruct<Header1>();
+            h1 = cursor.ReadEndianReversibleStruct<Header1>();
 
         // Version 2+ appends vertical metrics and the maximum layout context length.
         Header2? h2 = null;
         if (header.Version >= 2)
-            h2 = cursor.ReadBigEndianStruct<Header2>();
+            h2 = cursor.ReadEndianReversibleStruct<Header2>();
 
         // Version 5 appends optical size bounds.
         Header5? h5 = null;
         if (header.Version >= 5)
-            h5 = cursor.ReadBigEndianStruct<Header5>();
+            h5 = cursor.ReadEndianReversibleStruct<Header5>();
 
         return new Os2Table
         {

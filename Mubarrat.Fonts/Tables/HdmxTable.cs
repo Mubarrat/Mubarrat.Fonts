@@ -118,7 +118,7 @@ public sealed record HdmxTable : IFontTable<HdmxTable>
         MaxpTable maxpTable = face.GetTable<MaxpTable>();
         int numGlyphs = maxpTable.NumGlyphs;
 
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != 0)
             throw new InvalidDataException($"'hdmx'.version is {header.Version}, expected 0.");
@@ -176,7 +176,7 @@ public sealed record HdmxTable : IFontTable<HdmxTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             Version = BinaryPrimitives.ReverseEndianness(value.Version),

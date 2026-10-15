@@ -47,7 +47,7 @@ public record struct Cff2Header : IEndianReversibleStruct<Cff2Header>
     /// <returns>A new header with <see cref="TopDictSize"/> reversed and the three byte fields copied through.</returns>
     /// <remarks>The three version and size fields are single bytes and do not participate in the reversal.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     public static Cff2Header ReverseEndianness(Cff2Header v) => new()
     {
         MajorVersion = v.MajorVersion,
@@ -1420,7 +1420,7 @@ public sealed record Cff2Table : IFontTable<Cff2Table>
     {
         Source source = cursor.Source;
 
-        Cff2Header header = cursor.ReadBigEndianStruct<Cff2Header>();
+        Cff2Header header = cursor.ReadEndianReversibleStruct<Cff2Header>();
         if (header.MajorVersion != 2)
             throw new InvalidDataException($"'CFF2'.majorVersion is {header.MajorVersion}, expected 2.");
         if (header.MinorVersion != 0)

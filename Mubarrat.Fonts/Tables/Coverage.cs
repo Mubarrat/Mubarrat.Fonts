@@ -103,7 +103,7 @@ public abstract record Coverage : IRecord<Coverage>, IBaseRecord<Coverage>
         /// <returns>A new range with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#coverage-format-2">OpenType specification: Coverage Format 2</seealso>
         public static RangeRecord ReverseEndianness(RangeRecord v) => new()
         {
@@ -239,5 +239,5 @@ public sealed record CoverageFormat2 : Coverage, IDerivedRecord<Coverage, Covera
     /// <seealso cref="RangeRecords"/>
     /// <seealso cref="RangeRecord"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#coverage-format-2">OpenType specification: Coverage Format 2</seealso>
-    static CoverageFormat2 IDerivedRecord<Coverage, CoverageFormat2>.Parse(ref Cursor cursor, object? context) => new() { RangeRecords = cursor.ReadBigEndianStructArray<RangeRecord>(cursor.ReadUInt16()) };
+    static CoverageFormat2 IDerivedRecord<Coverage, CoverageFormat2>.Parse(ref Cursor cursor, object? context) => new() { RangeRecords = cursor.ReadEndianReversibleStructArray<RangeRecord>(cursor.ReadUInt16()) };
 }

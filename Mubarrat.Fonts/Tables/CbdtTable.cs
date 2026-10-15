@@ -89,7 +89,7 @@ public sealed record CbdtTable : IFontTable<CbdtTable>
         /// <returns>A new header with both version fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c>; there are no byte-only or nested structures to copy through.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/cbdt">OpenType specification: CBDT header</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -123,7 +123,7 @@ public sealed record CbdtTable : IFontTable<CbdtTable>
             throw new InvalidOperationException(
                 $"{nameof(CbdtTable)}.Parse requires a {nameof(FontFace)} context.");
 
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.MajorVersion != 3 || header.MinorVersion != 0)
             throw new InvalidDataException(
                 $"'CBDT' version is {header.MajorVersion}.{header.MinorVersion}, expected 3.0.");

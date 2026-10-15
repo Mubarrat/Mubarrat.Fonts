@@ -111,7 +111,7 @@ public sealed record HmtxTable : IFontTable<HmtxTable>
         // Read the long metrics in one pass. Typical fonts have a few hundred; CJK fonts
         // with per-glyph widths may push into the thousands. The stack path covers the
         // common case.
-        var longs = cursor.ReadBigEndianStructArray<LongHorMetric>(numberOfHMetrics);
+        var longs = cursor.ReadEndianReversibleStructArray<LongHorMetric>(numberOfHMetrics);
 
         // Split into parallel arrays: advance widths indexed by the long-metric range, left
         // side bearings indexed by glyph.

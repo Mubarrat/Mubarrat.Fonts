@@ -47,7 +47,7 @@ public sealed record FeatureList : IRecord<FeatureList>
         int count = cursor.ReadUInt16();
         return new FeatureList
         {
-            Features = cursor.ReadBigEndianHeaderRecordArray<FeatureRecord, TagOffsetRecord>(count, new ParentContext(cursor.Source)),
+            Features = cursor.ReadEndianReversibleHeaderRecordArray<FeatureRecord, TagOffsetRecord>(count, new ParentContext(cursor.Source)),
         };
     }
 }
@@ -337,7 +337,7 @@ public sealed record FeatureParamsSize : FeatureParams, IEndianReversibleHeaderD
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All five fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             DesignSize = BinaryPrimitives.ReverseEndianness(v.DesignSize),
@@ -411,7 +411,7 @@ public sealed record FeatureParamsStylisticSet : FeatureParams, IEndianReversibl
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Version = BinaryPrimitives.ReverseEndianness(v.Version),
@@ -494,7 +494,7 @@ public sealed record FeatureParamsCharacterVariants : FeatureParams, IDerivedRec
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/features_pt#cv">OpenType specification: character variant feature</seealso>
     static FeatureParamsCharacterVariants IDerivedRecord<FeatureParams, FeatureParamsCharacterVariants>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         UInt24[] raw = cursor.ReadUInt24Array(header.CharCount);
 
         var characters = new int[raw.Length];
@@ -567,7 +567,7 @@ public sealed record FeatureParamsCharacterVariants : FeatureParams, IDerivedRec
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All seven fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),

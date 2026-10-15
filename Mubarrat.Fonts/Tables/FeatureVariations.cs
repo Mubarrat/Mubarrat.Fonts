@@ -74,7 +74,7 @@ public sealed record FeatureVariations : IRecord<FeatureVariations>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             MajorVersion = BinaryPrimitives.ReverseEndianness(v.MajorVersion),
@@ -114,7 +114,7 @@ public sealed record FeatureVariations : IRecord<FeatureVariations>
         /// <returns>A new record header with both offsets reversed.</returns>
         /// <remarks>Both fields are <c>uint32</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static RecordHeader ReverseEndianness(RecordHeader v) => new()
         {
             ConditionSetOffset = BinaryPrimitives.ReverseEndianness(v.ConditionSetOffset),
@@ -139,7 +139,7 @@ public sealed record FeatureVariations : IRecord<FeatureVariations>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otvarcommonformats#feature-variations">OpenType specification: Feature Variations</seealso>
     static FeatureVariations IRecord<FeatureVariations>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.MajorVersion != 1)
             throw new InvalidDataException(
                 $"FeatureVariations majorVersion is {header.MajorVersion}, expected 1.");
@@ -154,7 +154,7 @@ public sealed record FeatureVariations : IRecord<FeatureVariations>
         {
             MajorVersion = header.MajorVersion,
             MinorVersion = header.MinorVersion,
-            Records = count == 0 ? [] : cursor.ReadBigEndianStructArray<RecordHeader>(count).ToRecords<FeatureVariationRecord, RecordHeader>(new ParentContext(cursor.Source)),
+            Records = count == 0 ? [] : cursor.ReadEndianReversibleStructArray<RecordHeader>(count).ToRecords<FeatureVariationRecord, RecordHeader>(new ParentContext(cursor.Source)),
         };
     }
 }
@@ -384,7 +384,7 @@ public sealed record ConditionFormat1 : Condition, IEndianReversibleHeaderDerive
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The axis index uses <see cref="BinaryPrimitives.ReverseEndianness(ushort)"/>; the two <see cref="F2Dot14"/> bounds use <see cref="F2Dot14.ReverseEndianness(F2Dot14)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             AxisIndex = BinaryPrimitives.ReverseEndianness(v.AxisIndex),
@@ -462,7 +462,7 @@ public sealed record FeatureTableSubstitution : IRecord<FeatureTableSubstitution
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             MajorVersion = BinaryPrimitives.ReverseEndianness(v.MajorVersion),
@@ -501,7 +501,7 @@ public sealed record FeatureTableSubstitution : IRecord<FeatureTableSubstitution
         /// <returns>A new record header with both fields reversed.</returns>
         /// <remarks>Both fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static RecordHeader ReverseEndianness(RecordHeader v) => new()
         {
             FeatureIndex = BinaryPrimitives.ReverseEndianness(v.FeatureIndex),
@@ -521,7 +521,7 @@ public sealed record FeatureTableSubstitution : IRecord<FeatureTableSubstitution
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otvarcommonformats#feature-table-substitution">OpenType specification: Feature Table Substitution</seealso>
     static FeatureTableSubstitution IRecord<FeatureTableSubstitution>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.MajorVersion != 1)
             throw new InvalidDataException(
                 $"FeatureTableSubstitution majorVersion is {header.MajorVersion}, expected 1.");
@@ -529,7 +529,7 @@ public sealed record FeatureTableSubstitution : IRecord<FeatureTableSubstitution
         {
             MajorVersion = header.MajorVersion,
             MinorVersion = header.MinorVersion,
-            Records = header.SubstitutionCount == 0 ? [] : cursor.ReadBigEndianStructArray<RecordHeader>(header.SubstitutionCount).ToRecords<FeatureTableSubstitutionEntry, RecordHeader>(new ParentContext(cursor.Source)),
+            Records = header.SubstitutionCount == 0 ? [] : cursor.ReadEndianReversibleStructArray<RecordHeader>(header.SubstitutionCount).ToRecords<FeatureTableSubstitutionEntry, RecordHeader>(new ParentContext(cursor.Source)),
         };
     }
 }

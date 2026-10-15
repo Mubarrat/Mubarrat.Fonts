@@ -1,234 +1,223 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using Mubarrat.Fonts.Binary;
 using Mubarrat.Fonts.Primitives;
 
 namespace Mubarrat.Fonts.Tables;
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-// fdsc — Font Descriptors Table (Apple Advanced Typography)
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
-/// <summary>The <c>fdsc</c> table: the descriptive information an application needs in order to substitute a font family for a run of text while preserving the original style.</summary>
+/// <summary>The <c>fdsc</c> table: the Apple Advanced Typography font descriptors table. Provides the descriptive information an application needs to substitute one font family for another while preserving style.</summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>The table is an Apple Advanced Typography (AAT) table and is not part of OpenType. Apple documents it in the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual, <c>fdsc</c> table</see>.</description></item>
-/// <item><description>The table is a list of <c>&lt;tag, value&gt;</c> pairs, one pair per descriptor, that characterize the font: weight, width, slant, optical size, and whether the font is non-alphabetic. An application can match a run of text from one family to another by comparing the descriptors of the two fonts. The manual advises that all fonts should carry an <c>fdsc</c> table so that applications supporting family conversion work correctly.</description></item>
-/// <item><description>Apple maintains a registry of descriptor tags; a font may also register additional tags with Apple. Unknown tags are preserved in <see cref="Descriptors"/> so that a caller sees exactly what the font declared.</description></item>
-/// <item><description>Descriptors are typed by their tag, not by the on-disk field: <c>wght</c>, <c>wdth</c>, <c>slnt</c>, and <c>opsz</c> hold 16.16 fixed-point values, while <c>nalf</c> holds a plain integer. Read <see cref="FontDescriptor.Value"/> for the fixed-point tags and <see cref="FontDescriptor.RawValue"/> for the integer ones.</description></item>
-/// <item><description>The manual's worked example is a version <c>0x00010000</c> table with two descriptors: <c>wght</c> = <c>+0.8</c> (<c>0x0000CCCC</c>) and <c>wdth</c> = <c>+1.0</c> (<c>0x00010000</c>).</description></item>
+/// <item><description>An application that supports style matching can use the descriptor pairs to select the closest equivalent in a new font family when the user replaces a run of text.</description></item>
+/// <item><description>The table is a version header followed by a variable-length array of <c>&lt;tag, value&gt;</c> pairs. Each pair describes a specific attribute of the font, such as its weight, width, slant, or optical size.</description></item>
+/// <item><description>Additional descriptor tags can be registered with Apple beyond the five the specification currently names. A consumer that reads a tag the specification does not name compares it against <see cref="Descriptors"/> directly.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">font descriptors table</see> in the Apple TrueType Reference Manual.</description></item>
 /// </list>
 /// </remarks>
-/// <example>
-/// <code>
-/// Fixed? weight = fdsc.Weight;                  // the 'wght' descriptor, or null when absent
-/// int? category = fdsc.NonAlphabeticCode;       // 0 for alphabetic, 1..6 for the defined categories
-/// </code>
-/// </example>
-/// <seealso cref="FontDescriptor"/>
-/// <seealso cref="FdscNonAlphabeticCode"/>
+/// <seealso cref="Descriptor"/>
+/// <seealso cref="FdscTag"/>
+/// <seealso cref="NonAlphabeticClass"/>
 /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-public sealed record FdscTable : IFontTable<FdscTable>
+public sealed record FdscTable : IFontTable<FdscTable>, IRecord<FdscTable>
 {
-    /// <summary>Gets the AAT table tag <c>fdsc</c>.</summary>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
+    /// <summary>The version value for the only defined font descriptors table format, 1.0.</summary>
+    /// <value>The <see cref="Fixed"/> value whose raw bits are <c>0x00010000</c>.</value>
+    /// <seealso cref="Version"/>
+    public static readonly Fixed CurrentVersion = new(0x00010000);
+
+    /// <inheritdoc/>
     public static Tag Tag => "fdsc";
 
     /// <summary>Gets the table version.</summary>
-    /// <remarks>The manual defines <c>0x00010000</c> (1.0) as the current version; the parser rejects any other value.</remarks>
-    /// <seealso cref="MajorVersion"/>
-    /// <seealso cref="MinorVersion"/>
+    /// <value>The <see cref="CurrentVersion"/> value for a conforming table.</value>
+    /// <seealso cref="CurrentVersion"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
     public Fixed Version { get; init; }
 
-    /// <summary>Gets the integer part of <see cref="Version"/>, which is 1 for a conforming table.</summary>
-    /// <seealso cref="Version"/>
-    /// <seealso cref="MinorVersion"/>
-    public ushort MajorVersion => (ushort)Version.IntegerPart;
-
-    /// <summary>Gets the fractional part of <see cref="Version"/>, which is 0 for a conforming table.</summary>
-    /// <seealso cref="Version"/>
-    /// <seealso cref="MajorVersion"/>
-    public ushort MinorVersion => Version.FractionPart;
-
-    /// <summary>Gets the style descriptors that characterize the font, in the order the table declares them.</summary>
+    /// <summary>Gets the descriptor pairs, in table order.</summary>
+    /// <value>The array of <see cref="Descriptor"/> entries as stored, in table order. Empty when the table declares no descriptors.</value>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>Each descriptor is a <c>&lt;tag, value&gt;</c> pair. The manual does not forbid a repeated tag and does not require the list to be sorted, so the order on disk is preserved verbatim.</description></item>
-    /// <item><description>An empty list is structurally valid; the manual states that all fonts should carry the table, but not how many descriptors it must hold.</description></item>
+    /// <item><description>The array length is <see cref="DescriptorCount"/>.</description></item>
+    /// <item><description>Duplicate tags are not forbidden by the specification, but a consumer that reads a descriptor by tag will see only the first match in table order.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="Count"/>
-    /// <seealso cref="Find(Tag)"/>
-    /// <seealso cref="FontDescriptor"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-    public IReadOnlyList<FontDescriptor> Descriptors { get; init; } = [];
+    /// <seealso cref="Descriptor"/>
+    /// <seealso cref="DescriptorCount"/>
+    /// <seealso cref="TryGetDescriptor(Tag, out Fixed)"/>
+    public IReadOnlyList<Descriptor> Descriptors { get; init; } = [];
 
-    /// <summary>Gets the number of style descriptors.</summary>
+    /// <summary>Gets the number of descriptor pairs in the table.</summary>
+    /// <value>The length of <see cref="Descriptors"/>.</value>
     /// <seealso cref="Descriptors"/>
-    public int Count => Descriptors.Count;
+    public int DescriptorCount => Descriptors.Count;
 
-    /// <summary>Returns the first descriptor with the specified <paramref name="tag"/>, or <c>null</c> when the font declares none.</summary>
-    /// <param name="tag">The descriptor tag to look up, e.g. <c>"wght"</c>, <c>"wdth"</c>, <c>"slnt"</c>, <c>"opsz"</c>, or <c>"nalf"</c>.</param>
-    /// <returns>The first matching <see cref="FontDescriptor"/>, or <c>null</c> when no descriptor declares the tag.</returns>
-    /// <remarks>The lookup is linear over <see cref="Descriptors"/>. A repeated tag is not forbidden by the manual, so the first match wins.</remarks>
+    /// <summary>Tries to find a descriptor by tag.</summary>
+    /// <param name="tag">The descriptor tag to look up.</param>
+    /// <param name="value">When this method returns <see langword="true"/>, contains the descriptor value; otherwise, zero.</param>
+    /// <returns><see langword="true"/> when a descriptor with the given tag is present; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>The lookup is linear over <see cref="Descriptors"/>. When duplicate tags are present, the first match in table order is returned.</remarks>
     /// <seealso cref="Descriptors"/>
-    /// <seealso cref="FontDescriptor"/>
-    public FontDescriptor? Find(Tag tag)
+    /// <seealso cref="FdscTag"/>
+    public bool TryGetDescriptor(Tag tag, out Fixed value)
     {
         foreach (var descriptor in Descriptors)
-            if (descriptor.Tag == tag) return descriptor;
-        return null;
+        {
+            if (descriptor.Tag == tag)
+            {
+                value = descriptor.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
     }
 
-    /// <summary>Gets the <c>wght</c> descriptor: percent weight relative to regular weight, where 1.0 is regular.</summary>
-    /// <returns>The fixed-point weight, or <c>null</c> when the font declares no <c>wght</c> descriptor.</returns>
-    /// <seealso cref="Find(Tag)"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-    public Fixed? Weight => Find("wght")?.Value;
+    /// <summary>Gets the descriptor value for a tag, or a fallback when the tag is absent.</summary>
+    /// <param name="tag">The descriptor tag to look up.</param>
+    /// <param name="fallback">The value to return when the tag is absent. Defaults to zero.</param>
+    /// <returns>The descriptor value when present; otherwise <paramref name="fallback"/>.</returns>
+    /// <seealso cref="TryGetDescriptor(Tag, out Fixed)"/>
+    /// <seealso cref="FdscTag"/>
+    public Fixed GetDescriptor(Tag tag, Fixed fallback = default) =>
+        TryGetDescriptor(tag, out var value) ? value : fallback;
 
-    /// <summary>Gets the <c>wdth</c> descriptor: percent width relative to regular width, where 1.0 is regular.</summary>
-    /// <returns>The fixed-point width, or <c>null</c> when the font declares no <c>wdth</c> descriptor.</returns>
-    /// <seealso cref="Find(Tag)"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-    public Fixed? Width => Find("wdth")?.Value;
+    /// <summary>Gets the weight descriptor, or <c>1.0</c> when the descriptor is absent.</summary>
+    /// <value>The value of the <c>wght</c> descriptor, expressed as a percentage of regular weight. The Apple documentation defines <c>1.0</c> as regular.</value>
+    /// <seealso cref="FdscTag.Weight"/>
+    /// <seealso cref="FdscTag.RegularWeight"/>
+    /// <seealso cref="GetDescriptor(Tag, Fixed)"/>
+    public Fixed Weight => GetDescriptor(FdscTag.Weight, FdscTag.RegularWeight);
 
-    /// <summary>Gets the <c>slnt</c> descriptor: angle of slant in degrees, where positive is clockwise from straight up.</summary>
-    /// <returns>The fixed-point slant angle in degrees, or <c>null</c> when the font declares no <c>slnt</c> descriptor.</returns>
-    /// <seealso cref="Find(Tag)"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-    public Fixed? Slant => Find("slnt")?.Value;
+    /// <summary>Gets the width descriptor, or <c>1.0</c> when the descriptor is absent.</summary>
+    /// <value>The value of the <c>wdth</c> descriptor, expressed as a percentage of regular width. The Apple documentation defines <c>1.0</c> as regular.</value>
+    /// <seealso cref="FdscTag.Width"/>
+    /// <seealso cref="FdscTag.RegularWidth"/>
+    public Fixed Width => GetDescriptor(FdscTag.Width, FdscTag.RegularWidth);
 
-    /// <summary>Gets the <c>opsz</c> descriptor: the point size the font was designed for.</summary>
-    /// <returns>The fixed-point optical size in points, or <c>null</c> when the font declares no <c>opsz</c> descriptor.</returns>
-    /// <seealso cref="Find(Tag)"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-    public Fixed? OpticalSize => Find("opsz")?.Value;
+    /// <summary>Gets the slant descriptor, or <c>0.0</c> when the descriptor is absent.</summary>
+    /// <value>The value of the <c>slnt</c> descriptor, expressed as an angle in degrees. Positive values are clockwise from straight up.</value>
+    /// <seealso cref="FdscTag.Slant"/>
+    public Fixed Slant => GetDescriptor(FdscTag.Slant);
 
-    /// <summary>Gets the <c>nalf</c> descriptor: the font's non-alphabetic category.</summary>
-    /// <returns>The integer category code, or <c>null</c> when the font declares no <c>nalf</c> descriptor.</returns>
+    /// <summary>Gets the optical size descriptor, or <c>12.0</c> when the descriptor is absent.</summary>
+    /// <value>The value of the <c>opsz</c> descriptor, expressed as a point size. The Apple documentation defines <c>12.0</c> as the default point size.</value>
+    /// <seealso cref="FdscTag.OpticalSize"/>
+    /// <seealso cref="FdscTag.DefaultOpticalSize"/>
+    public Fixed OpticalSize => GetDescriptor(FdscTag.OpticalSize, FdscTag.DefaultOpticalSize);
+
+    /// <summary>Gets the non-alphabetic class, or <see cref="NonAlphabeticClass.Alphabetic"/> when the descriptor is absent.</summary>
+    /// <value>The value of the <c>nalf</c> descriptor, interpreted as a small integer rather than as a <see cref="Fixed"/> value.</value>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The manual states that the <c>nalf</c> value is treated as an integer rather than as a 16.16 <c>Fixed</c>, which is why this accessor reads <see cref="FontDescriptor.RawValue"/> and not <see cref="FontDescriptor.Value"/>.</description></item>
-    /// <item><description>Zero means the font is alphabetic. The codes 1 through 6 are named by <see cref="FdscNonAlphabeticCode"/>; higher values are reserved for registration with Apple, so the accessor is typed as an integer rather than as the enumeration.</description></item>
+    /// <item><description>The Apple documentation states that the <c>nalf</c> value is treated as an integer, not as a fixed-point value. The raw <see cref="Fixed.Bits"/> value is therefore read as the class code, not the scaled <see cref="Fixed.Value"/>.</description></item>
+    /// <item><description>Values 0 through 6 are the codes the specification defines. A font that stores a code above 6 produces an enum value not named by any member; the underlying integer is still readable via a cast.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="Find(Tag)"/>
-    /// <seealso cref="FdscNonAlphabeticCode"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-    public int? NonAlphabeticCode => Find("nalf")?.RawValue;
+    /// <seealso cref="FdscTag.NonAlphabetic"/>
+    /// <seealso cref="NonAlphabeticClass"/>
+    public NonAlphabeticClass NonAlphabetic =>
+        TryGetDescriptor(FdscTag.NonAlphabetic, out var value)
+            ? (NonAlphabeticClass)value.Bits
+            : NonAlphabeticClass.Alphabetic;
 
-    /// <summary>Size, in bytes, of a <see cref="FontDescriptorRecord"/>.</summary>
-    private const int DescriptorSize = 8;
-
-    /// <summary>The eight-byte fixed-layout <c>fdsc</c> table header.</summary>
-    /// <remarks>Fields are stored in big-endian order at the offsets defined by the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html"><c>fdsc</c> table specification</see>. The header is followed immediately by <c>descriptorCount</c> eight-byte <see cref="FontDescriptorRecord"/> entries.</remarks>
+    /// <summary>The 8-byte <c>fdsc</c> table header. Blittable, no padding.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The header is followed by <see cref="DescriptorCount"/> descriptor pairs, each eight bytes.</description></item>
+    /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
+    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">font descriptors table</see> in the Apple TrueType Reference Manual.</description></item>
+    /// </list>
+    /// </remarks>
     /// <seealso cref="FdscTable"/>
-    /// <seealso cref="FontDescriptorRecord"/>
+    /// <seealso cref="Descriptor"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public record struct Header : IEndianReversibleStruct<Header>
     {
-        /// <summary>The table version at byte offset 0. <c>0x00010000</c> for the current version.</summary>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-        public Fixed Version;           // +0
+        /// <summary>The table version at byte offset 0, as a <c>Fixed</c> (16.16) value.</summary>
+        /// <value>The <see cref="CurrentVersion"/> value for a conforming table.</value>
+        public Fixed Version;            // +0
 
-        /// <summary>The number of style descriptors that follow at byte offset 4.</summary>
-        /// <remarks>Each descriptor is an eight-byte <see cref="FontDescriptorRecord"/>.</remarks>
-        /// <seealso cref="FontDescriptorRecord"/>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-        public uint DescriptorCount;    // +4
+        /// <summary>The number of descriptor pairs at byte offset 4.</summary>
+        /// <value>The count of <see cref="Descriptor"/> entries that follow the header.</value>
+        public uint DescriptorCount;     // +4
 
         /// <summary>Reverses the byte order of both fields in a <see cref="Header"/>.</summary>
-        /// <param name="v">The value whose multi-byte fields are to be reversed.</param>
-        /// <returns>A new header with both fields reversed.</returns>
-        /// <remarks>Both fields are 32 bits wide and are reversed independently; the header has no byte-only fields.</remarks>
-        /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
-        public static Header ReverseEndianness(Header v) => new()
+        /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
+        /// <returns>A new header with each field reversed.</returns>
+        public static Header ReverseEndianness(Header value) => new()
         {
-            Version = Fixed.ReverseEndianness(v.Version),
-            DescriptorCount = BinaryPrimitives.ReverseEndianness(v.DescriptorCount),
+            Version = Fixed.ReverseEndianness(value.Version),
+            DescriptorCount = BinaryPrimitives.ReverseEndianness(value.DescriptorCount),
         };
     }
 
-    /// <summary>An eight-byte fixed-layout <c>fdsc</c> descriptor record: one <c>&lt;tag, value&gt;</c> pair.</summary>
+    /// <summary>One descriptor pair: a four-byte tag and its fixed-point value. Blittable, size 8.</summary>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The manual names this structure <c>gxFontDescriptor</c>.</description></item>
-    /// <item><description>The tag names the attribute and the value carries it. The value's type depends on the tag: the fixed-point descriptors store a 16.16 value, while <c>nalf</c> stores a plain integer in the same 32 bits.</description></item>
+    /// <item><description>The tag identifies the descriptor. See <see cref="FdscTag"/> for the tags the specification defines; additional tags may be registered with Apple.</description></item>
+    /// <item><description>The value's interpretation depends on the tag. For <c>wght</c>, <c>wdth</c>, <c>slnt</c>, and <c>opsz</c> it is a fixed-point value; for <c>nalf</c> it is a small integer stored in the raw <see cref="Fixed.Bits"/> field rather than the scaled <see cref="Fixed.Value"/>.</description></item>
+    /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
+    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">font descriptors table</see> in the Apple TrueType Reference Manual.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="FdscTable"/>
-    /// <seealso cref="FontDescriptor"/>
+    /// <seealso cref="FdscTag"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct FontDescriptorRecord : IEndianReversibleStruct<FontDescriptorRecord>
+    public record struct Descriptor : IEndianReversibleStruct<Descriptor>
     {
-        /// <summary>The four-byte descriptor tag at byte offset 0.</summary>
-        /// <remarks>Known tags are <c>wght</c>, <c>wdth</c>, <c>slnt</c>, <c>opsz</c>, and <c>nalf</c>.</remarks>
+        /// <summary>The descriptor tag at byte offset 0.</summary>
+        /// <value>A four-byte tag. See <see cref="FdscTag"/> for the tags the specification defines.</value>
+        /// <seealso cref="FdscTag"/>
         /// <seealso cref="Value"/>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
         public Tag Tag;      // +0
 
-        /// <summary>The 32-bit descriptor value at byte offset 4.</summary>
-        /// <remarks>Interpret the raw bits according to <see cref="Tag"/>; see <see cref="FontDescriptor.Value"/> and <see cref="FontDescriptor.RawValue"/>.</remarks>
+        /// <summary>The descriptor value at byte offset 4.</summary>
+        /// <value>A fixed-point value whose interpretation depends on <see cref="Tag"/>. For <c>nalf</c> the raw bits are read as an integer rather than as a fixed-point value.</value>
         /// <seealso cref="Tag"/>
-        /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
         public Fixed Value;  // +4
 
-        /// <summary>Reverses the byte order of both fields in a <see cref="FontDescriptorRecord"/>.</summary>
-        /// <param name="v">The value whose multi-byte fields are to be reversed.</param>
-        /// <returns>A new record with the tag and the value reversed.</returns>
-        /// <remarks>The tag is reversed with <see cref="Tag.ReverseEndianness(Tag)"/> and the value with <see cref="Fixed.ReverseEndianness(Fixed)"/>.</remarks>
-        /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
-        public static FontDescriptorRecord ReverseEndianness(FontDescriptorRecord v) => new()
+        /// <summary>Reverses the byte order of both fields in a <see cref="Descriptor"/>.</summary>
+        /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
+        /// <returns>A new descriptor with each field reversed.</returns>
+        public static Descriptor ReverseEndianness(Descriptor value) => new()
         {
-            Tag = Tag.ReverseEndianness(v.Tag),
-            Value = Fixed.ReverseEndianness(v.Value),
+            Tag = Tag.ReverseEndianness(value.Tag),
+            Value = Fixed.ReverseEndianness(value.Value),
         };
     }
 
     /// <inheritdoc/>
-    /// <param name="cursor">Cursor positioned at the first byte of the <c>fdsc</c> table.</param>
+    /// <param name="cursor">The cursor positioned at the first byte of the <c>fdsc</c> table.</param>
     /// <param name="context">Unused. The table is self-contained.</param>
-    /// <returns>The parsed <c>fdsc</c> table with its descriptors resolved.</returns>
-    /// <exception cref="InvalidDataException">The version is not <c>0x00010000</c>, or the descriptor array exceeds the table's extent.</exception>
+    /// <returns>The parsed <c>fdsc</c> table.</returns>
+    /// <exception cref="InvalidDataException">The version is not 1.0.</exception>
     /// <exception cref="EndOfStreamException">The header or the descriptor array extends past the end of the table-scoped source.</exception>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The descriptor array is bounded against the table's declared extent before allocation, so an absurd <c>descriptorCount</c> is rejected rather than producing a huge allocation.</description></item>
-    /// <item><description>A table with a <c>descriptorCount</c> of 0 parses to an empty <see cref="Descriptors"/> list and is not an error.</description></item>
+    /// <item><description>The descriptor count is declared by the header, so the array is read in a single bulk call.</description></item>
+    /// <item><description>The Apple documentation does not cap the descriptor count. A malformed font that declares a very large count is bounded by the read, which throws <see cref="EndOfStreamException"/> when the array overruns the table-scoped source.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="Header"/>
-    /// <seealso cref="FontDescriptorRecord"/>
-    /// <seealso cref="FontDescriptor"/>
+    /// <seealso cref="Descriptor"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
     static FdscTable IRecord<FdscTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
-        if (header.Version.Bits != 0x00010000)
+        if (header.Version != CurrentVersion)
+        {
             throw new InvalidDataException(
-                $"'fdsc'.version is 0x{header.Version.Bits:X8}, expected 0x00010000.");
+                $"'fdsc'.version is 0x{header.Version.Bits:X8}, expected 0x{CurrentVersion.Bits:X8}.");
+        }
 
-        long tableExtent = cursor.Source.Length;
-        long recordsEnd = cursor.Position + (long)header.DescriptorCount * DescriptorSize;
+        var descriptors = cursor.ReadEndianReversibleStructArray<Descriptor>(checked((int)header.DescriptorCount));
 
-        if (recordsEnd > tableExtent)
-            throw new InvalidDataException(
-                $"'fdsc'.descriptorCount is {header.DescriptorCount}, which exceeds the table's extent.");
-
-        // The bound above proves DescriptorCount fits in an int: a table cannot be longer than int.MaxValue bytes.
-        FontDescriptorRecord[] records = cursor.ReadBigEndianStructArray<FontDescriptorRecord>((int)header.DescriptorCount);
-
-        var descriptors = new FontDescriptor[records.Length];
-        for (int i = 0; i < records.Length; i++)
-            descriptors[i] = new FontDescriptor { Tag = records[i].Tag, Value = records[i].Value };
-
-        return new FdscTable
+        return new()
         {
             Version = header.Version,
             Descriptors = descriptors,
@@ -236,83 +225,110 @@ public sealed record FdscTable : IFontTable<FdscTable>
     }
 }
 
-/// <summary>One style descriptor of an <c>fdsc</c> table: a descriptor tag and the value the font declares for it.</summary>
+/// <summary>The descriptor tags defined by the <c>fdsc</c> table.</summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>The pair is untyped on disk, so the same 32 bits mean different things for different tags. <see cref="Value"/> decodes them as 16.16 fixed-point, which is correct for <c>wght</c>, <c>wdth</c>, <c>slnt</c>, and <c>opsz</c>; <see cref="RawValue"/> is the integer reading, which is the correct one for <c>nalf</c>.</description></item>
-/// <item><description>Declared as a <c>record</c>, so equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
+/// <item><description>Each tag is a four-byte identifier that names a font attribute. See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">font descriptors table</see> in the Apple TrueType Reference Manual for the tag-to-attribute mapping.</description></item>
+/// <item><description>Additional tags can be registered with Apple beyond the five listed here. A consumer that reads an unrecognised tag compares it against <see cref="FdscTable.Descriptors"/> directly.</description></item>
 /// </list>
 /// </remarks>
 /// <seealso cref="FdscTable"/>
-/// <seealso cref="FdscTable.Descriptors"/>
-/// <seealso cref="FdscNonAlphabeticCode"/>
+/// <seealso cref="NonAlphabeticClass"/>
 /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-public sealed record FontDescriptor
+public static class FdscTag
 {
-    /// <summary>Gets the descriptor's tag, which names the attribute.</summary>
-    /// <value>The four-byte tag, e.g. <c>"wght"</c> for weight or <c>"opsz"</c> for optical size.</value>
-    /// <seealso cref="Value"/>
-    /// <seealso cref="RawValue"/>
-    public Tag Tag { get; init; }
+    /// <summary>The <c>wght</c> descriptor tag: percent weight relative to regular weight.</summary>
+    /// <value>The tag <c>wght</c>.</value>
+    /// <remarks>The value is a percentage of regular weight; the specification defines <c>1.0</c> as regular.</remarks>
+    /// <seealso cref="RegularWeight"/>
+    /// <seealso cref="FdscTable.Weight"/>
+    public static readonly Tag Weight = "wght";
 
-    /// <summary>Gets the descriptor value interpreted as a 16.16 fixed-point number.</summary>
-    /// <value>The raw 32-bit payload reinterpreted as a <see cref="Fixed"/> value.</value>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>This reading is correct for the fixed-point descriptors <c>wght</c>, <c>wdth</c>, <c>slnt</c>, and <c>opsz</c>. The manual gives <c>wght</c> a regular value of 1.0, <c>wdth</c> 1.0, <c>slnt</c> 0.0, and <c>opsz</c> 12.0.</description></item>
-    /// <item><description>It is the wrong reading for <c>nalf</c>, whose value the manual defines as an integer rather than a fixed-point number; use <see cref="RawValue"/> for that tag.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="RawValue"/>
-    /// <seealso cref="Tag"/>
-    /// <seealso cref="FdscTable.Find(Tag)"/>
-    public Fixed Value { get; init; }
+    /// <summary>The <c>wdth</c> descriptor tag: percent width relative to regular width.</summary>
+    /// <value>The tag <c>wdth</c>.</value>
+    /// <remarks>The value is a percentage of regular width; the specification defines <c>1.0</c> as regular.</remarks>
+    /// <seealso cref="RegularWidth"/>
+    /// <seealso cref="FdscTable.Width"/>
+    public static readonly Tag Width = "wdth";
 
-    /// <summary>Gets the raw 32-bit descriptor payload.</summary>
-    /// <value>The descriptor value as the bits a font stored, without reinterpretation.</value>
-    /// <remarks>This is the correct reading for tags the manual defines as integer-valued, in particular <c>nalf</c>, whose codes are named by <see cref="FdscNonAlphabeticCode"/>.</remarks>
-    /// <seealso cref="Value"/>
-    /// <seealso cref="FdscNonAlphabeticCode"/>
-    public int RawValue => Value.Bits;
+    /// <summary>The <c>slnt</c> descriptor tag: angle of slant in degrees.</summary>
+    /// <value>The tag <c>slnt</c>.</value>
+    /// <remarks>Positive values are clockwise from straight up.</remarks>
+    /// <seealso cref="FdscTable.Slant"/>
+    public static readonly Tag Slant = "slnt";
 
-    /// <inheritdoc/>
-    /// <returns>A diagnostic string of the form <c>'wght' 0.8</c>.</returns>
-    /// <remarks>The value is formatted as 16.16 fixed-point regardless of the tag, so the output is meaningful only for the fixed-point descriptors. The format is intended for diagnostics; it is not a stable serialization format.</remarks>
-    /// <seealso cref="Tag"/>
-    /// <seealso cref="Value"/>
-    public override string ToString() => $"'{Tag}' {Value}";
+    /// <summary>The <c>opsz</c> descriptor tag: point size the font was designed for.</summary>
+    /// <value>The tag <c>opsz</c>.</value>
+    /// <remarks>The specification defines <c>12.0</c> as the default point size.</remarks>
+    /// <seealso cref="DefaultOpticalSize"/>
+    /// <seealso cref="FdscTable.OpticalSize"/>
+    public static readonly Tag OpticalSize = "opsz";
+
+    /// <summary>The <c>nalf</c> descriptor tag: non-alphabetic class code.</summary>
+    /// <value>The tag <c>nalf</c>.</value>
+    /// <remarks>The value is treated as an integer, not as a fixed-point value. See <see cref="NonAlphabeticClass"/>.</remarks>
+    /// <seealso cref="NonAlphabeticClass"/>
+    /// <seealso cref="FdscTable.NonAlphabetic"/>
+    public static readonly Tag NonAlphabetic = "nalf";
+
+    /// <summary>The fixed-point value representing regular weight, <c>1.0</c>.</summary>
+    /// <value>The <see cref="Fixed"/> value whose raw bits are <c>0x00010000</c>.</value>
+    /// <seealso cref="Weight"/>
+    /// <seealso cref="FdscTable.Weight"/>
+    public static readonly Fixed RegularWeight = new(0x00010000);
+
+    /// <summary>The fixed-point value representing regular width, <c>1.0</c>.</summary>
+    /// <value>The <see cref="Fixed"/> value whose raw bits are <c>0x00010000</c>.</value>
+    /// <seealso cref="Width"/>
+    /// <seealso cref="FdscTable.Width"/>
+    public static readonly Fixed RegularWidth = new(0x00010000);
+
+    /// <summary>The fixed-point value representing the default optical size, <c>12.0</c>.</summary>
+    /// <value>The <see cref="Fixed"/> value whose raw bits are <c>0x000C0000</c>.</value>
+    /// <seealso cref="OpticalSize"/>
+    /// <seealso cref="FdscTable.OpticalSize"/>
+    public static readonly Fixed DefaultOpticalSize = new(0x000C0000);
 }
 
-/// <summary>The non-alphabetic category codes that the <c>nalf</c> font descriptor can carry.</summary>
+/// <summary>The non-alphabetic class codes defined for the <c>nalf</c> descriptor.</summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>The manual defines codes 0 through 6 and reserves higher values for registration with Apple, which is why <see cref="FdscTable.NonAlphabeticCode"/> exposes the value as an integer rather than as this type.</description></item>
-/// <item><description>The <c>nalf</c> value is an integer, not a 16.16 <c>Fixed</c>; read it through <see cref="FontDescriptor.RawValue"/>.</description></item>
+/// <item><description>The value <c>0</c> means the font is alphabetic. Values greater than zero identify the font as containing a specific class of non-alphabetic glyphs.</description></item>
+/// <item><description>The Apple documentation states that the <c>nalf</c> value is treated as an integer, not as a fixed-point value. The class codes occupy the raw bits of the descriptor's <see cref="Fixed"/> field, not its scaled value.</description></item>
+/// <item><description>Values above 6 are stored as-is by a font but are not named here; the underlying integer is readable through a cast.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">font descriptors table</see> in the Apple TrueType Reference Manual.</description></item>
 /// </list>
 /// </remarks>
-/// <seealso cref="FdscTable.NonAlphabeticCode"/>
-/// <seealso cref="FontDescriptor.RawValue"/>
+/// <seealso cref="FdscTag.NonAlphabetic"/>
+/// <seealso cref="FdscTable.NonAlphabetic"/>
 /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fdsc.html">TrueType Reference Manual: The <c>fdsc</c> table</seealso>
-public enum FdscNonAlphabeticCode
+public enum NonAlphabeticClass
 {
-    /// <summary>The font is alphabetic (code 0).</summary>
+    /// <summary>The font is alphabetic, code 0.</summary>
+    /// <value>The constant <c>0</c>.</value>
     Alphabetic = 0,
 
-    /// <summary>The font contains dingbats (code 1).</summary>
+    /// <summary>The font contains dingbats, code 1.</summary>
+    /// <value>The constant <c>1</c>.</value>
     Dingbats = 1,
 
-    /// <summary>The font contains pi characters (code 2).</summary>
+    /// <summary>The font contains pi characters, code 2.</summary>
+    /// <value>The constant <c>2</c>.</value>
     PiCharacters = 2,
 
-    /// <summary>The font contains fleurons (code 3).</summary>
+    /// <summary>The font contains fleurons, code 3.</summary>
+    /// <value>The constant <c>3</c>.</value>
     Fleurons = 3,
 
-    /// <summary>The font contains decorative borders (code 4).</summary>
+    /// <summary>The font contains decorative borders, code 4.</summary>
+    /// <value>The constant <c>4</c>.</value>
     DecorativeBorders = 4,
 
-    /// <summary>The font contains international symbols (code 5).</summary>
+    /// <summary>The font contains international symbols, code 5.</summary>
+    /// <value>The constant <c>5</c>.</value>
     InternationalSymbols = 5,
 
-    /// <summary>The font contains math symbols (code 6).</summary>
+    /// <summary>The font contains math symbols, code 6.</summary>
+    /// <value>The constant <c>6</c>.</value>
     MathSymbols = 6,
 }

@@ -8,6 +8,7 @@ namespace Mubarrat.Fonts.Binary;
 /// <list type="bullet">
 /// <item><description>The cursor owns its own <see cref="Position"/>. Creating a nested cursor via <see cref="At"/> or <see cref="Here"/> produces an independent cursor and does not affect this one.</description></item>
 /// <item><description>Reads are bounds-checked by <see cref="Source.ReadAt"/> against <see cref="Source.Length"/>.</description></item>
+/// <item><description>Multi-byte reads take an optional <c>isLittleEndian</c> argument on a per-call basis, matching <see cref="Source"/>. The default is <see langword="false"/> for OpenType's big-endian wire format; the reader reverses only when the wire order disagrees with the host.</description></item>
 /// <item><description>Offsets passed to record helpers are relative to the source origin, not to <see cref="Position"/>. When the source is a table-scoped <see cref="SliceSource"/>, this matches the OpenType convention of table-internal offsets being relative to the table's start.</description></item>
 /// </list>
 /// <para>For the on-disk layout of every primitive read by this type, see <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification, Data Types</see>.</para>
@@ -20,7 +21,7 @@ namespace Mubarrat.Fonts.Binary;
     "RS0026:Do not add multiple public overloads with optional parameters",
     Scope = "type",
     Target = "~T:Mubarrat.Fonts.OpenType.Binary.Cursor",
-    Justification = "Cursor overloads are disambiguated by the type of their first parameter (int count vs Span<T> destination); the optional 'context' parameter cannot introduce ambiguity between them.")]
+    Justification = "Cursor overloads are disambiguated by the type of their first parameter (int count vs Span<T> destination); the optional 'context' and 'isLittleEndian' cannot introduce ambiguity between them.")]
 public ref struct Cursor
 {
     private readonly Source _source;
@@ -74,6 +75,8 @@ public ref struct Cursor
     /// <seealso cref="Position"/>
     public readonly long Remaining => _source.Length - _position;
 
+    // ───────────────────────── Scalar reads (8) ─────────────────────────
+
     /// <summary>Reads an unsigned 8-bit integer and advances the position by 1 byte.</summary>
     /// <returns>The byte at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
@@ -100,109 +103,33 @@ public ref struct Cursor
         return value;
     }
 
-    /// <summary>Reads a big-endian unsigned 16-bit integer and advances the position by 2 bytes.</summary>
+    // ───────────────────────── Scalar reads (16) ─────────────────────────
+
+    /// <summary>Reads a 16-bit unsigned integer in the requested wire byte order and advances the position by 2 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt16"/>
+    /// <seealso cref="PeekUInt16(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint16</seealso>
-    public ushort ReadUInt16()
+    public ushort ReadUInt16(bool isLittleEndian = false)
     {
-        ushort value = _source.ReadUInt16At(_position);
+        ushort value = _source.ReadUInt16At(_position, isLittleEndian);
         _position = checked(_position + 2);
         return value;
     }
 
-    /// <summary>Reads a big-endian signed 16-bit integer and advances the position by 2 bytes.</summary>
+    /// <summary>Reads a 16-bit signed integer in the requested wire byte order and advances the position by 2 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt16"/>
+    /// <seealso cref="PeekInt16(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int16</seealso>
-    public short ReadInt16()
+    public short ReadInt16(bool isLittleEndian = false)
     {
-        short value = _source.ReadInt16At(_position);
+        short value = _source.ReadInt16At(_position, isLittleEndian);
         _position = checked(_position + 2);
-        return value;
-    }
-
-    /// <summary>Reads a big-endian unsigned 24-bit integer and advances the position by 3 bytes.</summary>
-    /// <returns>The value at <see cref="Position"/>.</returns>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt24"/>
-    /// <seealso cref="UInt24"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
-    public UInt24 ReadUInt24()
-    {
-        UInt24 value = _source.ReadUInt24At(_position);
-        _position = checked(_position + 3);
-        return value;
-    }
-
-    /// <summary>Reads a big-endian signed 24-bit integer and advances the position by 3 bytes.</summary>
-    /// <returns>The value at <see cref="Position"/>.</returns>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt24"/>
-    /// <seealso cref="Int24"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
-    public Int24 ReadInt24()
-    {
-        Int24 value = _source.ReadInt24At(_position);
-        _position = checked(_position + 3);
-        return value;
-    }
-
-    /// <summary>Reads a big-endian unsigned 32-bit integer and advances the position by 4 bytes.</summary>
-    /// <returns>The value at <see cref="Position"/>.</returns>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt32"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
-    public uint ReadUInt32()
-    {
-        uint value = _source.ReadUInt32At(_position);
-        _position = checked(_position + 4);
-        return value;
-    }
-
-    /// <summary>Reads a big-endian signed 32-bit integer and advances the position by 4 bytes.</summary>
-    /// <returns>The value at <see cref="Position"/>.</returns>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt32"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
-    public int ReadInt32()
-    {
-        int value = _source.ReadInt32At(_position);
-        _position = checked(_position + 4);
-        return value;
-    }
-
-    /// <summary>Reads a big-endian unsigned 64-bit integer and advances the position by 8 bytes.</summary>
-    /// <returns>The value at <see cref="Position"/>.</returns>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt64"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
-    public ulong ReadUInt64()
-    {
-        ulong value = _source.ReadUInt64At(_position);
-        _position = checked(_position + 8);
-        return value;
-    }
-
-    /// <summary>Reads a big-endian signed 64-bit integer and advances the position by 8 bytes.</summary>
-    /// <returns>The value at <see cref="Position"/>.</returns>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt64"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
-    public long ReadInt64()
-    {
-        long value = _source.ReadInt64At(_position);
-        _position = checked(_position + 8);
         return value;
     }
 
@@ -222,71 +149,173 @@ public ref struct Cursor
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int8</seealso>
     public readonly sbyte PeekInt8() => _source.ReadInt8At(_position);
 
-    /// <summary>Reads a big-endian unsigned 16-bit integer without advancing the position.</summary>
+    /// <summary>Reads a 16-bit unsigned integer in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt16"/>
+    /// <seealso cref="ReadUInt16(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint16</seealso>
-    public readonly ushort PeekUInt16() => _source.ReadUInt16At(_position);
+    public readonly ushort PeekUInt16(bool isLittleEndian = false) => _source.ReadUInt16At(_position, isLittleEndian);
 
-    /// <summary>Reads a big-endian signed 16-bit integer without advancing the position.</summary>
+    /// <summary>Reads a 16-bit signed integer in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt16"/>
+    /// <seealso cref="ReadInt16(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int16</seealso>
-    public readonly short PeekInt16() => _source.ReadInt16At(_position);
+    public readonly short PeekInt16(bool isLittleEndian = false) => _source.ReadInt16At(_position, isLittleEndian);
 
-    /// <summary>Reads a big-endian unsigned 24-bit integer without advancing the position.</summary>
+    // ───────────────────────── Scalar reads (24) ─────────────────────────
+
+    /// <summary>Reads a 24-bit unsigned integer in the requested wire byte order and advances the position by 3 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt24"/>
+    /// <seealso cref="PeekUInt24(bool)"/>
     /// <seealso cref="UInt24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
-    public readonly UInt24 PeekUInt24() => _source.ReadUInt24At(_position);
+    public UInt24 ReadUInt24(bool isLittleEndian = false)
+    {
+        UInt24 value = _source.ReadUInt24At(_position, isLittleEndian);
+        _position = checked(_position + 3);
+        return value;
+    }
 
-    /// <summary>Reads a big-endian signed 24-bit integer without advancing the position.</summary>
+    /// <summary>Reads a 24-bit signed integer in the requested wire byte order and advances the position by 3 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt24"/>
+    /// <seealso cref="PeekInt24(bool)"/>
     /// <seealso cref="Int24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
-    public readonly Int24 PeekInt24() => _source.ReadInt24At(_position);
+    public Int24 ReadInt24(bool isLittleEndian = false)
+    {
+        Int24 value = _source.ReadInt24At(_position, isLittleEndian);
+        _position = checked(_position + 3);
+        return value;
+    }
 
-    /// <summary>Reads a big-endian unsigned 32-bit integer without advancing the position.</summary>
+    /// <summary>Reads a 24-bit unsigned integer in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt24(bool)"/>
+    /// <seealso cref="UInt24"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
+    public readonly UInt24 PeekUInt24(bool isLittleEndian = false) => _source.ReadUInt24At(_position, isLittleEndian);
+
+    /// <summary>Reads a 24-bit signed integer in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt24(bool)"/>
+    /// <seealso cref="Int24"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
+    public readonly Int24 PeekInt24(bool isLittleEndian = false) => _source.ReadInt24At(_position, isLittleEndian);
+
+    // ───────────────────────── Scalar reads (32) ─────────────────────────
+
+    /// <summary>Reads a 32-bit unsigned integer in the requested wire byte order and advances the position by 4 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt32"/>
+    /// <seealso cref="PeekUInt32(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
-    public readonly uint PeekUInt32() => _source.ReadUInt32At(_position);
+    public uint ReadUInt32(bool isLittleEndian = false)
+    {
+        uint value = _source.ReadUInt32At(_position, isLittleEndian);
+        _position = checked(_position + 4);
+        return value;
+    }
 
-    /// <summary>Reads a big-endian signed 32-bit integer without advancing the position.</summary>
+    /// <summary>Reads a 32-bit signed integer in the requested wire byte order and advances the position by 4 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt32"/>
+    /// <seealso cref="PeekInt32(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
-    public readonly int PeekInt32() => _source.ReadInt32At(_position);
+    public int ReadInt32(bool isLittleEndian = false)
+    {
+        int value = _source.ReadInt32At(_position, isLittleEndian);
+        _position = checked(_position + 4);
+        return value;
+    }
 
-    /// <summary>Reads a big-endian unsigned 64-bit integer without advancing the position.</summary>
+    /// <summary>Reads a 32-bit unsigned integer in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt32(bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
+    public readonly uint PeekUInt32(bool isLittleEndian = false) => _source.ReadUInt32At(_position, isLittleEndian);
+
+    /// <summary>Reads a 32-bit signed integer in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt32(bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
+    public readonly int PeekInt32(bool isLittleEndian = false) => _source.ReadInt32At(_position, isLittleEndian);
+
+    // ───────────────────────── Scalar reads (64) ─────────────────────────
+
+    /// <summary>Reads a 64-bit unsigned integer in the requested wire byte order and advances the position by 8 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt64"/>
+    /// <seealso cref="PeekUInt64(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
-    public readonly ulong PeekUInt64() => _source.ReadUInt64At(_position);
+    public ulong ReadUInt64(bool isLittleEndian = false)
+    {
+        ulong value = _source.ReadUInt64At(_position, isLittleEndian);
+        _position = checked(_position + 8);
+        return value;
+    }
 
-    /// <summary>Reads a big-endian signed 64-bit integer without advancing the position.</summary>
+    /// <summary>Reads a 64-bit signed integer in the requested wire byte order and advances the position by 8 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt64"/>
+    /// <seealso cref="PeekInt64(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
-    public readonly long PeekInt64() => _source.ReadInt64At(_position);
+    public long ReadInt64(bool isLittleEndian = false)
+    {
+        long value = _source.ReadInt64At(_position, isLittleEndian);
+        _position = checked(_position + 8);
+        return value;
+    }
+
+    /// <summary>Reads a 64-bit unsigned integer in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt64(bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
+    public readonly ulong PeekUInt64(bool isLittleEndian = false) => _source.ReadUInt64At(_position, isLittleEndian);
+
+    /// <summary>Reads a 64-bit signed integer in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt64(bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
+    public readonly long PeekInt64(bool isLittleEndian = false) => _source.ReadInt64At(_position, isLittleEndian);
+
+    // ───────────────────────── Bytes ─────────────────────────
 
     /// <summary>Reads <paramref name="count"/> bytes into a new array and advances the position.</summary>
     /// <param name="count">The number of bytes to read. Must be non-negative.</param>
@@ -337,123 +366,157 @@ public ref struct Cursor
     /// <seealso cref="PeekBytes(int)"/>
     public readonly void PeekBytes(scoped Span<byte> destination) => _source.ReadAt(_position, destination);
 
-    /// <summary>Reads a 16.16 fixed-point value and advances the position by 4 bytes.</summary>
+    // ───────────────────────── Semantic scalars ─────────────────────────
+
+    /// <summary>Reads a 16.16 fixed-point value in the requested wire byte order and advances the position by 4 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The <see cref="Fixed"/> value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Fixed data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekFixed"/>
+    /// <seealso cref="PeekFixed(bool)"/>
     /// <seealso cref="Fixed"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Fixed</seealso>
-    public Fixed ReadFixed() => (Fixed)ReadInt32();
+    public Fixed ReadFixed(bool isLittleEndian = false) => (Fixed)ReadInt32(isLittleEndian);
 
-    /// <summary>Reads a 16.16 fixed-point value without advancing the position.</summary>
+    /// <summary>Reads a 16.16 fixed-point value in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The <see cref="Fixed"/> value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Fixed data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadFixed"/>
+    /// <seealso cref="ReadFixed(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Fixed</seealso>
-    public readonly Fixed PeekFixed() => (Fixed)PeekInt32();
+    public readonly Fixed PeekFixed(bool isLittleEndian = false) => (Fixed)PeekInt32(isLittleEndian);
 
-    /// <summary>Reads an FWORD (signed 16-bit) and advances the position by 2 bytes.</summary>
+    /// <summary>Reads an FWORD (signed 16-bit) in the requested wire byte order and advances the position by 2 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">FWORD data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekFWord"/>
+    /// <seealso cref="PeekFWord(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: FWORD</seealso>
-    public short ReadFWord() => ReadInt16();
+    public short ReadFWord(bool isLittleEndian = false) => ReadInt16(isLittleEndian);
 
-    /// <summary>Reads an FWORD (signed 16-bit) without advancing the position.</summary>
+    /// <summary>Reads an FWORD (signed 16-bit) in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">FWORD data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadFWord"/>
+    /// <seealso cref="ReadFWord(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: FWORD</seealso>
-    public readonly short PeekFWord() => PeekInt16();
+    public readonly short PeekFWord(bool isLittleEndian = false) => PeekInt16(isLittleEndian);
 
-    /// <summary>Reads a UFWORD (unsigned 16-bit) and advances the position by 2 bytes.</summary>
+    /// <summary>Reads a UFWORD (unsigned 16-bit) in the requested wire byte order and advances the position by 2 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">UFWORD data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUFWord"/>
+    /// <seealso cref="PeekUFWord(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: UFWORD</seealso>
-    public ushort ReadUFWord() => ReadUInt16();
+    public ushort ReadUFWord(bool isLittleEndian = false) => ReadUInt16(isLittleEndian);
 
-    /// <summary>Reads a UFWORD (unsigned 16-bit) without advancing the position.</summary>
+    /// <summary>Reads a UFWORD (unsigned 16-bit) in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">UFWORD data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUFWord"/>
+    /// <seealso cref="ReadUFWord(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: UFWORD</seealso>
-    public readonly ushort PeekUFWord() => PeekUInt16();
+    public readonly ushort PeekUFWord(bool isLittleEndian = false) => PeekUInt16(isLittleEndian);
 
-    /// <summary>Reads an F2DOT14 value and advances the position by 2 bytes.</summary>
+    /// <summary>Reads an F2DOT14 value in the requested wire byte order and advances the position by 2 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The <see cref="F2Dot14"/> value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">F2DOT14 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekF2Dot14"/>
+    /// <seealso cref="PeekF2Dot14(bool)"/>
     /// <seealso cref="F2Dot14"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: F2DOT14</seealso>
-    public F2Dot14 ReadF2Dot14() => (F2Dot14)ReadInt16();
+    public F2Dot14 ReadF2Dot14(bool isLittleEndian = false) => (F2Dot14)ReadInt16(isLittleEndian);
 
-    /// <summary>Reads an F2DOT14 value without advancing the position.</summary>
+    /// <summary>Reads an F2DOT14 value in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The <see cref="F2Dot14"/> value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">F2DOT14 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadF2Dot14"/>
+    /// <seealso cref="ReadF2Dot14(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: F2DOT14</seealso>
-    public readonly F2Dot14 PeekF2Dot14() => (F2Dot14)PeekInt16();
+    public readonly F2Dot14 PeekF2Dot14(bool isLittleEndian = false) => (F2Dot14)PeekInt16(isLittleEndian);
 
     /// <summary>Seconds between 1904-01-01 (OpenType LONGDATETIME epoch) and 1970-01-01 (Unix epoch).</summary>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">LONGDATETIME data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadLongDateTime"/>
-    /// <seealso cref="PeekLongDateTime"/>
+    /// <seealso cref="ReadLongDateTime(bool)"/>
+    /// <seealso cref="PeekLongDateTime(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: LONGDATETIME</seealso>
     public const long OpenTypeEpochOffset = 2082844800L;
 
-    /// <summary>Reads a LONGDATETIME and advances the position by 8 bytes.</summary>
+    /// <summary>Reads a LONGDATETIME in the requested wire byte order and advances the position by 8 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A <see cref="DateTime"/> in UTC, converted from the 1904 epoch to the Unix epoch.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">LONGDATETIME data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekLongDateTime"/>
+    /// <seealso cref="PeekLongDateTime(bool)"/>
     /// <seealso cref="OpenTypeEpochOffset"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: LONGDATETIME</seealso>
-    public DateTime ReadLongDateTime() =>
-        DateTime.UnixEpoch.AddSeconds(ReadInt64() - OpenTypeEpochOffset);
+    public DateTime ReadLongDateTime(bool isLittleEndian = false) =>
+        DateTime.UnixEpoch.AddSeconds(ReadInt64(isLittleEndian) - OpenTypeEpochOffset);
 
-    /// <summary>Reads a LONGDATETIME without advancing the position.</summary>
+    /// <summary>Reads a LONGDATETIME in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A <see cref="DateTime"/> in UTC, converted from the 1904 epoch to the Unix epoch.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">LONGDATETIME data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadLongDateTime"/>
+    /// <seealso cref="ReadLongDateTime(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: LONGDATETIME</seealso>
-    public readonly DateTime PeekLongDateTime() =>
-        DateTime.UnixEpoch.AddSeconds(PeekInt64() - OpenTypeEpochOffset);
+    public readonly DateTime PeekLongDateTime(bool isLittleEndian = false) =>
+        DateTime.UnixEpoch.AddSeconds(PeekInt64(isLittleEndian) - OpenTypeEpochOffset);
 
-    /// <summary>Reads a 4-byte tag and advances the position by 4 bytes.</summary>
+    /// <summary>Reads a 4-byte tag in the requested wire byte order and advances the position by 4 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The <see cref="Tag"/> value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Tag data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekTag"/>
+    /// <seealso cref="PeekTag(bool)"/>
     /// <seealso cref="Tag"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Tag</seealso>
-    public Tag ReadTag() => new(ReadUInt32());
+    public Tag ReadTag(bool isLittleEndian = false) => new(ReadUInt32(isLittleEndian));
 
-    /// <summary>Reads a 4-byte tag without advancing the position.</summary>
+    /// <summary>Reads a 4-byte tag in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The <see cref="Tag"/> value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Tag data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadTag"/>
+    /// <seealso cref="ReadTag(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Tag</seealso>
-    public readonly Tag PeekTag() => new(PeekUInt32());
+    public readonly Tag PeekTag(bool isLittleEndian = false) => new(PeekUInt32(isLittleEndian));
+
+    /// <summary>Reads a Version16Dot16 value in the requested wire byte order and advances the position by 4 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>, decoded as a <see cref="double"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Version16Dot16 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="PeekVersion16Dot16(bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Version16Dot16</seealso>
+    public double ReadVersion16Dot16(bool isLittleEndian = false) => ReadUInt32(isLittleEndian) / 65536.0;
+
+    /// <summary>Reads a Version16Dot16 value in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>The value at <see cref="Position"/>, decoded as a <see cref="double"/>.</returns>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Version16Dot16 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadVersion16Dot16(bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Version16Dot16</seealso>
+    public readonly double PeekVersion16Dot16(bool isLittleEndian = false) => PeekUInt32(isLittleEndian) / 65536.0;
+
+    // ───────────────────────── Offset reads ─────────────────────────
 
     /// <summary>Reads an 8-bit offset and advances the position by 1 byte.</summary>
     /// <returns>The offset value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="PeekOffset8"/>
-    /// <seealso cref="ReadOffset16"/>
-    /// <seealso cref="ReadOffset24"/>
-    /// <seealso cref="ReadOffset32"/>
+    /// <seealso cref="ReadOffset16(bool)"/>
+    /// <seealso cref="ReadOffset24(bool)"/>
+    /// <seealso cref="ReadOffset32(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
     public byte ReadOffset8() => ReadUInt8();
 
@@ -465,78 +528,70 @@ public ref struct Cursor
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
     public readonly byte PeekOffset8() => PeekUInt8();
 
-    /// <summary>Reads a 16-bit offset and advances the position by 2 bytes.</summary>
+    /// <summary>Reads a 16-bit offset in the requested wire byte order and advances the position by 2 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The offset value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset16"/>
+    /// <seealso cref="PeekOffset16(bool)"/>
     /// <seealso cref="ReadOffset8"/>
-    /// <seealso cref="ReadOffset24"/>
-    /// <seealso cref="ReadOffset32"/>
+    /// <seealso cref="ReadOffset24(bool)"/>
+    /// <seealso cref="ReadOffset32(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public ushort ReadOffset16() => ReadUInt16();
+    public ushort ReadOffset16(bool isLittleEndian = false) => ReadUInt16(isLittleEndian);
 
-    /// <summary>Reads a 16-bit offset without advancing the position.</summary>
+    /// <summary>Reads a 16-bit offset in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The offset value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16"/>
+    /// <seealso cref="ReadOffset16(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public readonly ushort PeekOffset16() => PeekUInt16();
+    public readonly ushort PeekOffset16(bool isLittleEndian = false) => PeekUInt16(isLittleEndian);
 
-    /// <summary>Reads a 24-bit offset and advances the position by 3 bytes.</summary>
+    /// <summary>Reads a 24-bit offset in the requested wire byte order and advances the position by 3 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The offset value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset24"/>
+    /// <seealso cref="PeekOffset24(bool)"/>
     /// <seealso cref="ReadOffset8"/>
-    /// <seealso cref="ReadOffset16"/>
-    /// <seealso cref="ReadOffset32"/>
+    /// <seealso cref="ReadOffset16(bool)"/>
+    /// <seealso cref="ReadOffset32(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public UInt24 ReadOffset24() => ReadUInt24();
+    public UInt24 ReadOffset24(bool isLittleEndian = false) => ReadUInt24(isLittleEndian);
 
-    /// <summary>Reads a 24-bit offset without advancing the position.</summary>
+    /// <summary>Reads a 24-bit offset in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The offset value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset24"/>
+    /// <seealso cref="ReadOffset24(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public readonly UInt24 PeekOffset24() => PeekUInt24();
+    public readonly UInt24 PeekOffset24(bool isLittleEndian = false) => PeekUInt24(isLittleEndian);
 
-    /// <summary>Reads a 32-bit offset and advances the position by 4 bytes.</summary>
+    /// <summary>Reads a 32-bit offset in the requested wire byte order and advances the position by 4 bytes.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The offset value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset32"/>
+    /// <seealso cref="PeekOffset32(bool)"/>
     /// <seealso cref="ReadOffset8"/>
-    /// <seealso cref="ReadOffset16"/>
-    /// <seealso cref="ReadOffset24"/>
+    /// <seealso cref="ReadOffset16(bool)"/>
+    /// <seealso cref="ReadOffset24(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public uint ReadOffset32() => ReadUInt32();
+    public uint ReadOffset32(bool isLittleEndian = false) => ReadUInt32(isLittleEndian);
 
-    /// <summary>Reads a 32-bit offset without advancing the position.</summary>
+    /// <summary>Reads a 32-bit offset in the requested wire byte order without advancing the position.</summary>
+    /// <param name="isLittleEndian"><see langword="true"/> when the value's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The offset value at <see cref="Position"/>.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset32"/>
+    /// <seealso cref="ReadOffset32(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public readonly uint PeekOffset32() => PeekUInt32();
+    public readonly uint PeekOffset32(bool isLittleEndian = false) => PeekUInt32(isLittleEndian);
 
-    /// <summary>Reads a Version16Dot16 value and advances the position by 4 bytes.</summary>
-    /// <returns>The value at <see cref="Position"/>, decoded as a <see cref="double"/>.</returns>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Version16Dot16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekVersion16Dot16"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Version16Dot16</seealso>
-    public double ReadVersion16Dot16() => ReadUInt32() / 65536.0;
-
-    /// <summary>Reads a Version16Dot16 value without advancing the position.</summary>
-    /// <returns>The value at <see cref="Position"/>, decoded as a <see cref="double"/>.</returns>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Version16Dot16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadVersion16Dot16"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Version16Dot16</seealso>
-    public readonly double PeekVersion16Dot16() => PeekUInt32() / 65536.0;
+    // ───────────────────────── Typed arrays (8-bit) ─────────────────────────
 
     /// <summary>Reads an array of unsigned 8-bit integers and advances the position.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
@@ -634,295 +689,439 @@ public ref struct Cursor
     public readonly void PeekInt8Array(Span<sbyte> destination) =>
         _source.ReadInt8ArrayAt(_position, destination);
 
-    /// <summary>Reads an array of unsigned 16-bit integers and advances the position.</summary>
+    // ───────────────────────── Typed arrays (16-bit) ─────────────────────────
+
+    /// <summary>Reads an array of unsigned 16-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt16Array(int)"/>
-    /// <seealso cref="ReadUInt16Array(Span{ushort})"/>
+    /// <seealso cref="PeekUInt16Array(int, bool)"/>
+    /// <seealso cref="ReadUInt16Array(Span{ushort}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint16</seealso>
-    public ushort[] ReadUInt16Array(int count)
+    public ushort[] ReadUInt16Array(int count, bool isLittleEndian = false)
     {
-        var result = PeekUInt16Array(count);
+        var result = PeekUInt16Array(count, isLittleEndian);
         _position = checked(_position + result.Length * 2);
         return result;
     }
 
-    /// <summary>Reads an array of unsigned 16-bit integers without advancing the position.</summary>
+    /// <summary>Reads an array of unsigned 16-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt16Array(int)"/>
+    /// <seealso cref="ReadUInt16Array(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint16</seealso>
-    public readonly ushort[] PeekUInt16Array(int count) =>
-        _source.ReadUInt16ArrayAt(_position, count);
+    public readonly ushort[] PeekUInt16Array(int count, bool isLittleEndian = false) =>
+        _source.ReadUInt16ArrayAt(_position, count, isLittleEndian);
 
-    /// <summary>Fills <paramref name="destination"/> with unsigned 16-bit integers and advances the position.</summary>
+    /// <summary>Fills <paramref name="destination"/> with unsigned 16-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt16Array(Span{ushort})"/>
+    /// <seealso cref="PeekUInt16Array(Span{ushort}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint16</seealso>
-    public void ReadUInt16Array(Span<ushort> destination)
+    public void ReadUInt16Array(Span<ushort> destination, bool isLittleEndian = false)
     {
-        PeekUInt16Array(destination);
+        PeekUInt16Array(destination, isLittleEndian);
         _position = checked(_position + destination.Length * 2);
     }
 
-    /// <summary>Fills <paramref name="destination"/> with unsigned 16-bit integers without advancing.</summary>
+    /// <summary>Fills <paramref name="destination"/> with unsigned 16-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt16Array(Span{ushort})"/>
+    /// <seealso cref="ReadUInt16Array(Span{ushort}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint16</seealso>
-    public readonly void PeekUInt16Array(Span<ushort> destination) =>
-        _source.ReadUInt16ArrayAt(_position, destination);
+    public readonly void PeekUInt16Array(Span<ushort> destination, bool isLittleEndian = false) =>
+        _source.ReadUInt16ArrayAt(_position, destination, isLittleEndian);
 
-    /// <summary>Reads an array of signed 16-bit integers and advances the position.</summary>
+    /// <summary>Reads an array of signed 16-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt16Array(int)"/>
-    /// <seealso cref="ReadInt16Array(Span{short})"/>
+    /// <seealso cref="PeekInt16Array(int, bool)"/>
+    /// <seealso cref="ReadInt16Array(Span{short}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int16</seealso>
-    public short[] ReadInt16Array(int count)
+    public short[] ReadInt16Array(int count, bool isLittleEndian = false)
     {
-        var result = PeekInt16Array(count);
+        var result = PeekInt16Array(count, isLittleEndian);
         _position = checked(_position + result.Length * 2);
         return result;
     }
 
-    /// <summary>Reads an array of signed 16-bit integers without advancing the position.</summary>
+    /// <summary>Reads an array of signed 16-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt16Array(int)"/>
+    /// <seealso cref="ReadInt16Array(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int16</seealso>
-    public readonly short[] PeekInt16Array(int count) =>
-        _source.ReadInt16ArrayAt(_position, count);
+    public readonly short[] PeekInt16Array(int count, bool isLittleEndian = false) =>
+        _source.ReadInt16ArrayAt(_position, count, isLittleEndian);
 
-    /// <summary>Fills <paramref name="destination"/> with signed 16-bit integers and advances the position.</summary>
+    /// <summary>Fills <paramref name="destination"/> with signed 16-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt16Array(Span{short})"/>
+    /// <seealso cref="PeekInt16Array(Span{short}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int16</seealso>
-    public void ReadInt16Array(Span<short> destination)
+    public void ReadInt16Array(Span<short> destination, bool isLittleEndian = false)
     {
-        PeekInt16Array(destination);
+        PeekInt16Array(destination, isLittleEndian);
         _position = checked(_position + destination.Length * 2);
     }
 
-    /// <summary>Fills <paramref name="destination"/> with signed 16-bit integers without advancing.</summary>
+    /// <summary>Fills <paramref name="destination"/> with signed 16-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt16Array(Span{short})"/>
+    /// <seealso cref="ReadInt16Array(Span{short}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int16</seealso>
-    public readonly void PeekInt16Array(Span<short> destination) =>
-        _source.ReadInt16ArrayAt(_position, destination);
+    public readonly void PeekInt16Array(Span<short> destination, bool isLittleEndian = false) =>
+        _source.ReadInt16ArrayAt(_position, destination, isLittleEndian);
 
-    /// <summary>Reads an array of unsigned 24-bit integers and advances the position.</summary>
+    // ───────────────────────── Typed arrays (24-bit) ─────────────────────────
+
+    /// <summary>Reads an array of unsigned 24-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt24Array(int)"/>
-    /// <seealso cref="ReadUInt24Array(Span{UInt24})"/>
+    /// <seealso cref="PeekUInt24Array(int, bool)"/>
+    /// <seealso cref="ReadUInt24Array(Span{UInt24}, bool)"/>
     /// <seealso cref="UInt24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
-    public UInt24[] ReadUInt24Array(int count)
+    public UInt24[] ReadUInt24Array(int count, bool isLittleEndian = false)
     {
-        var result = PeekUInt24Array(count);
+        var result = PeekUInt24Array(count, isLittleEndian);
         _position = checked(_position + result.Length * 3);
         return result;
     }
 
-    /// <summary>Reads an array of unsigned 24-bit integers without advancing the position.</summary>
+    /// <summary>Reads an array of unsigned 24-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt24Array(int)"/>
+    /// <seealso cref="ReadUInt24Array(int, bool)"/>
+    /// <seealso cref="UInt24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
-    public readonly UInt24[] PeekUInt24Array(int count) =>
-        _source.ReadUInt24ArrayAt(_position, count);
+    public readonly UInt24[] PeekUInt24Array(int count, bool isLittleEndian = false) =>
+        _source.ReadUInt24ArrayAt(_position, count, isLittleEndian);
 
-    /// <summary>Fills <paramref name="destination"/> with unsigned 24-bit integers and advances the position.</summary>
+    /// <summary>Fills <paramref name="destination"/> with unsigned 24-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt24Array(Span{UInt24})"/>
+    /// <seealso cref="PeekUInt24Array(Span{UInt24}, bool)"/>
+    /// <seealso cref="UInt24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
-    public void ReadUInt24Array(Span<UInt24> destination)
+    public void ReadUInt24Array(Span<UInt24> destination, bool isLittleEndian = false)
     {
-        PeekUInt24Array(destination);
+        PeekUInt24Array(destination, isLittleEndian);
         _position = checked(_position + destination.Length * 3);
     }
 
-    /// <summary>Fills <paramref name="destination"/> with unsigned 24-bit integers without advancing.</summary>
+    /// <summary>Fills <paramref name="destination"/> with unsigned 24-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt24Array(Span{UInt24})"/>
+    /// <seealso cref="ReadUInt24Array(Span{UInt24}, bool)"/>
+    /// <seealso cref="UInt24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
-    public readonly void PeekUInt24Array(Span<UInt24> destination) =>
-        _source.ReadUInt24ArrayAt(_position, destination);
+    public readonly void PeekUInt24Array(Span<UInt24> destination, bool isLittleEndian = false) =>
+        _source.ReadUInt24ArrayAt(_position, destination, isLittleEndian);
 
-    /// <summary>Reads an array of signed 24-bit integers and advances the position.</summary>
+    /// <summary>Reads an array of signed 24-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt24Array(int)"/>
-    /// <seealso cref="ReadInt24Array(Span{Int24})"/>
+    /// <seealso cref="PeekInt24Array(int, bool)"/>
+    /// <seealso cref="ReadInt24Array(Span{Int24}, bool)"/>
     /// <seealso cref="Int24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
-    public Int24[] ReadInt24Array(int count)
+    public Int24[] ReadInt24Array(int count, bool isLittleEndian = false)
     {
-        var result = PeekInt24Array(count);
+        var result = PeekInt24Array(count, isLittleEndian);
         _position = checked(_position + result.Length * 3);
         return result;
     }
 
-    /// <summary>Reads an array of signed 24-bit integers without advancing the position.</summary>
+    /// <summary>Reads an array of signed 24-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt24Array(int)"/>
+    /// <seealso cref="ReadInt24Array(int, bool)"/>
+    /// <seealso cref="Int24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
-    public readonly Int24[] PeekInt24Array(int count) =>
-        _source.ReadInt24ArrayAt(_position, count);
+    public readonly Int24[] PeekInt24Array(int count, bool isLittleEndian = false) =>
+        _source.ReadInt24ArrayAt(_position, count, isLittleEndian);
 
-    /// <summary>Fills <paramref name="destination"/> with signed 24-bit integers and advances the position.</summary>
+    /// <summary>Fills <paramref name="destination"/> with signed 24-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt24Array(Span{Int24})"/>
+    /// <seealso cref="PeekInt24Array(Span{Int24}, bool)"/>
+    /// <seealso cref="Int24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
-    public void ReadInt24Array(Span<Int24> destination)
+    public void ReadInt24Array(Span<Int24> destination, bool isLittleEndian = false)
     {
-        PeekInt24Array(destination);
+        PeekInt24Array(destination, isLittleEndian);
         _position = checked(_position + destination.Length * 3);
     }
 
-    /// <summary>Fills <paramref name="destination"/> with signed 24-bit integers without advancing.</summary>
+    /// <summary>Fills <paramref name="destination"/> with signed 24-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt24Array(Span{Int24})"/>
+    /// <seealso cref="ReadInt24Array(Span{Int24}, bool)"/>
+    /// <seealso cref="Int24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
-    public readonly void PeekInt24Array(Span<Int24> destination) =>
-        _source.ReadInt24ArrayAt(_position, destination);
+    public readonly void PeekInt24Array(Span<Int24> destination, bool isLittleEndian = false) =>
+        _source.ReadInt24ArrayAt(_position, destination, isLittleEndian);
 
-    /// <summary>Reads an array of unsigned 32-bit integers and advances the position.</summary>
+    // ───────────────────────── Typed arrays (32-bit) ─────────────────────────
+
+    /// <summary>Reads an array of unsigned 32-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt32Array(int)"/>
-    /// <seealso cref="ReadUInt32Array(Span{uint})"/>
+    /// <seealso cref="PeekUInt32Array(int, bool)"/>
+    /// <seealso cref="ReadUInt32Array(Span{uint}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
-    public uint[] ReadUInt32Array(int count)
+    public uint[] ReadUInt32Array(int count, bool isLittleEndian = false)
     {
-        var result = PeekUInt32Array(count);
+        var result = PeekUInt32Array(count, isLittleEndian);
         _position = checked(_position + result.Length * 4);
         return result;
     }
 
-    /// <summary>Reads an array of unsigned 32-bit integers without advancing the position.</summary>
+    /// <summary>Reads an array of unsigned 32-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt32Array(int)"/>
+    /// <seealso cref="ReadUInt32Array(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
-    public readonly uint[] PeekUInt32Array(int count) =>
-        _source.ReadUInt32ArrayAt(_position, count);
+    public readonly uint[] PeekUInt32Array(int count, bool isLittleEndian = false) =>
+        _source.ReadUInt32ArrayAt(_position, count, isLittleEndian);
 
-    /// <summary>Fills <paramref name="destination"/> with unsigned 32-bit integers and advances the position.</summary>
+    /// <summary>Fills <paramref name="destination"/> with unsigned 32-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekUInt32Array(Span{uint})"/>
+    /// <seealso cref="PeekUInt32Array(Span{uint}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
-    public void ReadUInt32Array(Span<uint> destination)
+    public void ReadUInt32Array(Span<uint> destination, bool isLittleEndian = false)
     {
-        PeekUInt32Array(destination);
+        PeekUInt32Array(destination, isLittleEndian);
         _position = checked(_position + destination.Length * 4);
     }
 
-    /// <summary>Fills <paramref name="destination"/> with unsigned 32-bit integers without advancing.</summary>
+    /// <summary>Fills <paramref name="destination"/> with unsigned 32-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadUInt32Array(Span{uint})"/>
+    /// <seealso cref="ReadUInt32Array(Span{uint}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint32</seealso>
-    public readonly void PeekUInt32Array(Span<uint> destination) =>
-        _source.ReadUInt32ArrayAt(_position, destination);
+    public readonly void PeekUInt32Array(Span<uint> destination, bool isLittleEndian = false) =>
+        _source.ReadUInt32ArrayAt(_position, destination, isLittleEndian);
 
-    /// <summary>Reads an array of signed 32-bit integers and advances the position.</summary>
+    /// <summary>Reads an array of signed 32-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt32Array(int)"/>
-    /// <seealso cref="ReadInt32Array(Span{int})"/>
+    /// <seealso cref="PeekInt32Array(int, bool)"/>
+    /// <seealso cref="ReadInt32Array(Span{int}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
-    public int[] ReadInt32Array(int count)
+    public int[] ReadInt32Array(int count, bool isLittleEndian = false)
     {
-        var result = PeekInt32Array(count);
+        var result = PeekInt32Array(count, isLittleEndian);
         _position = checked(_position + result.Length * 4);
         return result;
     }
 
-    /// <summary>Reads an array of signed 32-bit integers without advancing the position.</summary>
+    /// <summary>Reads an array of signed 32-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt32Array(int)"/>
+    /// <seealso cref="ReadInt32Array(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
-    public readonly int[] PeekInt32Array(int count) =>
-        _source.ReadInt32ArrayAt(_position, count);
+    public readonly int[] PeekInt32Array(int count, bool isLittleEndian = false) =>
+        _source.ReadInt32ArrayAt(_position, count, isLittleEndian);
 
-    /// <summary>Fills <paramref name="destination"/> with signed 32-bit integers and advances the position.</summary>
+    /// <summary>Fills <paramref name="destination"/> with signed 32-bit integers in the requested wire byte order and advances the position.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekInt32Array(Span{int})"/>
+    /// <seealso cref="PeekInt32Array(Span{int}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
-    public void ReadInt32Array(Span<int> destination)
+    public void ReadInt32Array(Span<int> destination, bool isLittleEndian = false)
     {
-        PeekInt32Array(destination);
+        PeekInt32Array(destination, isLittleEndian);
         _position = checked(_position + destination.Length * 4);
     }
 
-    /// <summary>Fills <paramref name="destination"/> with signed 32-bit integers without advancing.</summary>
+    /// <summary>Fills <paramref name="destination"/> with signed 32-bit integers in the requested wire byte order without advancing.</summary>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadInt32Array(Span{int})"/>
+    /// <seealso cref="ReadInt32Array(Span{int}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int32</seealso>
-    public readonly void PeekInt32Array(Span<int> destination) =>
-        _source.ReadInt32ArrayAt(_position, destination);
+    public readonly void PeekInt32Array(Span<int> destination, bool isLittleEndian = false) =>
+        _source.ReadInt32ArrayAt(_position, destination, isLittleEndian);
+
+    // ───────────────────────── Typed arrays (64-bit) ─────────────────────────
+
+    /// <summary>Reads an array of unsigned 64-bit integers in the requested wire byte order and advances the position.</summary>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="PeekUInt64Array(int, bool)"/>
+    /// <seealso cref="ReadUInt64Array(Span{ulong}, bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
+    public ulong[] ReadUInt64Array(int count, bool isLittleEndian = false)
+    {
+        var result = PeekUInt64Array(count, isLittleEndian);
+        _position = checked(_position + result.Length * 8);
+        return result;
+    }
+
+    /// <summary>Reads an array of unsigned 64-bit integers in the requested wire byte order without advancing.</summary>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt64Array(int, bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
+    public readonly ulong[] PeekUInt64Array(int count, bool isLittleEndian = false) =>
+        _source.ReadUInt64ArrayAt(_position, count, isLittleEndian);
+
+    /// <summary>Fills <paramref name="destination"/> with unsigned 64-bit integers in the requested wire byte order and advances the position.</summary>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="PeekUInt64Array(Span{ulong}, bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
+    public void ReadUInt64Array(Span<ulong> destination, bool isLittleEndian = false)
+    {
+        PeekUInt64Array(destination, isLittleEndian);
+        _position = checked(_position + destination.Length * 8);
+    }
+
+    /// <summary>Fills <paramref name="destination"/> with unsigned 64-bit integers in the requested wire byte order without advancing.</summary>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">uint64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadUInt64Array(Span{ulong}, bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint64</seealso>
+    public readonly void PeekUInt64Array(Span<ulong> destination, bool isLittleEndian = false) =>
+        _source.ReadUInt64ArrayAt(_position, destination, isLittleEndian);
+
+    /// <summary>Reads an array of signed 64-bit integers in the requested wire byte order and advances the position.</summary>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="PeekInt64Array(int, bool)"/>
+    /// <seealso cref="ReadInt64Array(Span{long}, bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
+    public long[] ReadInt64Array(int count, bool isLittleEndian = false)
+    {
+        var result = PeekInt64Array(count, isLittleEndian);
+        _position = checked(_position + result.Length * 8);
+        return result;
+    }
+
+    /// <summary>Reads an array of signed 64-bit integers in the requested wire byte order without advancing.</summary>
+    /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array containing the values read.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt64Array(int, bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
+    public readonly long[] PeekInt64Array(int count, bool isLittleEndian = false) =>
+        _source.ReadInt64ArrayAt(_position, count, isLittleEndian);
+
+    /// <summary>Fills <paramref name="destination"/> with signed 64-bit integers in the requested wire byte order and advances the position.</summary>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="PeekInt64Array(Span{long}, bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
+    public void ReadInt64Array(Span<long> destination, bool isLittleEndian = false)
+    {
+        PeekInt64Array(destination, isLittleEndian);
+        _position = checked(_position + destination.Length * 8);
+    }
+
+    /// <summary>Fills <paramref name="destination"/> with signed 64-bit integers in the requested wire byte order without advancing.</summary>
+    /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the values' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">int64 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadInt64Array(Span{long}, bool)"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int64</seealso>
+    public readonly void PeekInt64Array(Span<long> destination, bool isLittleEndian = false) =>
+        _source.ReadInt64ArrayAt(_position, destination, isLittleEndian);
+
+    // ─────────────────── Offset array interpretation ───────────────────
 
     /// <summary>Reads <paramref name="count"/> 8-bit offsets and interprets each.</summary>
     /// <typeparam name="T">The interpreter's return type.</typeparam>
@@ -934,14 +1133,11 @@ public ref struct Cursor
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="PeekOffset8ArrayInterpret{T}(int, Func{byte, T})"/>
-    /// <seealso cref="ReadOffset16ArrayInterpret{T}(int, Func{ushort, T})"/>
-    /// <seealso cref="ReadOffset24ArrayInterpret{T}(int, Func{UInt24, T})"/>
-    /// <seealso cref="ReadOffset32ArrayInterpret{T}(int, Func{uint, T})"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
     public T[] ReadOffset8ArrayInterpret<T>(int count, Func<byte, T> interpreter)
     {
         var result = PeekOffset8ArrayInterpret(count, interpreter);
-        _position = checked(_position + result.Length);
+        _position = checked(_position + count);
         return result;
     }
 
@@ -959,104 +1155,111 @@ public ref struct Cursor
     public readonly T[] PeekOffset8ArrayInterpret<T>(int count, Func<byte, T> interpreter) =>
         _source.ReadOffset8ArrayInterpretAt(_position, count, interpreter);
 
-    /// <summary>Reads <paramref name="count"/> 16-bit offsets and interprets each.</summary>
+    /// <summary>Reads <paramref name="count"/> 16-bit offsets in the requested wire byte order and interprets each.</summary>
     /// <typeparam name="T">The interpreter's return type.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="interpreter">The function applied to each offset value.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of interpreted values, one per offset.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset16ArrayInterpret{T}(int, Func{ushort, T})"/>
-    /// <seealso cref="ReadOffset8ArrayInterpret{T}(int, Func{byte, T})"/>
+    /// <seealso cref="PeekOffset16ArrayInterpret{T}(int, Func{ushort, T}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public T[] ReadOffset16ArrayInterpret<T>(int count, Func<ushort, T> interpreter)
+    public T[] ReadOffset16ArrayInterpret<T>(int count, Func<ushort, T> interpreter, bool isLittleEndian = false)
     {
-        var result = PeekOffset16ArrayInterpret(count, interpreter);
-        _position = checked(_position + result.Length * 2);
+        var result = PeekOffset16ArrayInterpret(count, interpreter, isLittleEndian);
+        _position = checked(_position + (long)count * 2);
         return result;
     }
 
-    /// <summary>Reads and interprets <paramref name="count"/> 16-bit offsets without advancing.</summary>
+    /// <summary>Reads and interprets <paramref name="count"/> 16-bit offsets in the requested wire byte order without advancing.</summary>
     /// <typeparam name="T">The interpreter's return type.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="interpreter">The function applied to each offset value.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of interpreted values, one per offset.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayInterpret{T}(int, Func{ushort, T})"/>
+    /// <seealso cref="ReadOffset16ArrayInterpret{T}(int, Func{ushort, T}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public readonly T[] PeekOffset16ArrayInterpret<T>(int count, Func<ushort, T> interpreter) =>
-        _source.ReadOffset16ArrayInterpretAt(_position, count, interpreter);
+    public readonly T[] PeekOffset16ArrayInterpret<T>(int count, Func<ushort, T> interpreter, bool isLittleEndian = false) =>
+        _source.ReadOffset16ArrayInterpretAt(_position, count, interpreter, isLittleEndian);
 
-    /// <summary>Reads <paramref name="count"/> 24-bit offsets and interprets each.</summary>
+    /// <summary>Reads <paramref name="count"/> 24-bit offsets in the requested wire byte order and interprets each.</summary>
     /// <typeparam name="T">The interpreter's return type.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="interpreter">The function applied to each offset value.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of interpreted values, one per offset.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset24ArrayInterpret{T}(int, Func{UInt24, T})"/>
-    /// <seealso cref="ReadOffset8ArrayInterpret{T}(int, Func{byte, T})"/>
+    /// <seealso cref="PeekOffset24ArrayInterpret{T}(int, Func{UInt24, T}, bool)"/>
+    /// <seealso cref="UInt24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public T[] ReadOffset24ArrayInterpret<T>(int count, Func<UInt24, T> interpreter)
+    public T[] ReadOffset24ArrayInterpret<T>(int count, Func<UInt24, T> interpreter, bool isLittleEndian = false)
     {
-        var result = PeekOffset24ArrayInterpret(count, interpreter);
-        _position = checked(_position + result.Length * 3);
+        var result = PeekOffset24ArrayInterpret(count, interpreter, isLittleEndian);
+        _position = checked(_position + (long)count * 3);
         return result;
     }
 
-    /// <summary>Reads and interprets <paramref name="count"/> 24-bit offsets without advancing.</summary>
+    /// <summary>Reads and interprets <paramref name="count"/> 24-bit offsets in the requested wire byte order without advancing.</summary>
     /// <typeparam name="T">The interpreter's return type.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="interpreter">The function applied to each offset value.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of interpreted values, one per offset.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset24ArrayInterpret{T}(int, Func{UInt24, T})"/>
+    /// <seealso cref="ReadOffset24ArrayInterpret{T}(int, Func{UInt24, T}, bool)"/>
+    /// <seealso cref="UInt24"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public readonly T[] PeekOffset24ArrayInterpret<T>(int count, Func<UInt24, T> interpreter) =>
-        _source.ReadOffset24ArrayInterpretAt(_position, count, interpreter);
+    public readonly T[] PeekOffset24ArrayInterpret<T>(int count, Func<UInt24, T> interpreter, bool isLittleEndian = false) =>
+        _source.ReadOffset24ArrayInterpretAt(_position, count, interpreter, isLittleEndian);
 
-    /// <summary>Reads <paramref name="count"/> 32-bit offsets and interprets each.</summary>
+    /// <summary>Reads <paramref name="count"/> 32-bit offsets in the requested wire byte order and interprets each.</summary>
     /// <typeparam name="T">The interpreter's return type.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="interpreter">The function applied to each offset value.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of interpreted values, one per offset.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset32ArrayInterpret{T}(int, Func{uint, T})"/>
-    /// <seealso cref="ReadOffset8ArrayInterpret{T}(int, Func{byte, T})"/>
+    /// <seealso cref="PeekOffset32ArrayInterpret{T}(int, Func{uint, T}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public T[] ReadOffset32ArrayInterpret<T>(int count, Func<uint, T> interpreter)
+    public T[] ReadOffset32ArrayInterpret<T>(int count, Func<uint, T> interpreter, bool isLittleEndian = false)
     {
-        var result = PeekOffset32ArrayInterpret(count, interpreter);
-        _position = checked(_position + result.Length * 4);
+        var result = PeekOffset32ArrayInterpret(count, interpreter, isLittleEndian);
+        _position = checked(_position + (long)count * 4);
         return result;
     }
 
-    /// <summary>Reads and interprets <paramref name="count"/> 32-bit offsets without advancing.</summary>
+    /// <summary>Reads and interprets <paramref name="count"/> 32-bit offsets in the requested wire byte order without advancing.</summary>
     /// <typeparam name="T">The interpreter's return type.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <param name="interpreter">The function applied to each offset value.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array of interpreted values, one per offset.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="interpreter"/> is <c>null</c>.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset32ArrayInterpret{T}(int, Func{uint, T})"/>
+    /// <seealso cref="ReadOffset32ArrayInterpret{T}(int, Func{uint, T}, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public readonly T[] PeekOffset32ArrayInterpret<T>(int count, Func<uint, T> interpreter) =>
-        _source.ReadOffset32ArrayInterpretAt(_position, count, interpreter);
+    public readonly T[] PeekOffset32ArrayInterpret<T>(int count, Func<uint, T> interpreter, bool isLittleEndian = false) =>
+        _source.ReadOffset32ArrayInterpretAt(_position, count, interpreter, isLittleEndian);
+
+    // ─────────────────── Record parsing ───────────────────
 
     /// <summary>Parses a record of type <typeparamref name="T"/> at the current position and advances the position past it.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
@@ -1112,138 +1315,6 @@ public ref struct Cursor
     public readonly T[] PeekRecordArray<T>(int count, object? context = null) where T : IRecord<T> =>
         _source.ParseRecordArrayAt<T>(_position, count, context);
 
-    /// <summary>Reads <paramref name="count"/> 8-bit offsets and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
-    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
-    /// <param name="count">The number of offsets. Must be non-negative.</param>
-    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
-    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The offsets are relative to the source origin, not to <see cref="Position"/>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset8ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="ReadOffset16ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
-    public T[] ReadOffset8ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T>
-    {
-        var result = PeekOffset8ArrayPeekRecord<T>(count, context);
-        _position = checked(_position + count);
-        return result;
-    }
-
-    /// <summary>Reads and interprets <paramref name="count"/> 8-bit offsets without advancing, and parses a record at each offset.</summary>
-    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
-    /// <param name="count">The number of offsets. Must be non-negative.</param>
-    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
-    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset8ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
-    public readonly T[] PeekOffset8ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T> =>
-        _source.ReadOffset8ArrayParseRecordAt<T>(_position, count, context);
-
-    /// <summary>Reads <paramref name="count"/> 16-bit offsets and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
-    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
-    /// <param name="count">The number of offsets. Must be non-negative.</param>
-    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
-    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The offsets are relative to the source origin, not to <see cref="Position"/>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset16ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="ReadOffset8ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public T[] ReadOffset16ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T>
-    {
-        var result = PeekOffset16ArrayPeekRecord<T>(count, context);
-        _position = checked(_position + (long)count * 2);
-        return result;
-    }
-
-    /// <summary>Reads and interprets <paramref name="count"/> 16-bit offsets without advancing, and parses a record at each offset.</summary>
-    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
-    /// <param name="count">The number of offsets. Must be non-negative.</param>
-    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
-    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public readonly T[] PeekOffset16ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T> =>
-        _source.ReadOffset16ArrayParseRecordAt<T>(_position, count, context);
-
-    /// <summary>Reads <paramref name="count"/> 24-bit offsets and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
-    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
-    /// <param name="count">The number of offsets. Must be non-negative.</param>
-    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
-    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The offsets are relative to the source origin, not to <see cref="Position"/>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset24ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="ReadOffset8ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public T[] ReadOffset24ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T>
-    {
-        var result = PeekOffset24ArrayPeekRecord<T>(count, context);
-        _position = checked(_position + (long)count * 3);
-        return result;
-    }
-
-    /// <summary>Reads and interprets <paramref name="count"/> 24-bit offsets without advancing, and parses a record at each offset.</summary>
-    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
-    /// <param name="count">The number of offsets. Must be non-negative.</param>
-    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
-    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset24ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public readonly T[] PeekOffset24ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T> =>
-        _source.ReadOffset24ArrayParseRecordAt<T>(_position, count, context);
-
-    /// <summary>Reads <paramref name="count"/> 32-bit offsets and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
-    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
-    /// <param name="count">The number of offsets. Must be non-negative.</param>
-    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
-    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The offsets are relative to the source origin, not to <see cref="Position"/>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset32ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="ReadOffset8ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public T[] ReadOffset32ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T>
-    {
-        var result = PeekOffset32ArrayPeekRecord<T>(count, context);
-        _position = checked(_position + (long)count * 4);
-        return result;
-    }
-
-    /// <summary>Reads and interprets <paramref name="count"/> 32-bit offsets without advancing, and parses a record at each offset.</summary>
-    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
-    /// <param name="count">The number of offsets. Must be non-negative.</param>
-    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
-    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset32ArrayPeekRecord{T}(int, object?)"/>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public readonly T[] PeekOffset32ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T> =>
-        _source.ReadOffset32ArrayParseRecordAt<T>(_position, count, context);
-
     /// <summary>Parses <paramref name="destination"/>.Length records of type <typeparamref name="T"/> at the current position and advances the position past them.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
     /// <param name="destination">The span to fill. Its length determines the number of records.</param>
@@ -1279,6 +1350,144 @@ public ref struct Cursor
         if (!destination.IsEmpty) _source.ParseRecordArrayAt(_position, destination, context);
     }
 
+    // ─────────────────── Offset array + record parsing (count) ───────────────────
+
+    /// <summary>Reads <paramref name="count"/> 8-bit offsets and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
+    /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The offsets are relative to the source origin, not to <see cref="Position"/>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="PeekOffset8ArrayPeekRecord{T}(int, object?)"/>
+    /// <seealso cref="IRecord{T}"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
+    public T[] ReadOffset8ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T>
+    {
+        var result = PeekOffset8ArrayPeekRecord<T>(count, context);
+        _position = checked(_position + count);
+        return result;
+    }
+
+    /// <summary>Reads and interprets <paramref name="count"/> 8-bit offsets without advancing, and parses a record at each offset.</summary>
+    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
+    /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadOffset8ArrayPeekRecord{T}(int, object?)"/>
+    /// <seealso cref="IRecord{T}"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
+    public readonly T[] PeekOffset8ArrayPeekRecord<T>(int count, object? context = null) where T : IRecord<T> =>
+        _source.ReadOffset8ArrayParseRecordAt<T>(_position, count, context);
+
+    /// <summary>Reads <paramref name="count"/> 16-bit offsets in the requested wire byte order and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
+    /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The offsets are relative to the source origin, not to <see cref="Position"/>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="PeekOffset16ArrayPeekRecord{T}(int, object?, bool)"/>
+    /// <seealso cref="IRecord{T}"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
+    public T[] ReadOffset16ArrayPeekRecord<T>(int count, object? context = null, bool isLittleEndian = false) where T : IRecord<T>
+    {
+        var result = PeekOffset16ArrayPeekRecord<T>(count, context, isLittleEndian);
+        _position = checked(_position + (long)count * 2);
+        return result;
+    }
+
+    /// <summary>Reads and interprets <paramref name="count"/> 16-bit offsets in the requested wire byte order without advancing, and parses a record at each offset.</summary>
+    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
+    /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadOffset16ArrayPeekRecord{T}(int, object?, bool)"/>
+    /// <seealso cref="IRecord{T}"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
+    public readonly T[] PeekOffset16ArrayPeekRecord<T>(int count, object? context = null, bool isLittleEndian = false) where T : IRecord<T> =>
+        _source.ReadOffset16ArrayParseRecordAt<T>(_position, count, context, isLittleEndian);
+
+    /// <summary>Reads <paramref name="count"/> 24-bit offsets in the requested wire byte order and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
+    /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The offsets are relative to the source origin, not to <see cref="Position"/>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="PeekOffset24ArrayPeekRecord{T}(int, object?, bool)"/>
+    /// <seealso cref="IRecord{T}"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
+    public T[] ReadOffset24ArrayPeekRecord<T>(int count, object? context = null, bool isLittleEndian = false) where T : IRecord<T>
+    {
+        var result = PeekOffset24ArrayPeekRecord<T>(count, context, isLittleEndian);
+        _position = checked(_position + (long)count * 3);
+        return result;
+    }
+
+    /// <summary>Reads and interprets <paramref name="count"/> 24-bit offsets in the requested wire byte order without advancing, and parses a record at each offset.</summary>
+    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
+    /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadOffset24ArrayPeekRecord{T}(int, object?, bool)"/>
+    /// <seealso cref="IRecord{T}"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
+    public readonly T[] PeekOffset24ArrayPeekRecord<T>(int count, object? context = null, bool isLittleEndian = false) where T : IRecord<T> =>
+        _source.ReadOffset24ArrayParseRecordAt<T>(_position, count, context, isLittleEndian);
+
+    /// <summary>Reads <paramref name="count"/> 32-bit offsets in the requested wire byte order and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
+    /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The offsets are relative to the source origin, not to <see cref="Position"/>. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="PeekOffset32ArrayPeekRecord{T}(int, object?, bool)"/>
+    /// <seealso cref="IRecord{T}"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
+    public T[] ReadOffset32ArrayPeekRecord<T>(int count, object? context = null, bool isLittleEndian = false) where T : IRecord<T>
+    {
+        var result = PeekOffset32ArrayPeekRecord<T>(count, context, isLittleEndian);
+        _position = checked(_position + (long)count * 4);
+        return result;
+    }
+
+    /// <summary>Reads and interprets <paramref name="count"/> 32-bit offsets in the requested wire byte order without advancing, and parses a record at each offset.</summary>
+    /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
+    /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
+    /// <returns>A new array of parsed records, one per offset, in source order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
+    /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
+    /// <seealso cref="ReadOffset32ArrayPeekRecord{T}(int, object?, bool)"/>
+    /// <seealso cref="IRecord{T}"/>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
+    public readonly T[] PeekOffset32ArrayPeekRecord<T>(int count, object? context = null, bool isLittleEndian = false) where T : IRecord<T> =>
+        _source.ReadOffset32ArrayParseRecordAt<T>(_position, count, context, isLittleEndian);
+
+    // ─────────────────── Offset array + record parsing (span) ───────────────────
+
     /// <summary>Reads <paramref name="destination"/>.Length 8-bit offsets and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
@@ -1311,101 +1520,109 @@ public ref struct Cursor
         if (!destination.IsEmpty) _source.ReadOffset8ArrayParseRecordAt(_position, destination, context);
     }
 
-    /// <summary>Reads <paramref name="destination"/>.Length 16-bit offsets and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <summary>Reads <paramref name="destination"/>.Length 16-bit offsets in the requested wire byte order and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset16ArrayPeekRecord{T}(Span{T}, object?)"/>
+    /// <seealso cref="PeekOffset16ArrayPeekRecord{T}(Span{T}, object?, bool)"/>
     /// <seealso cref="IRecord{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public void ReadOffset16ArrayPeekRecord<T>(Span<T> destination, object? context = null)
+    public void ReadOffset16ArrayPeekRecord<T>(Span<T> destination, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
         if (destination.IsEmpty) return;
-        PeekOffset16ArrayPeekRecord(destination, context);
+        PeekOffset16ArrayPeekRecord(destination, context, isLittleEndian);
         _position = checked(_position + (long)destination.Length * 2);
     }
 
-    /// <summary>Reads and interprets <paramref name="destination"/>.Length 16-bit offsets without advancing, and parses a record at each offset.</summary>
+    /// <summary>Reads and interprets <paramref name="destination"/>.Length 16-bit offsets in the requested wire byte order without advancing, and parses a record at each offset.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayPeekRecord{T}(Span{T}, object?)"/>
+    /// <seealso cref="ReadOffset16ArrayPeekRecord{T}(Span{T}, object?, bool)"/>
     /// <seealso cref="IRecord{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public readonly void PeekOffset16ArrayPeekRecord<T>(Span<T> destination, object? context = null)
+    public readonly void PeekOffset16ArrayPeekRecord<T>(Span<T> destination, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
-        if (!destination.IsEmpty) _source.ReadOffset16ArrayParseRecordAt(_position, destination, context);
+        if (!destination.IsEmpty) _source.ReadOffset16ArrayParseRecordAt(_position, destination, context, isLittleEndian);
     }
 
-    /// <summary>Reads <paramref name="destination"/>.Length 24-bit offsets and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <summary>Reads <paramref name="destination"/>.Length 24-bit offsets in the requested wire byte order and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset24ArrayPeekRecord{T}(Span{T}, object?)"/>
+    /// <seealso cref="PeekOffset24ArrayPeekRecord{T}(Span{T}, object?, bool)"/>
     /// <seealso cref="IRecord{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public void ReadOffset24ArrayPeekRecord<T>(Span<T> destination, object? context = null)
+    public void ReadOffset24ArrayPeekRecord<T>(Span<T> destination, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
         if (destination.IsEmpty) return;
-        PeekOffset24ArrayPeekRecord(destination, context);
+        PeekOffset24ArrayPeekRecord(destination, context, isLittleEndian);
         _position = checked(_position + (long)destination.Length * 3);
     }
 
-    /// <summary>Reads and interprets <paramref name="destination"/>.Length 24-bit offsets without advancing, and parses a record at each offset.</summary>
+    /// <summary>Reads and interprets <paramref name="destination"/>.Length 24-bit offsets in the requested wire byte order without advancing, and parses a record at each offset.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset24ArrayPeekRecord{T}(Span{T}, object?)"/>
+    /// <seealso cref="ReadOffset24ArrayPeekRecord{T}(Span{T}, object?, bool)"/>
     /// <seealso cref="IRecord{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public readonly void PeekOffset24ArrayPeekRecord<T>(Span<T> destination, object? context = null)
+    public readonly void PeekOffset24ArrayPeekRecord<T>(Span<T> destination, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
-        if (!destination.IsEmpty) _source.ReadOffset24ArrayParseRecordAt(_position, destination, context);
+        if (!destination.IsEmpty) _source.ReadOffset24ArrayParseRecordAt(_position, destination, context, isLittleEndian);
     }
 
-    /// <summary>Reads <paramref name="destination"/>.Length 32-bit offsets and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <summary>Reads <paramref name="destination"/>.Length 32-bit offsets in the requested wire byte order and parses a record of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset32ArrayPeekRecord{T}(Span{T}, object?)"/>
+    /// <seealso cref="PeekOffset32ArrayPeekRecord{T}(Span{T}, object?, bool)"/>
     /// <seealso cref="IRecord{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public void ReadOffset32ArrayPeekRecord<T>(Span<T> destination, object? context = null)
+    public void ReadOffset32ArrayPeekRecord<T>(Span<T> destination, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
         if (destination.IsEmpty) return;
-        PeekOffset32ArrayPeekRecord(destination, context);
+        PeekOffset32ArrayPeekRecord(destination, context, isLittleEndian);
         _position = checked(_position + (long)destination.Length * 4);
     }
 
-    /// <summary>Reads and interprets <paramref name="destination"/>.Length 32-bit offsets without advancing, and parses a record at each offset.</summary>
+    /// <summary>Reads and interprets <paramref name="destination"/>.Length 32-bit offsets in the requested wire byte order without advancing, and parses a record at each offset.</summary>
     /// <typeparam name="T">The record type. Must implement <see cref="IRecord{T}"/>.</typeparam>
     /// <param name="destination">The span to fill. Its length determines the number of offsets.</param>
     /// <param name="context">External values each record needs, or <c>null</c> when the records' own bytes are sufficient.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>The cursor's <see cref="Position"/> is not modified. See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset32ArrayPeekRecord{T}(Span{T}, object?)"/>
+    /// <seealso cref="ReadOffset32ArrayPeekRecord{T}(Span{T}, object?, bool)"/>
     /// <seealso cref="IRecord{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public readonly void PeekOffset32ArrayPeekRecord<T>(Span<T> destination, object? context = null)
+    public readonly void PeekOffset32ArrayPeekRecord<T>(Span<T> destination, object? context = null, bool isLittleEndian = false)
         where T : IRecord<T>
     {
-        if (!destination.IsEmpty) _source.ReadOffset32ArrayParseRecordAt(_position, destination, context);
+        if (!destination.IsEmpty) _source.ReadOffset32ArrayParseRecordAt(_position, destination, context, isLittleEndian);
     }
+
+    // ───────────────────────── Struct reads ─────────────────────────
 
     /// <summary>Reads an unmanaged struct of type <typeparamref name="T"/> at the current position and advances by <c>sizeof(T)</c> bytes. No endianness conversion is performed.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
@@ -1414,12 +1631,12 @@ public ref struct Cursor
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>The caller is responsible for swapping multi-byte fields when the on-disk byte order does not match the host.</description></item>
-    /// <item><description>For big-endian structs, use <see cref="ReadBigEndianStruct{T}"/> instead.</description></item>
+    /// <item><description>For big-endian structs, use <see cref="ReadEndianReversibleStruct{T}(bool)"/> instead.</description></item>
     /// <item><description>See <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType Data Types</see> for the on-disk format of primitive fields.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="PeekStruct{T}"/>
-    /// <seealso cref="ReadBigEndianStruct{T}"/>
+    /// <seealso cref="ReadEndianReversibleStruct{T}(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
     public T ReadStruct<T>() where T : unmanaged
     {
@@ -1434,37 +1651,39 @@ public ref struct Cursor
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>The cursor's <see cref="Position"/> is not modified. See <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType Data Types</see> for the on-disk format of primitive fields.</remarks>
     /// <seealso cref="ReadStruct{T}"/>
-    /// <seealso cref="PeekBigEndianStruct{T}"/>
+    /// <seealso cref="PeekEndianReversibleStruct{T}(bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
     public readonly T PeekStruct<T>() where T : unmanaged =>
         _source.ReadStructAt<T>(_position);
 
-    /// <summary>Reads a big-endian unmanaged struct of type <typeparamref name="T"/> at the current position and advances by <c>sizeof(T)</c> bytes, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Reads an endian-reversible unmanaged struct of type <typeparamref name="T"/> at the current position and advances by <c>sizeof(T)</c> bytes, swapping multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/> so its multi-byte fields can be reversed.</typeparam>
+    /// <param name="isLittleEndian"><see langword="true"/> when the struct's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value read from the source bytes, with multi-byte fields in native order.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>This is the reader to use for every OpenType header or record struct, since the format is defined as big-endian on disk. See <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType Data Types</see>.</remarks>
-    /// <seealso cref="PeekBigEndianStruct{T}"/>
+    /// <seealso cref="PeekEndianReversibleStruct{T}(bool)"/>
     /// <seealso cref="ReadStruct{T}"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
-    public T ReadBigEndianStruct<T>() where T : unmanaged, IEndianReversibleStruct<T>
+    public T ReadEndianReversibleStruct<T>(bool isLittleEndian = false) where T : unmanaged, IEndianReversibleStruct<T>
     {
-        T value = _source.ReadEndianReversibleStructAt<T>(_position);
+        T value = _source.ReadEndianReversibleStructAt<T>(_position, isLittleEndian);
         _position = checked(_position + Unsafe.SizeOf<T>());
         return value;
     }
 
-    /// <summary>Reads a big-endian unmanaged struct of type <typeparamref name="T"/> at the current position without advancing, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Reads an endian-reversible unmanaged struct of type <typeparamref name="T"/> at the current position without advancing, swapping multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/> so its multi-byte fields can be reversed.</typeparam>
+    /// <param name="isLittleEndian"><see langword="true"/> when the struct's on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>The value read from the source bytes, with multi-byte fields in native order.</returns>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>The cursor's <see cref="Position"/> is not modified. See <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType Data Types</see>.</remarks>
-    /// <seealso cref="ReadBigEndianStruct{T}"/>
+    /// <seealso cref="ReadEndianReversibleStruct{T}(bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
-    public readonly T PeekBigEndianStruct<T>() where T : unmanaged, IEndianReversibleStruct<T> =>
-        _source.ReadEndianReversibleStructAt<T>(_position);
+    public readonly T PeekEndianReversibleStruct<T>(bool isLittleEndian = false) where T : unmanaged, IEndianReversibleStruct<T> =>
+        _source.ReadEndianReversibleStructAt<T>(_position, isLittleEndian);
 
     /// <summary>Reads <paramref name="count"/> unmanaged structs of type <typeparamref name="T"/> and advances by <c>count * sizeof(T)</c> bytes. No endianness conversion is performed.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
@@ -1473,7 +1692,7 @@ public ref struct Cursor
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <seealso cref="PeekStructArray{T}(int)"/>
-    /// <seealso cref="ReadBigEndianStructArray{T}(int)"/>
+    /// <seealso cref="ReadEndianReversibleStructArray{T}(int, bool)"/>
     public T[] ReadStructArray<T>(int count) where T : unmanaged
     {
         var result = PeekStructArray<T>(count);
@@ -1510,57 +1729,63 @@ public ref struct Cursor
     public readonly void PeekStructArray<T>(Span<T> destination) where T : unmanaged =>
         _source.ReadStructArrayAt(_position, destination);
 
-    /// <summary>Reads <paramref name="count"/> big-endian unmanaged structs of type <typeparamref name="T"/> and advances by <c>count * sizeof(T)</c> bytes, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Reads <paramref name="count"/> endian-reversible unmanaged structs of type <typeparamref name="T"/> and advances by <c>count * sizeof(T)</c> bytes, swapping multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <seealso cref="PeekBigEndianStructArray{T}(int)"/>
+    /// <seealso cref="PeekEndianReversibleStructArray{T}(int, bool)"/>
     /// <seealso cref="ReadStructArray{T}(int)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    public T[] ReadBigEndianStructArray<T>(int count) where T : unmanaged, IEndianReversibleStruct<T>
+    public T[] ReadEndianReversibleStructArray<T>(int count, bool isLittleEndian = false) where T : unmanaged, IEndianReversibleStruct<T>
     {
-        var result = PeekBigEndianStructArray<T>(count);
+        var result = PeekEndianReversibleStructArray<T>(count, isLittleEndian);
         _position = checked(_position + result.Length * Unsafe.SizeOf<T>());
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> big-endian unmanaged structs of type <typeparamref name="T"/> without advancing, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Reads <paramref name="count"/> endian-reversible unmanaged structs of type <typeparamref name="T"/> without advancing, swapping multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of elements. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <seealso cref="ReadBigEndianStructArray{T}(int)"/>
+    /// <seealso cref="ReadEndianReversibleStructArray{T}(int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    public readonly T[] PeekBigEndianStructArray<T>(int count) where T : unmanaged, IEndianReversibleStruct<T> =>
-        _source.ReadEndianReversibleStructArrayAt<T>(_position, count);
+    public readonly T[] PeekEndianReversibleStructArray<T>(int count, bool isLittleEndian = false) where T : unmanaged, IEndianReversibleStruct<T> =>
+        _source.ReadEndianReversibleStructArrayAt<T>(_position, count, isLittleEndian);
 
-    /// <summary>Fills <paramref name="destination"/> with big-endian unmanaged structs of type <typeparamref name="T"/> and advances by <c>destination.Length * sizeof(T)</c> bytes, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Fills <paramref name="destination"/> with endian-reversible unmanaged structs of type <typeparamref name="T"/> and advances by <c>destination.Length * sizeof(T)</c> bytes, swapping multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <seealso cref="PeekBigEndianStructArray{T}(Span{T})"/>
+    /// <seealso cref="PeekEndianReversibleStructArray{T}(Span{T}, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    public void ReadBigEndianStructArray<T>(Span<T> destination)
+    public void ReadEndianReversibleStructArray<T>(Span<T> destination, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
-        PeekBigEndianStructArray(destination);
+        PeekEndianReversibleStructArray(destination, isLittleEndian);
         _position = checked(_position + destination.Length * Unsafe.SizeOf<T>());
     }
 
-    /// <summary>Fills <paramref name="destination"/> with big-endian unmanaged structs of type <typeparamref name="T"/> without advancing, swapping multi-byte fields on little-endian hosts.</summary>
+    /// <summary>Fills <paramref name="destination"/> with endian-reversible unmanaged structs of type <typeparamref name="T"/> without advancing, swapping multi-byte fields when the wire byte order disagrees with the host.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="destination">The span to fill.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
-    /// <seealso cref="ReadBigEndianStructArray{T}(Span{T})"/>
+    /// <seealso cref="ReadEndianReversibleStructArray{T}(Span{T}, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    public readonly void PeekBigEndianStructArray<T>(Span<T> destination)
+    public readonly void PeekEndianReversibleStructArray<T>(Span<T> destination, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T> =>
-        _source.ReadEndianReversibleStructArrayAt(_position, destination);
+        _source.ReadEndianReversibleStructArrayAt(_position, destination, isLittleEndian);
 
-    /// <summary>Reads <paramref name="count"/> 8-bit offsets and reads a struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array. No endianness conversion is performed on the structs.</summary>
+    // ─────────────── Offset array + struct reads ───────────────
+
+    /// <summary>Reads <paramref name="count"/> 8-bit offsets and reads an unmanaged struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <returns>A new array containing the values read.</returns>
@@ -1568,7 +1793,7 @@ public ref struct Cursor
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
     /// <seealso cref="PeekOffset8ArrayPeekStruct{T}(int)"/>
-    /// <seealso cref="ReadOffset8ArrayPeekBigEndianStruct{T}(int)"/>
+    /// <seealso cref="ReadOffset8ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
     public T[] ReadOffset8ArrayPeekStruct<T>(int count) where T : unmanaged
     {
@@ -1577,7 +1802,7 @@ public ref struct Cursor
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 8-bit offsets without advancing and reads a struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
+    /// <summary>Reads <paramref name="count"/> 8-bit offsets without advancing and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
     /// <returns>A new array containing the values read.</returns>
@@ -1589,224 +1814,242 @@ public ref struct Cursor
     public readonly T[] PeekOffset8ArrayPeekStruct<T>(int count) where T : unmanaged =>
         _source.ReadOffset8ArrayPeekStructAt<T>(_position, count);
 
-    /// <summary>Reads <paramref name="count"/> 16-bit offsets and reads a struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array. No endianness conversion is performed on the structs.</summary>
+    /// <summary>Reads <paramref name="count"/> 16-bit offsets in the requested wire byte order and reads an unmanaged struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset16ArrayPeekStruct{T}(int)"/>
-    /// <seealso cref="ReadOffset16ArrayPeekBigEndianStruct{T}(int)"/>
+    /// <seealso cref="PeekOffset16ArrayPeekStruct{T}(int, bool)"/>
+    /// <seealso cref="ReadOffset16ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public T[] ReadOffset16ArrayPeekStruct<T>(int count) where T : unmanaged
+    public T[] ReadOffset16ArrayPeekStruct<T>(int count, bool isLittleEndian = false) where T : unmanaged
     {
-        var result = PeekOffset16ArrayPeekStruct<T>(count);
+        var result = PeekOffset16ArrayPeekStruct<T>(count, isLittleEndian);
         _position = checked(_position + (long)count * 2);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 16-bit offsets without advancing and reads a struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
+    /// <summary>Reads <paramref name="count"/> 16-bit offsets in the requested wire byte order without advancing and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayPeekStruct{T}(int)"/>
+    /// <seealso cref="ReadOffset16ArrayPeekStruct{T}(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public readonly T[] PeekOffset16ArrayPeekStruct<T>(int count) where T : unmanaged =>
-        _source.ReadOffset16ArrayPeekStructAt<T>(_position, count);
+    public readonly T[] PeekOffset16ArrayPeekStruct<T>(int count, bool isLittleEndian = false) where T : unmanaged =>
+        _source.ReadOffset16ArrayPeekStructAt<T>(_position, count, isLittleEndian);
 
-    /// <summary>Reads <paramref name="count"/> 24-bit offsets and reads a struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array. No endianness conversion is performed on the structs.</summary>
+    /// <summary>Reads <paramref name="count"/> 24-bit offsets in the requested wire byte order and reads an unmanaged struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset24ArrayPeekStruct{T}(int)"/>
-    /// <seealso cref="ReadOffset24ArrayPeekBigEndianStruct{T}(int)"/>
+    /// <seealso cref="PeekOffset24ArrayPeekStruct{T}(int, bool)"/>
+    /// <seealso cref="ReadOffset24ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public T[] ReadOffset24ArrayPeekStruct<T>(int count) where T : unmanaged
+    public T[] ReadOffset24ArrayPeekStruct<T>(int count, bool isLittleEndian = false) where T : unmanaged
     {
-        var result = PeekOffset24ArrayPeekStruct<T>(count);
+        var result = PeekOffset24ArrayPeekStruct<T>(count, isLittleEndian);
         _position = checked(_position + (long)count * 3);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 24-bit offsets without advancing and reads a struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
+    /// <summary>Reads <paramref name="count"/> 24-bit offsets in the requested wire byte order without advancing and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset24ArrayPeekStruct{T}(int)"/>
+    /// <seealso cref="ReadOffset24ArrayPeekStruct{T}(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public readonly T[] PeekOffset24ArrayPeekStruct<T>(int count) where T : unmanaged =>
-        _source.ReadOffset24ArrayPeekStructAt<T>(_position, count);
+    public readonly T[] PeekOffset24ArrayPeekStruct<T>(int count, bool isLittleEndian = false) where T : unmanaged =>
+        _source.ReadOffset24ArrayPeekStructAt<T>(_position, count, isLittleEndian);
 
-    /// <summary>Reads <paramref name="count"/> 32-bit offsets and reads a struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array. No endianness conversion is performed on the structs.</summary>
+    /// <summary>Reads <paramref name="count"/> 32-bit offsets in the requested wire byte order and reads an unmanaged struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset32ArrayPeekStruct{T}(int)"/>
-    /// <seealso cref="ReadOffset32ArrayPeekBigEndianStruct{T}(int)"/>
+    /// <seealso cref="PeekOffset32ArrayPeekStruct{T}(int, bool)"/>
+    /// <seealso cref="ReadOffset32ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public T[] ReadOffset32ArrayPeekStruct<T>(int count) where T : unmanaged
+    public T[] ReadOffset32ArrayPeekStruct<T>(int count, bool isLittleEndian = false) where T : unmanaged
     {
-        var result = PeekOffset32ArrayPeekStruct<T>(count);
+        var result = PeekOffset32ArrayPeekStruct<T>(count, isLittleEndian);
         _position = checked(_position + (long)count * 4);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 32-bit offsets without advancing and reads a struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
+    /// <summary>Reads <paramref name="count"/> 32-bit offsets in the requested wire byte order without advancing and reads an unmanaged struct of type <typeparamref name="T"/> at each offset. No endianness conversion is performed on the structs.</summary>
     /// <typeparam name="T">The struct type. Must be blittable and unpadded.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset32ArrayPeekStruct{T}(int)"/>
+    /// <seealso cref="ReadOffset32ArrayPeekStruct{T}(int, bool)"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public readonly T[] PeekOffset32ArrayPeekStruct<T>(int count) where T : unmanaged =>
-        _source.ReadOffset32ArrayPeekStructAt<T>(_position, count);
+    public readonly T[] PeekOffset32ArrayPeekStruct<T>(int count, bool isLittleEndian = false) where T : unmanaged =>
+        _source.ReadOffset32ArrayPeekStructAt<T>(_position, count, isLittleEndian);
 
-    /// <summary>Reads <paramref name="count"/> 8-bit offsets and reads a big-endian struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    // ─────────────── Offset array + endian-reversible struct reads ───────────────
+
+    /// <summary>Reads <paramref name="count"/> 8-bit offsets and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset8ArrayPeekBigEndianStruct{T}(int)"/>
+    /// <seealso cref="PeekOffset8ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
     /// <seealso cref="ReadOffset8ArrayPeekStruct{T}(int)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
-    public T[] ReadOffset8ArrayPeekBigEndianStruct<T>(int count)
+    public T[] ReadOffset8ArrayPeekEndianReversibleStruct<T>(int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
-        var result = PeekOffset8ArrayPeekBigEndianStruct<T>(count);
+        var result = PeekOffset8ArrayPeekEndianReversibleStruct<T>(count, isLittleEndian);
         _position = checked(_position + count);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 8-bit offsets without advancing and reads a big-endian struct of type <typeparamref name="T"/> at each offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 8-bit offsets without advancing and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset8 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset8ArrayPeekBigEndianStruct{T}(int)"/>
+    /// <seealso cref="ReadOffset8ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset8</seealso>
-    public readonly T[] PeekOffset8ArrayPeekBigEndianStruct<T>(int count)
+    public readonly T[] PeekOffset8ArrayPeekEndianReversibleStruct<T>(int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T> =>
-        _source.ReadOffset8ArrayPeekEndianReversibleStructAt<T>(_position, count);
+        _source.ReadOffset8ArrayPeekEndianReversibleStructAt<T>(_position, count, isLittleEndian);
 
-    /// <summary>Reads <paramref name="count"/> 16-bit offsets and reads a big-endian struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <summary>Reads <paramref name="count"/> 16-bit offsets in the requested wire byte order and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' and structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset16ArrayPeekBigEndianStruct{T}(int)"/>
-    /// <seealso cref="ReadOffset16ArrayPeekStruct{T}(int)"/>
+    /// <seealso cref="PeekOffset16ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
+    /// <seealso cref="ReadOffset16ArrayPeekStruct{T}(int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public T[] ReadOffset16ArrayPeekBigEndianStruct<T>(int count)
+    public T[] ReadOffset16ArrayPeekEndianReversibleStruct<T>(int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
-        var result = PeekOffset16ArrayPeekBigEndianStruct<T>(count);
+        var result = PeekOffset16ArrayPeekEndianReversibleStruct<T>(count, isLittleEndian);
         _position = checked(_position + (long)count * 2);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 16-bit offsets without advancing and reads a big-endian struct of type <typeparamref name="T"/> at each offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 16-bit offsets in the requested wire byte order without advancing and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' and structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset16 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset16ArrayPeekBigEndianStruct{T}(int)"/>
+    /// <seealso cref="ReadOffset16ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset16</seealso>
-    public readonly T[] PeekOffset16ArrayPeekBigEndianStruct<T>(int count)
+    public readonly T[] PeekOffset16ArrayPeekEndianReversibleStruct<T>(int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T> =>
-        _source.ReadOffset16ArrayPeekEndianReversibleStructAt<T>(_position, count);
+        _source.ReadOffset16ArrayPeekEndianReversibleStructAt<T>(_position, count, isLittleEndian);
 
-    /// <summary>Reads <paramref name="count"/> 24-bit offsets and reads a big-endian struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <summary>Reads <paramref name="count"/> 24-bit offsets in the requested wire byte order and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' and structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset24ArrayPeekBigEndianStruct{T}(int)"/>
-    /// <seealso cref="ReadOffset24ArrayPeekStruct{T}(int)"/>
+    /// <seealso cref="PeekOffset24ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
+    /// <seealso cref="ReadOffset24ArrayPeekStruct{T}(int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public T[] ReadOffset24ArrayPeekBigEndianStruct<T>(int count)
+    public T[] ReadOffset24ArrayPeekEndianReversibleStruct<T>(int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
-        var result = PeekOffset24ArrayPeekBigEndianStruct<T>(count);
+        var result = PeekOffset24ArrayPeekEndianReversibleStruct<T>(count, isLittleEndian);
         _position = checked(_position + (long)count * 3);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 24-bit offsets without advancing and reads a big-endian struct of type <typeparamref name="T"/> at each offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 24-bit offsets in the requested wire byte order without advancing and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' and structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset24 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset24ArrayPeekBigEndianStruct{T}(int)"/>
+    /// <seealso cref="ReadOffset24ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset24</seealso>
-    public readonly T[] PeekOffset24ArrayPeekBigEndianStruct<T>(int count)
+    public readonly T[] PeekOffset24ArrayPeekEndianReversibleStruct<T>(int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T> =>
-        _source.ReadOffset24ArrayPeekEndianReversibleStructAt<T>(_position, count);
+        _source.ReadOffset24ArrayPeekEndianReversibleStructAt<T>(_position, count, isLittleEndian);
 
-    /// <summary>Reads <paramref name="count"/> 32-bit offsets and reads a big-endian struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
+    /// <summary>Reads <paramref name="count"/> 32-bit offsets in the requested wire byte order and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset (relative to the source origin). Advances the position past the offset array.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' and structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="PeekOffset32ArrayPeekBigEndianStruct{T}(int)"/>
-    /// <seealso cref="ReadOffset32ArrayPeekStruct{T}(int)"/>
+    /// <seealso cref="PeekOffset32ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
+    /// <seealso cref="ReadOffset32ArrayPeekStruct{T}(int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public T[] ReadOffset32ArrayPeekBigEndianStruct<T>(int count)
+    public T[] ReadOffset32ArrayPeekEndianReversibleStruct<T>(int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T>
     {
-        var result = PeekOffset32ArrayPeekBigEndianStruct<T>(count);
+        var result = PeekOffset32ArrayPeekEndianReversibleStruct<T>(count, isLittleEndian);
         _position = checked(_position + (long)count * 4);
         return result;
     }
 
-    /// <summary>Reads <paramref name="count"/> 32-bit offsets without advancing and reads a big-endian struct of type <typeparamref name="T"/> at each offset.</summary>
+    /// <summary>Reads <paramref name="count"/> 32-bit offsets in the requested wire byte order without advancing and reads an endian-reversible struct of type <typeparamref name="T"/> at each offset.</summary>
     /// <typeparam name="T">The struct type. Must implement <see cref="IEndianReversibleStruct{T}"/>.</typeparam>
     /// <param name="count">The number of offsets. Must be non-negative.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> when the offsets' and structs' on-disk representation is little-endian; <see langword="false"/> for the OpenType default of big-endian.</param>
     /// <returns>A new array containing the values read, with multi-byte fields in native order.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     /// <exception cref="EndOfStreamException">The read extends past <see cref="Length"/>.</exception>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Offset32 data type</see> in the OpenType specification.</remarks>
-    /// <seealso cref="ReadOffset32ArrayPeekBigEndianStruct{T}(int)"/>
+    /// <seealso cref="ReadOffset32ArrayPeekEndianReversibleStruct{T}(int, bool)"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Offset32</seealso>
-    public readonly T[] PeekOffset32ArrayPeekBigEndianStruct<T>(int count)
+    public readonly T[] PeekOffset32ArrayPeekEndianReversibleStruct<T>(int count, bool isLittleEndian = false)
         where T : unmanaged, IEndianReversibleStruct<T> =>
-        _source.ReadOffset32ArrayPeekEndianReversibleStructAt<T>(_position, count);
+        _source.ReadOffset32ArrayPeekEndianReversibleStructAt<T>(_position, count, isLittleEndian);
+
+    // ───────────────────────── Seeking and cursor factories ─────────────────────────
 
     /// <summary>Sets <see cref="Position"/> relative to the given <see cref="SeekOrigin"/>.</summary>
     /// <param name="offset">The byte offset relative to <paramref name="origin"/>.</param>

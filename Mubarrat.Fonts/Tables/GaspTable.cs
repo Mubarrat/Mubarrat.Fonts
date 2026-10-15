@@ -110,7 +110,7 @@ public sealed record GaspTable : IFontTable<GaspTable>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gasp">OpenType specification: gasp header</seealso>
         public static Header ReverseEndianness(Header value) => new()
         {
@@ -136,8 +136,8 @@ public sealed record GaspTable : IFontTable<GaspTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gasp">OpenType specification: gasp table</seealso>
     static GaspTable IRecord<GaspTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
-        return new() { Version = header.Version, Ranges = cursor.ReadBigEndianStructArray<GaspRange>(header.NumRanges) };
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
+        return new() { Version = header.Version, Ranges = cursor.ReadEndianReversibleStructArray<GaspRange>(header.NumRanges) };
     }
 }
 
@@ -184,7 +184,7 @@ public record struct GaspRange : IEndianReversibleStruct<GaspRange>
     /// <returns>A new range with both fields reversed.</returns>
     /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gasp">OpenType specification: gasp ranges</seealso>
     public static GaspRange ReverseEndianness(GaspRange value) => new()
     {

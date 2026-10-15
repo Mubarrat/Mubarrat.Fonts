@@ -95,13 +95,13 @@ public sealed record VorgTable : IFontTable<VorgTable>
     /// <inheritdoc/>
     static VorgTable IRecord<VorgTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new VorgTable
         {
             MajorVersion = header.Major,
             MinorVersion = header.Minor,
             DefaultVertOriginY = header.DefaultVertOriginY,
-            VertOriginYMetrics = cursor.ReadBigEndianStructArray<VertOriginYMetric>(header.NumVertOriginYMetrics),
+            VertOriginYMetrics = cursor.ReadEndianReversibleStructArray<VertOriginYMetric>(header.NumVertOriginYMetrics),
         };
     }
 }

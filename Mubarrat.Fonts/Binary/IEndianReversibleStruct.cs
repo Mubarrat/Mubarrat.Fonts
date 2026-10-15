@@ -73,10 +73,10 @@ namespace Mubarrat.Fonts.Binary;
 /// <typeparam name="T">
 /// The unmanaged value type whose byte-order representation can be reversed.
 /// </typeparam>
-/// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
-/// <seealso cref="Source.ReadEndianReversibleStructArrayAt{T}(long, Span{T})"/>
-/// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
-/// <seealso cref="Cursor.PeekBigEndianStruct{T}"/>
+/// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
+/// <seealso cref="Source.ReadEndianReversibleStructArrayAt{T}(long, Span{T}, bool)"/>
+/// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
+/// <seealso cref="Cursor.PeekEndianReversibleStruct{T}"/>
 /// <seealso cref="Tag"/>
 /// <seealso cref="Fixed"/>
 /// <seealso cref="F2Dot14"/>
@@ -150,8 +150,8 @@ public interface IEndianReversibleStruct<T>
     /// };
     /// </code>
     /// </example>
-    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso cref="System.BitConverter.IsLittleEndian"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">
     /// Microsoft OpenType specification: Data Types

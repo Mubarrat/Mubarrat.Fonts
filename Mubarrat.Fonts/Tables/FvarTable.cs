@@ -166,7 +166,7 @@ public sealed record FvarTable : IFontTable<FvarTable>
     /// <inheritdoc/>
     public static FvarTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.MajorVersion != 1)
             throw new InvalidDataException(
@@ -195,14 +195,14 @@ public sealed record FvarTable : IFontTable<FvarTable>
         if (header.AxisSize == AxisRecordSize)
         {
             // Fast path: records are exactly the size we expect, so we can read them all at once.
-            cursor.ReadBigEndianStructArray(axes);
+            cursor.ReadEndianReversibleStructArray(axes);
         }
         else
         {
             for (int i = 0; i < axes.Length; i++)
             {
                 // Forward-compatible path: records are larger than the fields we understand.
-                axes[i] = cursor.PeekBigEndianStruct<VariationAxisRecord>();
+                axes[i] = cursor.PeekEndianReversibleStruct<VariationAxisRecord>();
                 cursor.Position += header.AxisSize;
             }
         }

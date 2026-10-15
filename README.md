@@ -348,7 +348,7 @@ The parser is therefore **allocation-conscious rather than universally allocatio
 Where possible, binary data is read directly into the required representation:
 
 ```csharp
-Record[] records = cursor.ReadBigEndianStructArray<Record>(count);
+Record[] records = cursor.ReadEndianReversibleStructArray<Record>(count);
 ```
 
 rather than first constructing a temporary collection and subsequently converting it.
@@ -537,7 +537,7 @@ Directory.Build.props                    // shared identity, AOT/trimming policy
 Directory.Build.targets                  // shared build configuration
 
 Mubarrat.Fonts.OpenType/
-    Binary/                              // Source, Cursor, IRecord<T>, IBigEndianStruct<T>
+    Binary/                              // Source, Cursor, IRecord<T>, IEndianReversibleStruct<T>
     Primitives/                          // Tag, Fixed, UInt24, Int24, F2Dot14
     Tables/                              // one file per table
 

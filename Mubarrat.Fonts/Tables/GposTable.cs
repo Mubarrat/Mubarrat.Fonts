@@ -290,7 +290,7 @@ public abstract record Anchor : IRecord<Anchor>, IBaseRecord<Anchor>
         /// <returns>A new base header with both coordinates reversed.</returns>
         /// <remarks>Both fields are <c>int16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static BaseHeader ReverseEndianness(BaseHeader v) => new()
         {
             XCoordinate = BinaryPrimitives.ReverseEndianness(v.XCoordinate),
@@ -386,7 +386,7 @@ public sealed record AnchorFormat2
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The embedded base header uses <see cref="BaseHeader.ReverseEndianness(BaseHeader)"/>; the point index uses <see cref="BinaryPrimitives.ReverseEndianness(ushort)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Base = BaseHeader.ReverseEndianness(v.Base),
@@ -443,7 +443,7 @@ public sealed record AnchorFormat3 : Anchor, IDerivedRecord<Anchor, AnchorFormat
         // the base dispatcher). cursor.Source is still based at byte 0 of the Anchor
         // table, so device offsets — which the spec defines as relative to the Anchor
         // table start — resolve correctly against cursor.Source with no adjustment.
-        var header = cursor.ReadBigEndianStruct<Header>();
+        var header = cursor.ReadEndianReversibleStruct<Header>();
         return new AnchorFormat3
         {
             Format = 3,
@@ -489,7 +489,7 @@ public sealed record AnchorFormat3 : Anchor, IDerivedRecord<Anchor, AnchorFormat
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>The embedded base header and both offsets are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Base = BaseHeader.ReverseEndianness(v.Base),
@@ -606,7 +606,7 @@ public sealed record GposTable : IFontTable<GposTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All five fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Major = BinaryPrimitives.ReverseEndianness(v.Major),
@@ -637,7 +637,7 @@ public sealed record GposTable : IFontTable<GposTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gpos">OpenType specification: GPOS table</seealso>
     public static GposTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Major != 1)
             throw new InvalidDataException($"'GPOS'.majorVersion is {header.Major}, expected 1.");
@@ -799,7 +799,7 @@ public sealed record SinglePosFormat1 : SinglePos, IDerivedRecord<SinglePos, Sin
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gpos#singlepos-format-1">OpenType specification: SinglePos Format 1</seealso>
     static SinglePosFormat1 IDerivedRecord<SinglePos, SinglePosFormat1>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         var valueFormat = (GposValueFormat)header.ValueFormat;
 
         return new SinglePosFormat1
@@ -840,7 +840,7 @@ public sealed record SinglePosFormat1 : SinglePos, IDerivedRecord<SinglePos, Sin
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             CoverageOffset = BinaryPrimitives.ReverseEndianness(v.CoverageOffset),
@@ -881,7 +881,7 @@ public sealed record SinglePosFormat2 : SinglePos, IDerivedRecord<SinglePos, Sin
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gpos#singlepos-format-2">OpenType specification: SinglePos Format 2</seealso>
     static SinglePosFormat2 IDerivedRecord<SinglePos, SinglePosFormat2>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         var valueFormat = (GposValueFormat)header.ValueFormat;
 
         return new SinglePosFormat2
@@ -929,7 +929,7 @@ public sealed record SinglePosFormat2 : SinglePos, IDerivedRecord<SinglePos, Sin
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             CoverageOffset = BinaryPrimitives.ReverseEndianness(v.CoverageOffset),
@@ -1028,7 +1028,7 @@ public sealed record PairPosFormat1 : PairPos, IDerivedRecord<PairPos, PairPosFo
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gpos#pairpos-format-1">OpenType specification: PairPos Format 1</seealso>
     static PairPosFormat1 IDerivedRecord<PairPos, PairPosFormat1>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         Source source = cursor.Source;
         var pairSetContext = new PairSet.Context((GposValueFormat)header.ValueFormat1, (GposValueFormat)header.ValueFormat2);
@@ -1082,7 +1082,7 @@ public sealed record PairPosFormat1 : PairPos, IDerivedRecord<PairPos, PairPosFo
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             CoverageOffset = BinaryPrimitives.ReverseEndianness(v.CoverageOffset),
@@ -1261,7 +1261,7 @@ public sealed record PairPosFormat2 : PairPos, IDerivedRecord<PairPos, PairPosFo
     static PairPosFormat2 IDerivedRecord<PairPos, PairPosFormat2>.Parse(ref Cursor cursor, object? context)
     {
         // The format word was consumed by the PairPos dispatcher.
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         var classRecords = new ClassPairValue[header.Class1Count, header.Class2Count];
         if (classRecords.Length > 0)
             cursor.ReadRecordArray(MemoryMarshal.CreateSpan(ref classRecords[0, 0], classRecords.Length), new ClassPairValue.Context(cursor.Source, (GposValueFormat)header.ValueFormat1, (GposValueFormat)header.ValueFormat2));
@@ -1331,7 +1331,7 @@ public sealed record PairPosFormat2 : PairPos, IDerivedRecord<PairPos, PairPosFo
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All seven fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             CoverageOffset = BinaryPrimitives.ReverseEndianness(v.CoverageOffset),
@@ -1436,7 +1436,7 @@ public sealed record CursivePos : GposSubtable, IDerivedRecord<GposSubtable, Cur
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gpos#lookup-type-3-cursive-attachment-positioning-subtable">OpenType specification: Lookup Type 3</seealso>
     static CursivePos IDerivedRecord<GposSubtable, CursivePos>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"CursivePos format {header.Format} is not defined.");
         return new CursivePos
@@ -1482,7 +1482,7 @@ public sealed record CursivePos : GposSubtable, IDerivedRecord<GposSubtable, Cur
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(value.Format),
@@ -1637,7 +1637,7 @@ public sealed record MarkRecord : IRecord<MarkRecord>
     static MarkRecord IRecord<MarkRecord>.Parse(ref Cursor cursor, object? baseContext)
     {
         ParentContext context = (ParentContext)baseContext!;
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new MarkRecord
         {
             MarkClass = header.MarkClass,
@@ -1674,7 +1674,7 @@ public sealed record MarkRecord : IRecord<MarkRecord>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             MarkClass = BinaryPrimitives.ReverseEndianness(v.MarkClass),
@@ -1743,7 +1743,7 @@ public sealed record MarkBasePos : GposSubtable, IDerivedRecord<GposSubtable, Ma
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gpos#lookup-type-4-mark-to-base-attachment-positioning-subtable">OpenType specification: Lookup Type 4</seealso>
     static MarkBasePos IDerivedRecord<GposSubtable, MarkBasePos>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"MarkBasePos format {header.Format} is not defined.");
 
@@ -1805,7 +1805,7 @@ public sealed record MarkBasePos : GposSubtable, IDerivedRecord<GposSubtable, Ma
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All six fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header value) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(value.Format),
@@ -1969,7 +1969,7 @@ public sealed record MarkLigPos : GposSubtable, IDerivedRecord<GposSubtable, Mar
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gpos#lookup-type-5-mark-to-ligature-attachment-positioning-subtable">OpenType specification: Lookup Type 5</seealso>
     static MarkLigPos IDerivedRecord<GposSubtable, MarkLigPos>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"MarkLigPos format {header.Format} is not defined.");
 
@@ -2031,7 +2031,7 @@ public sealed record MarkLigPos : GposSubtable, IDerivedRecord<GposSubtable, Mar
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All six fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),
@@ -2249,7 +2249,7 @@ public sealed record MarkMarkPos : GposSubtable, IDerivedRecord<GposSubtable, Ma
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gpos#lookup-type-6-mark-to-mark-attachment-positioning-subtable">OpenType specification: Lookup Type 6</seealso>
     static MarkMarkPos IDerivedRecord<GposSubtable, MarkMarkPos>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"MarkMarkPos format {header.Format} is not defined.");
         return new MarkMarkPos
@@ -2310,7 +2310,7 @@ public sealed record MarkMarkPos : GposSubtable, IDerivedRecord<GposSubtable, Ma
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All six fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),
@@ -2535,7 +2535,7 @@ public static class ExtensionPos
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/gpos#lookup-type-9-extension-positioning">OpenType specification: Lookup Type 9</seealso>
     public static GposSubtable ParseAndUnwrap(ref Cursor cursor)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Format != 1)
             throw new InvalidDataException($"ExtensionPos format {header.Format} is not defined.");
 
@@ -2583,7 +2583,7 @@ public static class ExtensionPos
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Format = BinaryPrimitives.ReverseEndianness(v.Format),

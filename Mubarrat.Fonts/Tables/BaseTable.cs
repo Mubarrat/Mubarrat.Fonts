@@ -107,7 +107,7 @@ public sealed record BaseTable : IFontTable<BaseTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE header</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -137,7 +137,7 @@ public sealed record BaseTable : IFontTable<BaseTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE table</seealso>
     static BaseTable IRecord<BaseTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.MajorVersion != 1)
             throw new InvalidDataException($"'BASE'.majorVersion is {header.MajorVersion}, expected 1.");
@@ -217,7 +217,7 @@ public sealed record BaseAxis : IRecord<BaseAxis>
         /// <returns>A new header with both offsets reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE axis</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -238,7 +238,7 @@ public sealed record BaseAxis : IRecord<BaseAxis>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE axis</seealso>
     static BaseAxis IRecord<BaseAxis>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new BaseAxis
         {
             TagList = cursor.Source.ParseRecordAt<BaseTagList>(header.TagListOffset),
@@ -284,7 +284,7 @@ public sealed record BaseTagList : IRecord<BaseTagList>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE tag list</seealso>
     static BaseTagList IRecord<BaseTagList>.Parse(ref Cursor cursor, object? context) => new()
     {
-        Tags = cursor.ReadBigEndianStructArray<Tag>(cursor.ReadUInt16()),
+        Tags = cursor.ReadEndianReversibleStructArray<Tag>(cursor.ReadUInt16()),
     };
 }
 
@@ -338,7 +338,7 @@ public sealed record BaseScriptList : IRecord<BaseScriptList>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE script list</seealso>
     static BaseScriptList IRecord<BaseScriptList>.Parse(ref Cursor cursor, object? context) => new()
     {
-        Scripts = cursor.ReadBigEndianHeaderRecordArray<BaseScriptRecord, TagOffsetRecord>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
+        Scripts = cursor.ReadEndianReversibleHeaderRecordArray<BaseScriptRecord, TagOffsetRecord>(cursor.ReadUInt16(), new ParentContext(cursor.Source)),
     };
 }
 
@@ -469,7 +469,7 @@ public sealed record BaseScript : IRecord<BaseScript>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE script</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -497,12 +497,12 @@ public sealed record BaseScript : IRecord<BaseScript>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE script</seealso>
     static BaseScript IRecord<BaseScript>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new BaseScript
         {
             BaseValues = header.BaseValuesOffset != 0 ? cursor.Source.ParseRecordAt<BaseValues>(header.BaseValuesOffset) : null,
             DefaultMinMax = header.DefaultMinMaxOffset != 0 ? cursor.Source.ParseRecordAt<MinMax>(header.DefaultMinMaxOffset) : null,
-            LangSysRecords = cursor.ReadBigEndianHeaderRecordArray<BaseLangSysRecord, TagOffsetRecord>(header.LangSysCount, new ParentContext(cursor.Source)),
+            LangSysRecords = cursor.ReadEndianReversibleHeaderRecordArray<BaseLangSysRecord, TagOffsetRecord>(header.LangSysCount, new ParentContext(cursor.Source)),
         };
     }
 }
@@ -705,7 +705,7 @@ public sealed record BaseCoordFormat1 : BaseCoord, IEndianReversibleHeaderDerive
         /// <returns>A new header with the coordinate reversed.</returns>
         /// <remarks>The header contains a single multi-byte field.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE base coordinates</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -803,7 +803,7 @@ public sealed record BaseCoordFormat2
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE base coordinates</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -853,7 +853,7 @@ public sealed record BaseCoordFormat3 : BaseCoord, IDerivedRecord<BaseCoord, Bas
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE base coordinates</seealso>
     static BaseCoordFormat3 IDerivedRecord<BaseCoord, BaseCoordFormat3>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new BaseCoordFormat3
         {
             Format = 3,
@@ -896,7 +896,7 @@ public sealed record BaseCoordFormat3 : BaseCoord, IDerivedRecord<BaseCoord, Bas
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are multi-byte and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE base coordinates</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -993,7 +993,7 @@ public sealed record MinMax : IRecord<MinMax>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE MinMax</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -1020,12 +1020,12 @@ public sealed record MinMax : IRecord<MinMax>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE MinMax</seealso>
     static MinMax IRecord<MinMax>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         return new MinMax
         {
             MinCoord = header.MinCoordOffset != 0 ? cursor.Source.ParseRecordAt<BaseCoord>(header.MinCoordOffset) : null,
             MaxCoord = header.MaxCoordOffset != 0 ? cursor.Source.ParseRecordAt<BaseCoord>(header.MaxCoordOffset) : null,
-            FeatureOverrides = cursor.ReadBigEndianHeaderRecordArray<FeatMinMaxRecord, FeatMinMaxRecord.Header>(header.FeatMinMaxCount, new ParentContext(cursor.Source)),
+            FeatureOverrides = cursor.ReadEndianReversibleHeaderRecordArray<FeatMinMaxRecord, FeatMinMaxRecord.Header>(header.FeatMinMaxCount, new ParentContext(cursor.Source)),
         };
     }
 }
@@ -1128,7 +1128,7 @@ public sealed record FeatMinMaxRecord
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently; the tag is reversed through <see cref="Tag.ReverseEndianness(Tag)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/base">OpenType specification: BASE feature MinMax</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {

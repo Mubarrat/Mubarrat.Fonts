@@ -94,7 +94,7 @@ public sealed record KernTable : IFontTable<KernTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/kern">OpenType specification: kern table</seealso>
     public static KernTable Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
         if (header.Version != 0)
             throw new InvalidDataException(
                 $"'kern'.version is {header.Version}, expected 0.");
@@ -138,7 +138,7 @@ public sealed record KernTable : IFontTable<KernTable>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Version = BinaryPrimitives.ReverseEndianness(v.Version),
@@ -292,7 +292,7 @@ public abstract record KernSubtable : IRecord<KernSubtable>, IBaseRecord<KernSub
     {
         // Peek the header so the discriminant can be read without consuming bytes.
         // Each format reads the header itself from position 0.
-        Header header = cursor.PeekBigEndianStruct<Header>();
+        Header header = cursor.PeekEndianReversibleStruct<Header>();
 
         KernSubtable value = header.Format switch
         {
@@ -354,7 +354,7 @@ public abstract record KernSubtable : IRecord<KernSubtable>, IBaseRecord<KernSub
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Header ReverseEndianness(Header v) => new()
         {
             Version = BinaryPrimitives.ReverseEndianness(v.Version),
@@ -405,7 +405,7 @@ public record struct KernPair : IEndianReversibleStruct<KernPair>
     /// <returns>A new pair with each multi-byte field reversed.</returns>
     /// <remarks>All three fields are multi-byte and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     public static KernPair ReverseEndianness(KernPair v) => new()
     {
         Left = BinaryPrimitives.ReverseEndianness(v.Left),
@@ -474,9 +474,9 @@ public sealed record KernFormat0 : KernSubtable, IDerivedRecord<KernSubtable, Ke
     static KernFormat0 IDerivedRecord<KernSubtable, KernFormat0>.Parse(
         ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
-        Format0Header body = cursor.ReadBigEndianStruct<Format0Header>();
-        KernPair[] pairs = cursor.ReadBigEndianStructArray<KernPair>(body.NPairs);
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
+        Format0Header body = cursor.ReadEndianReversibleStruct<Format0Header>();
+        KernPair[] pairs = cursor.ReadEndianReversibleStructArray<KernPair>(body.NPairs);
 
         return new KernFormat0
         {
@@ -525,7 +525,7 @@ public sealed record KernFormat0 : KernSubtable, IDerivedRecord<KernSubtable, Ke
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Format0Header ReverseEndianness(Format0Header v) => new()
         {
             NPairs = BinaryPrimitives.ReverseEndianness(v.NPairs),
@@ -583,7 +583,7 @@ public sealed record KernClassTable : IRecord<KernClassTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/kern">OpenType specification: kern format 2</seealso>
     public static KernClassTable Parse(ref Cursor cursor, object? context)
     {
-        ClassTableHeader header = cursor.ReadBigEndianStruct<ClassTableHeader>();
+        ClassTableHeader header = cursor.ReadEndianReversibleStruct<ClassTableHeader>();
         ushort[] classes = cursor.ReadUInt16Array(header.NGlyphs);
         return new KernClassTable { FirstGlyph = header.FirstGlyph, ClassValues = classes };
     }
@@ -616,7 +616,7 @@ public sealed record KernClassTable : IRecord<KernClassTable>
         /// <returns>A new header with both fields reversed.</returns>
         /// <remarks>Both fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static ClassTableHeader ReverseEndianness(ClassTableHeader v) => new()
         {
             FirstGlyph = BinaryPrimitives.ReverseEndianness(v.FirstGlyph),
@@ -700,8 +700,8 @@ public sealed record KernFormat2 : KernSubtable, IDerivedRecord<KernSubtable, Ke
     static KernFormat2 IDerivedRecord<KernSubtable, KernFormat2>.Parse(
         ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
-        Format2Header body = cursor.ReadBigEndianStruct<Format2Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
+        Format2Header body = cursor.ReadEndianReversibleStruct<Format2Header>();
 
         // Class table and array offsets are relative to the subtable start, which is
         // cursor.Source's base. Resolve them without arithmetic against that base.
@@ -763,7 +763,7 @@ public sealed record KernFormat2 : KernSubtable, IDerivedRecord<KernSubtable, Ke
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All four fields are <c>uint16</c> and are reversed independently.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         public static Format2Header ReverseEndianness(Format2Header v) => new()
         {
             RowWidth = BinaryPrimitives.ReverseEndianness(v.RowWidth),

@@ -117,7 +117,7 @@ public sealed record EbscTable : IFontTable<EbscTable>
         /// <returns>A new header with each multi-byte field reversed.</returns>
         /// <remarks>All three fields are multi-byte and are reversed independently; there are no byte-only or nested structures to copy through.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
-        /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+        /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebsc">OpenType specification: EBSC header</seealso>
         public static Header ReverseEndianness(Header v) => new()
         {
@@ -136,7 +136,7 @@ public sealed record EbscTable : IFontTable<EbscTable>
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>Unlike EBLC/CBLC, EBSC does not reference other tables during parse; the <paramref name="context"/> is declared for interface uniformity but not read.</description></item>
-    /// <item><description>The scaling records are read with <c>ReadStructArray</c> rather than <c>ReadBigEndianStructArray</c> because <see cref="BitmapScale"/> contains only byte-width fields apart from its nested <see cref="SbitLineMetrics"/>, which are also byte-only. No multi-byte reversal is needed.</description></item>
+    /// <item><description>The scaling records are read with <c>ReadStructArray</c> rather than <c>ReadEndianReversibleStructArray</c> because <see cref="BitmapScale"/> contains only byte-width fields apart from its nested <see cref="SbitLineMetrics"/>, which are also byte-only. No multi-byte reversal is needed.</description></item>
     /// <item><description>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebsc">EBSC table</see> chapter in the OpenType specification.</description></item>
     /// </list>
     /// </remarks>
@@ -145,7 +145,7 @@ public sealed record EbscTable : IFontTable<EbscTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/ebsc">OpenType specification: EBSC table</seealso>
     static EbscTable IRecord<EbscTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header h = cursor.ReadBigEndianStruct<Header>();
+        Header h = cursor.ReadEndianReversibleStruct<Header>();
 
         if (h.MajorVersion != 2 || h.MinorVersion != 0)
             throw new InvalidDataException(

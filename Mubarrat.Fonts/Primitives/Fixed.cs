@@ -21,7 +21,7 @@ namespace Mubarrat.Fonts.Primitives;
 /// <seealso cref="Int24"/>
 /// <seealso cref="Tag"/>
 /// <seealso cref="IEndianReversibleStruct{T}"/>
-/// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
+/// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
 /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Fixed</seealso>
 /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#organization-of-an-opentype-font">OpenType specification: Organization of an OpenType Font</seealso>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -191,14 +191,14 @@ public readonly struct Fixed :
     /// <returns>A <see cref="Fixed"/> whose bytes are the reverse of <paramref name="value"/>'s.</returns>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The operation is unconditional. The host-endianness check is applied by the reader (<see cref="Source.ReadEndianReversibleStructAt{T}(long)"/>, <see cref="Cursor.ReadBigEndianStruct{T}"/>), not by this method.</description></item>
+    /// <item><description>The operation is unconditional. The host-endianness check is applied by the reader (<see cref="Source.ReadEndianReversibleStructAt{T}"/>, <see cref="Cursor.ReadEndianReversibleStruct{T}"/>), not by this method.</description></item>
     /// <item><description>Symmetric: <c>ReverseEndianness(ReverseEndianness(x)) == x</c> for every <c>x</c>.</description></item>
     /// <item><description>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">Fixed data type</see> in the OpenType specification.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
-    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}(long)"/>
-    /// <seealso cref="Cursor.ReadBigEndianStruct{T}"/>
+    /// <seealso cref="Source.ReadEndianReversibleStructAt{T}"/>
+    /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Fixed</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Fixed ReverseEndianness(Fixed value) =>

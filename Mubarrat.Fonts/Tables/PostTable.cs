@@ -11,12 +11,15 @@ namespace Mubarrat.Fonts.Tables;
 /// <item><description>Versions 1.0 and 3.0 are fixed-size (32 bytes) and contain no glyph names.</description></item>
 /// <item><description>Version 2.0 appends a glyph-name index array and a Pascal-string data block.</description></item>
 /// <item><description>Version 2.5 (deprecated) appends a signed byte offset per glyph.</description></item>
+/// <item><description>Version 4.0 (AAT) appends one <c>uint16</c> character code per glyph, indexed by glyph ID. The version exists so that a font mapping to a composite PostScript printer font on Japanese, Chinese, or Korean devices can expose a character code for every glyph. A PostScript name is synthesized from each code by prepending a lowercase <c>'a'</c> to its hexadecimal representation.</description></item>
 /// </list>
 /// <para>Version 2.0 glyph names are fully materialized during parsing: a glyph's name is resolved to a <see cref="string"/> at parse time, so no <see cref="Source"/> reference is retained. The 258 standard Macintosh glyph names are used for indices 0–257; indices 258 and above index into the table's custom string data.</para>
 /// <para>Version 3.0 is the normal choice for fonts with CFF version 1 outlines, and is common for TrueType fonts that do not need PostScript glyph names.</para>
+/// <para>Version 4.0 is defined by Apple Advanced Typography and is not part of the OpenType specification; the other four versions are shared between OpenType and AAT.</para>
 /// <para>For the table layout, see <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/post">the <c>post</c> table</see> in the OpenType specification.</para>
 /// </remarks>
 /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/post">OpenType specification: <c>post</c> table</seealso>
+/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html">TrueType Reference Manual: The <c>post</c> table</seealso>
 /// <seealso cref="PostVersion"/>
 /// <seealso cref="Header"/>
 /// <seealso cref="MacintoshGlyphNames"/>
@@ -25,6 +28,13 @@ public sealed record PostTable : IFontTable<PostTable>
     /// <inheritdoc/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/post">OpenType specification: <c>post</c> table</seealso>
     public static Tag Tag => "post";
+
+    /// <summary>The character code value that marks a glyph with no composite-font character in a version 4 <c>post</c> table.</summary>
+    /// <value>The constant <c>0xFFFF</c>.</value>
+    /// <remarks>A glyph whose entry in <see cref="GlyphCharacterCodes"/> equals this value has no corresponding character in the composite font, so no name can be synthesized for it.</remarks>
+    /// <seealso cref="GlyphCharacterCodes"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html">TrueType Reference Manual: The <c>post</c> table</seealso>
+    public const ushort NoCompositeCharacter = 0xFFFF;
 
     /// <summary>Gets the table version.</summary>
     /// <value>One of the four <see cref="PostVersion"/> values defined by the specification.</value>
@@ -105,6 +115,21 @@ public sealed record PostTable : IFontTable<PostTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/post#version-25-deprecated">OpenType specification: <c>post</c>, version 2.5 (deprecated)</seealso>
     public IReadOnlyList<sbyte>? GlyphNameOffsets { get; init; }
 
+    /// <summary>Gets the per-glyph character codes for version 4.0, indexed by glyph ID.</summary>
+    /// <value>An array whose entry <c>i</c> is the composite-font character code for glyph <c>i</c>, or <see cref="NoCompositeCharacter"/> when the glyph has no corresponding character; <c>null</c> for versions 1.0, 2.0, 2.5, and 3.0.</value>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The array length is <see cref="NumGlyphs"/>, taken from <c>maxp.numGlyphs</c> because the version 4 layout does not carry its own count.</description></item>
+    /// <item><description>Each code is turned into a PostScript name by prepending a lowercase <c>'a'</c> to its hexadecimal representation. See <see cref="GetGlyphName"/>.</description></item>
+    /// <item><description>Version 4 is defined by Apple Advanced Typography for fonts that map to composite printer fonts on Japanese, Chinese, or Korean PostScript devices.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="HasGlyphCharacterCodes"/>
+    /// <seealso cref="GetGlyphName"/>
+    /// <seealso cref="NoCompositeCharacter"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html">TrueType Reference Manual: The <c>post</c> table</seealso>
+    public IReadOnlyList<ushort>? GlyphCharacterCodes { get; init; }
+
     /// <summary>Gets a value indicating whether the font is monospaced.</summary>
     /// <value><see langword="true"/> when <see cref="IsFixedPitch"/> is non-zero.</value>
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/post#isfixedpitch"><c>isFixedPitch</c> field</see> in the OpenType specification.</remarks>
@@ -126,17 +151,30 @@ public sealed record PostTable : IFontTable<PostTable>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/post#version-25-deprecated">OpenType specification: <c>post</c>, version 2.5 (deprecated)</seealso>
     public bool HasGlyphNameOffsets => Version == PostVersion.Version25;
 
+    /// <summary>Gets a value indicating whether the table provides composite-font character codes.</summary>
+    /// <value><see langword="true"/> for version 4.0 only.</value>
+    /// <remarks>See <see cref="GlyphCharacterCodes"/> for the array and <see cref="GetGlyphName"/> for the name-synthesis rule.</remarks>
+    /// <seealso cref="GlyphCharacterCodes"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html">TrueType Reference Manual: The <c>post</c> table</seealso>
+    public bool HasGlyphCharacterCodes => Version == PostVersion.Version40;
+
     /// <summary>Returns the PostScript name of glyph <paramref name="glyphId"/>.</summary>
     /// <param name="glyphId">The glyph ID.</param>
     /// <returns>
     /// <list type="bullet">
+    /// <item><description>Version 4.0 — a synthesized name of the form <c>a</c> followed by the hexadecimal representation of the glyph's character code, or <see cref="string.Empty"/> when the code is <see cref="NoCompositeCharacter"/>.</description></item>
     /// <item><description>Version 2.0 — the glyph name from <see cref="GlyphNames"/>.</description></item>
     /// <item><description>Version 1.0 — the standard Macintosh name at that index (valid only for the 258 standard glyphs).</description></item>
     /// <item><description>Versions 2.5 and 3.0 — <see cref="string.Empty"/>, because no names are stored.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="glyphId"/> is negative.</exception>
-    /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/post#version-20">glyph name resolution rules</see> in the OpenType specification.</remarks>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/post#version-20">glyph name resolution rules</see> in the OpenType specification.</description></item>
+    /// <item><description>For version 4.0, the name is synthesized as documented by the Apple TrueType Reference Manual: the character code is rendered in hexadecimal and prefixed with a lowercase <c>'a'</c>. A printer driver reads the name, strips the prefix, and interprets the remainder as a hex character code into the composite printer font.</description></item>
+    /// </list>
+    /// </remarks>
     /// <example>
     /// <code>
     /// var table = font.GetTable&lt;PostTable&gt;();
@@ -144,11 +182,17 @@ public sealed record PostTable : IFontTable<PostTable>
     /// </code>
     /// </example>
     /// <seealso cref="GlyphNames"/>
+    /// <seealso cref="GlyphCharacterCodes"/>
     /// <seealso cref="MacintoshGlyphNames"/>
+    /// <seealso cref="NoCompositeCharacter"/>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/post#version-20">OpenType specification: <c>post</c>, version 2.0</seealso>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html">TrueType Reference Manual: The <c>post</c> table</seealso>
     public string GetGlyphName(int glyphId)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(glyphId);
+
+        if (Version == PostVersion.Version40 && GlyphCharacterCodes is { } codes)
+            return glyphId < codes.Count ? SynthesizeCompositeName(codes[glyphId]) : string.Empty;
 
         if (Version == PostVersion.Version20 && GlyphNames is { } names)
             return glyphId < names.Count ? names[glyphId] : string.Empty;
@@ -159,11 +203,34 @@ public sealed record PostTable : IFontTable<PostTable>
         return string.Empty;
     }
 
+    /// <summary>Synthesizes the PostScript name for a version 4.0 character code.</summary>
+    /// <param name="characterCode">The character code from <see cref="GlyphCharacterCodes"/>.</param>
+    /// <returns>A string of the form <c>a</c> followed by the lowercase hexadecimal representation of <paramref name="characterCode"/>, or <see cref="string.Empty"/> when the code is <see cref="NoCompositeCharacter"/>.</returns>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The format matches the one a version 4.0 printer driver expects: it strips the leading <c>'a'</c> and interprets the remainder as a hexadecimal character code into the composite font.</description></item>
+    /// <item><description>The method does not check the version; it is a pure conversion and can be used to construct names for hypothetical codes during validation.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="GetGlyphName"/>
+    /// <seealso cref="GlyphCharacterCodes"/>
+    /// <seealso cref="NoCompositeCharacter"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html">TrueType Reference Manual: The <c>post</c> table</seealso>
+    public static string SynthesizeCompositeName(ushort characterCode) =>
+        characterCode == NoCompositeCharacter ? string.Empty : $"a{characterCode:x}";
+
     /// <inheritdoc/>
+    /// <param name="cursor">The cursor positioned at the first byte of the <c>post</c> table.</param>
+    /// <param name="context">A <see cref="FontFace"/> for version 4.0, which needs <c>maxp.numGlyphs</c> to size its array; ignored for the other versions.</param>
+    /// <returns>The parsed <c>post</c> table.</returns>
+    /// <exception cref="InvalidDataException">The version is not one of <c>0x00010000</c>, <c>0x00020000</c>, <c>0x00025000</c>, <c>0x00030000</c>, or <c>0x00040000</c>.</exception>
+    /// <exception cref="InvalidOperationException">The version is 4.0 and <paramref name="context"/> is not a <see cref="FontFace"/>.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past the end of the underlying <see cref="Source"/>.</exception>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/post#header">OpenType specification: <c>post</c> header</seealso>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html">TrueType Reference Manual: The <c>post</c> table</seealso>
     static PostTable IRecord<PostTable>.Parse(ref Cursor cursor, object? context)
     {
-        Header header = cursor.ReadBigEndianStruct<Header>();
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         var version = (PostVersion)header.Version;
 
@@ -186,7 +253,9 @@ public sealed record PostTable : IFontTable<PostTable>
 
             PostVersion.Version25 => ParseVersion25(ref cursor, in header),
 
-            _ => throw new InvalidDataException($"'post'.version is 0x{header.Version:X8}, expected 0x00010000, 0x00020000, 0x00025000, or 0x00030000."),
+            PostVersion.Version40 => ParseVersion40(ref cursor, in header, context),
+
+            _ => throw new InvalidDataException($"'post'.version is 0x{header.Version:X8}, expected 0x00010000, 0x00020000, 0x00025000, 0x00030000, or 0x00040000."),
         };
     }
 
@@ -260,6 +329,48 @@ public sealed record PostTable : IFontTable<PostTable>
             MaxMemType1 = header.MaxMemType1,
             NumGlyphs = cursor.ReadUInt16(),
             GlyphNameOffsets = offsets,
+        };
+    }
+
+    /// <summary>Parses the version 4.0 body of a <c>post</c> table: one character code per glyph.</summary>
+    /// <param name="cursor">The cursor positioned immediately after the 32-byte header.</param>
+    /// <param name="header">The already-read table header, carried through to the returned record.</param>
+    /// <param name="context">A <see cref="FontFace"/> from which <c>maxp.numGlyphs</c> is read to size the array.</param>
+    /// <returns>A <see cref="PostTable"/> with <see cref="GlyphCharacterCodes"/> populated.</returns>
+    /// <exception cref="InvalidOperationException"><paramref name="context"/> is not a <see cref="FontFace"/>.</exception>
+    /// <exception cref="EndOfStreamException">The read extends past the end of the underlying <see cref="Source"/>.</exception>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The version 4.0 layout does not carry its own glyph count, so the array length is taken from <c>maxp.numGlyphs</c>.</description></item>
+    /// <item><description>The array has exactly one <c>uint16</c> entry per glyph, indexed by glyph ID.</description></item>
+    /// <item><description>The version is defined by Apple Advanced Typography and is not part of the OpenType specification.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="GlyphCharacterCodes"/>
+    /// <seealso cref="SynthesizeCompositeName"/>
+    /// <seealso cref="MaxpTable"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html">TrueType Reference Manual: The <c>post</c> table</seealso>
+    public static PostTable ParseVersion40(ref Cursor cursor, in Header header, object? context)
+    {
+        if (context is not FontFace face)
+            throw new InvalidOperationException(
+                $"{nameof(PostTable)} version 4.0 requires a {nameof(FontFace)} context to read maxp.numGlyphs.");
+
+        int numGlyphs = face.GetTable<MaxpTable>().NumGlyphs;
+
+        return new PostTable
+        {
+            Version = PostVersion.Version40,
+            ItalicAngle = header.ItalicAngle,
+            UnderlinePosition = header.UnderlinePosition,
+            UnderlineThickness = header.UnderlineThickness,
+            IsFixedPitch = header.IsFixedPitch,
+            MinMemType42 = header.MinMemType42,
+            MaxMemType42 = header.MaxMemType42,
+            MinMemType1 = header.MinMemType1,
+            MaxMemType1 = header.MaxMemType1,
+            NumGlyphs = checked((ushort)numGlyphs),
+            GlyphCharacterCodes = cursor.ReadUInt16Array(numGlyphs),
         };
     }
 
@@ -439,4 +550,18 @@ public enum PostVersion : uint
     /// <remarks>See the <see href="https://learn.microsoft.com/en-us/typography/opentype/spec/post#header">version 3.0 header</see> in the OpenType specification.</remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/post#header">OpenType specification: <c>post</c>, version 3.0</seealso>
     Version30 = 0x00030000,
+
+    /// <summary>Version 4.0: the table provides a character code per glyph, used by AAT when the font maps to a composite printer font.</summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The version is defined by Apple Advanced Typography and is not part of the OpenType specification.</description></item>
+    /// <item><description>The table body is one <c>uint16</c> per glyph, indexed by glyph ID, holding the character code that the glyph maps to in the composite font.</description></item>
+    /// <item><description>A PostScript name is synthesized from the character code by prepending a lowercase <c>'a'</c> to the code's hexadecimal representation. Code <c>0xFFFF</c> marks a glyph with no composite-font character.</description></item>
+    /// <item><description>See <see cref="PostTable.GlyphCharacterCodes"/> and <see cref="PostTable.GetGlyphName"/>.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="PostTable.GlyphCharacterCodes"/>
+    /// <seealso cref="PostTable.HasGlyphCharacterCodes"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html">TrueType Reference Manual: The <c>post</c> table</seealso>
+    Version40 = 0x00040000,
 }
