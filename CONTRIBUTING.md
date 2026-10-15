@@ -1,1381 +1,496 @@
-# Contributing to Mubarrat.Fonts.OpenType (Outdated in this commit, Needs update)
+# Contributing to Mubarrat.Fonts
 
-Thank you for considering a contribution. This document explains the conventions, workflows, and expectations for changes to this library. It is written for someone who has never opened the source and wants to add a table, fix a parser, or write a rule — not as a legal contract, but as a description of how the codebase is organized and why.
+Thank you for considering a contribution to **Mubarrat.Fonts**. Contributions of code, tests, documentation, specification research, bug reports, and carefully explained design proposals are welcome.
 
-Read the [Design Principles](../README.md#design-principles) section of the README first if you haven't. Everything below builds on those decisions.
+This document describes the repository-wide contribution process: how to propose work, prepare changes, validate implementations, document behavior, and submit pull requests. It establishes a common baseline for contributors working anywhere in the repository.
 
----
+Implementation details that apply only to a particular project or directory should be documented in that project's own contribution guide. This document should remain focused on practices that apply across the repository.
 
 ## Table of Contents
 
-* [Prerequisites](#prerequisites)
-* [Getting Started](#getting-started)
-* [Development Workflow](#development-workflow)
-* [Code Conventions](#code-conventions)
-
-  * [File Layout](#file-layout)
-  * [Namespaces](#namespaces)
-  * [Type Kinds](#type-kinds)
-  * [Braces and Formatting](#braces-and-formatting)
-  * [XML Documentation](#xml-documentation)
-  * [Visibility](#visibility)
-  * [Interface Implementation](#interface-implementation)
-* [The Record Pattern](#the-record-pattern)
-
-  * [Leaf Records](#leaf-records)
-  * [Base and Derived Records](#base-and-derived-records)
-  * [Header Records](#header-records)
-* [Big-Endian Handling](#big-endian-handling)
-* [Adding a New Table](#adding-a-new-table)
-* [Adding a New Analyzer](#adding-a-new-analyzer)
-* [Rule IDs](#rule-ids)
-* [Testing](#testing)
-* [Performance](#performance)
-* [Commit Messages](#commit-messages)
-* [Pull Requests](#pull-requests)
-* [Using AI Assistants](#using-ai-assistants)
-* [Questions](#questions)
+- [Contribution Principles](#contribution-principles)
+- [Repository Documentation](#repository-documentation)
+- [What You Can Contribute](#what-you-can-contribute)
+- [Before You Start](#before-you-start)
+- [Development Workflow](#development-workflow)
+- [General Engineering Expectations](#general-engineering-expectations)
+- [Testing and Validation](#testing-and-validation)
+- [Documentation Expectations](#documentation-expectations)
+- [Dependencies and Licensing](#dependencies-and-licensing)
+- [Commit Messages](#commit-messages)
+- [Pull Requests](#pull-requests)
+- [Review and Follow-up](#review-and-follow-up)
+- [Using AI-Assisted Tools](#using-ai-assisted-tools)
+- [Community Conduct and Security Reports](#community-conduct-and-security-reports)
+- [Questions](#questions)
 
 ---
 
-## Prerequisites
+## Contribution Principles
 
-* **.NET 11 SDK** (preview or RC, as required by the repository). The project targets `net11.0`; use the language version configured by the repository rather than assuming a particular compiler version.
-* **An editor that understands modern C#**: Visual Studio, JetBrains Rider, or VS Code with the C# Dev Kit.
-* **For test fonts**: real `.ttf` and `.otf` files. Noto Sans, Roboto, and Noto Color Emoji from Google Fonts are the corpus used by the test suite. See [`Mubarrat.Fonts.Tests/Fonts/`](Mubarrat.Fonts.Tests/Fonts) for the current set.
+The goal of a contribution is not merely to add code. It is to make the repository more correct, useful, understandable, maintainable, or complete without needlessly compromising its existing design.
 
-Nothing else is required. There is no build script, no code generator to run, and no package to install beyond what `dotnet restore` handles.
+Contributions should follow these principles:
 
----
+1. **Correctness before breadth.** A smaller, well-tested change is preferable to a broad change whose behavior or specification interpretation is uncertain.
+2. **Evidence before assumptions.** When correctness depends on a specification, use the relevant specification, authoritative technical documentation, or a reproducible test instead of relying on memory or intuition.
+3. **Consistency before novelty.** Reuse established repository patterns when they fit. Discuss a substantially different approach before introducing it.
+4. **Explicit scope.** Keep each change focused on one coherent problem. Separate unrelated fixes, refactoring, and enhancements whenever practical.
+5. **Reviewability.** Make it possible for another developer to understand what changed, why it changed, and how its correctness was checked.
+6. **Honest status reporting.** Distinguish implemented behavior from partial support, planned work, experimental functionality, assumptions, and known limitations.
+7. **Respectful collaboration.** Technical disagreement is welcome. Personal attacks, harassment, and dismissive conduct are not.
 
-## Getting Started
+## Repository Documentation
 
-```bash
-git clone https://github.com/Mubarrat/Mubarrat.Fonts.git
-cd Mubarrat.Fonts
-dotnet build
-dotnet test
-```
+Use the following resources to understand the project, its requirements, and its contribution procedures.
 
-The first `dotnet restore` will restore the test framework and any other declared tooling. The core library has no NuGet dependencies.
+| Resource | Purpose |
+| --- | --- |
+| [Repository README](README.md) | Project overview, documented capabilities, structure, and usage information. Verify claims against the current implementation when necessary. |
+| [Code of Conduct](CODE_OF_CONDUCT.md) | Expected behavior in project spaces and how to report conduct concerns. |
+| [Security Policy](SECURITY.md) | Private vulnerability reporting, supported-version policy, and security-reporting expectations. |
+| [License](LICENSE.md) | The repository's MIT license and its terms. |
+| [Mubarrat.Fonts Contributing Guide](Mubarrat.Fonts/CONTRIBUTING.md) | Project-specific architecture, binary parsing conventions, font-table implementation, diagnostics, specification coverage, and testing requirements. |
 
-If you are adding a table that requires a font fixture you do not have, open an issue first. The test corpus is deliberately small and each font is present for a reason.
+This global guide is the shared baseline for contributions throughout the repository.
 
----
+A project-specific guide, when added, should explain the relevant project's architecture, directory structure, implementation patterns, API conventions, specification requirements, and specialized testing procedures. It should complement this guide rather than unnecessarily duplicate it.
+
+If a project requires an exception to a repository-wide convention, document the exception and its rationale explicitly. Do not assume that a convention is irrelevant simply because a project has a different implementation.
+
+## What You Can Contribute
+
+Contributions can improve functionality, correctness, documentation, developer experience, or the long-term maintainability of the repository.
+
+| Contribution type | Examples | What makes the contribution useful |
+| --- | --- | --- |
+| Bug fixes | Incorrect results, invalid boundary handling, unexpected exceptions, regressions | A reproducible failure and a regression test that demonstrates the correction |
+| Feature implementation | New capabilities, additional format support, missing operations | A clear scope, a suitable design, and tests for expected behavior |
+| Specification support | Implementing a missing format, version, structure, or requirement | An authoritative reference and tests that distinguish correct behavior from incorrect interpretations |
+| Testing | Regression tests, malformed-input cases, edge cases, improved test fixtures | Deterministic tests that exercise meaningful behavior |
+| Performance | Fewer allocations, reduced redundant work, improved throughput | Measurements or a focused benchmark when performance is the motivation |
+| Diagnostics and error handling | More useful errors, consistent validation, better failure reporting | Clear expected behavior and tests for both the failure and relevant neighboring cases |
+| Documentation | README improvements, API documentation, architecture explanations, contribution guidance | Accurate descriptions that match the current implementation |
+| Build and maintenance | Build fixes, configuration improvements, removal of unnecessary complexity | A clear explanation of the benefit and validation of affected workflows |
+| Research and design | Specification research, interoperability analysis, architectural proposals | Reliable sources, reproducible examples, alternatives, and explicit trade-offs |
+
+A contribution does not have to be large to be valuable. A focused bug report, a precise specification clarification, or a test that captures a subtle edge case can prevent future regressions.
+
+### Contribution quality
+
+A useful contribution should answer three questions:
+
+- **What problem does it solve?**
+- **Why is the proposed solution appropriate?**
+- **What evidence shows that the solution works?**
+
+The evidence may consist of tests, a specification reference, a minimal reproduction, measurements, or a clear explanation of a documentation correction.
+
+## Before You Start
+
+### Decide whether discussion is needed
+
+Small, self-contained changes can usually be submitted directly. Changes affecting public APIs, architecture, dependencies, major behavior, or a substantial amount of functionality should generally be discussed first.
+
+| Proposed change | Recommended approach |
+| --- | --- |
+| Typo or small documentation correction | Submit a focused pull request |
+| Reproducible bug with a clear expected result | Open an issue or submit a fix with a regression test |
+| New feature or substantial specification support | Discuss scope and design before implementation |
+| Public API or compatibility change | Discuss the impact on existing consumers |
+| New runtime, build, or test dependency | Explain why existing framework and repository facilities are insufficient |
+| Large refactoring | Propose a plan and divide it into reviewable stages where possible |
+| Cross-project change | Identify all affected projects and the validation required for each |
+| Suspected security vulnerability | Follow [SECURITY.md](SECURITY.md); do not disclose exploit details in a public issue |
+
+An issue or discussion is an opportunity to establish the problem and agree on a reasonable scope. It does not guarantee that a proposal will be accepted or implemented.
+
+Before opening a new issue, check whether an existing issue already covers the problem. Add new evidence to the existing discussion when appropriate instead of creating duplicates.
+
+### Understand the existing implementation
+
+Before making a change:
+
+- Read the relevant source files and nearby implementations.
+- Inspect existing tests to understand expected behavior and test conventions.
+- Check whether an equivalent abstraction or operation already exists.
+- Consult authoritative specifications or technical documentation where correctness depends on them.
+- Identify public API, compatibility, performance, allocation, and error-handling implications.
+- Review existing issues and documented limitations when relevant.
+- Confirm which projects and tests will be affected.
+
+Do not assume that a README, comment, issue description, or generated explanation is more authoritative than the implementation and the applicable specification. If these sources disagree, investigate the discrepancy and describe it clearly.
 
 ## Development Workflow
 
-1. **Open an issue first for non-trivial changes.** A new table, a new analyzer, or a change to the parser's public API should be discussed before code is written. Small bug fixes, documentation improvements, and additional test coverage can go straight to a PR.
-2. **Branch from `main`.** Use a descriptive name: `add-cff2-analyzer`, `fix-loca-offset-check`, `docs-readme-quickstart`.
-3. **Write the code, XML docs, and tests together.** A PR that adds a table but no test will be asked to add one.
-4. **Run `dotnet test` locally before pushing.** The full suite should remain reasonably fast; avoid introducing unnecessary work into the normal test path.
-5. **Open a pull request against `main`.** Fill in the PR template.
+The following workflow is recommended for changes of any size. Skip steps that genuinely do not apply to a small documentation-only correction.
 
-Maintainers review contributions as time permits. If a PR has no response for an extended period, a follow-up comment is welcome.
+### 1. Identify the problem
 
----
+Describe the current behavior, the expected behavior, and why the difference matters.
 
-## Code Conventions
+For a bug, include a minimal reproduction when possible. For a feature, describe the intended behavior and its boundaries. For a documentation change, identify the ambiguity, omission, or incorrect claim being corrected.
 
-### File Layout
+### 2. Establish the scope
 
-One public type per file is preferred, with the exception of small, tightly coupled helpers where keeping the types together clearly improves readability.
+Determine which source files, projects, APIs, tests, and documents need to change.
 
-The file name should match the primary type:
+Avoid expanding a focused task into an unrelated cleanup project. If investigation reveals an independent issue, consider reporting it separately.
 
-```text
-Tables/HeadTable.cs
-Tables/CmapTable.cs
-Tables/Variations/GvarTable.cs
-```
+### 3. Follow the applicable conventions
 
-A small set of tightly coupled types may share a file:
+Read the relevant project documentation and inspect neighboring code. When no project-specific guide exists, use established implementations and tests as evidence of local conventions.
 
-```text
-Tables/CmapTable.cs
-    CmapTable
-    CmapFormat0
-    CmapFormat4
-    CmapFormat6
-    ...
-```
+Do not invent new repository-wide rules based on a single implementation detail.
 
-Do not create files named `Helpers.cs`, `Utilities.cs`, `Common.cs`, or similar catch-all names. If a helper is needed, either nest it inside the type that owns it or give it a descriptive name and its own file.
+### 4. Create a focused branch
 
-The directory structure should communicate the conceptual organization of the library.
-
----
-
-### Namespaces
-
-Namespaces are **file-scoped**:
-
-```csharp
-namespace Mubarrat.Fonts.OpenType.Tables;
-
-public sealed record HeadTable : IOpenTypeTable<HeadTable>
-{
-    // ...
-}
-```
-
-Never use block-scoped namespaces. Never place more than one namespace in a file.
-
-The namespace should reflect the folder:
-
-| Folder                            | Namespace                                       |
-| --------------------------------- | ----------------------------------------------- |
-| `OpenType/Binary/`                | `Mubarrat.Fonts.OpenType.Binary`                |
-| `OpenType/Primitives/`            | `Mubarrat.Fonts.OpenType.Primitives`            |
-| `OpenType/Tables/`                | `Mubarrat.Fonts.OpenType.Tables`                |
-| `OpenType/Tables/Bitmap/`         | `Mubarrat.Fonts.OpenType.Tables.Bitmap`         |
-| `OpenType/Diagnostics/`           | `Mubarrat.Fonts.OpenType.Diagnostics`           |
-| `OpenType/Diagnostics/Analyzers/` | `Mubarrat.Fonts.OpenType.Diagnostics.Analyzers` |
-
-`using` directives belong outside the namespace.
-
----
-
-### Type Kinds
-
-The library uses three primary type kinds, each for a specific purpose.
-
-#### `sealed record`
-
-Use `sealed record` for tables, subtables, and parsed data structures with reference semantics. Parsed semantic properties generally use `{ get; init; }`.
-
-```csharp
-public sealed record HeadTable : IOpenTypeTable<HeadTable>
-{
-    public static Tag Tag => "head";
-
-    public ushort MajorVersion { get; init; }
-    public ushort MinorVersion { get; init; }
-    // ...
-}
-```
-
-Tables and semantic records should generally be immutable after construction.
-
----
-
-#### `record struct`
-
-Use `record struct` for raw binary layouts, headers, and other small fixed-size transfer representations that may need to be filled field-by-field.
-
-Fields are **public and mutable**.
-
-```csharp
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-public record struct Header : IBigEndianStruct<Header>
-{
-    public ushort MajorVersion;
-    public ushort MinorVersion;
-    public uint NumTables;
-
-    public static Header ReverseEndianness(Header value) => new()
-    {
-        MajorVersion = BinaryPrimitives.ReverseEndianness(value.MajorVersion),
-        MinorVersion = BinaryPrimitives.ReverseEndianness(value.MinorVersion),
-        NumTables = BinaryPrimitives.ReverseEndianness(value.NumTables),
-    };
-}
-```
-
-A raw wire struct represents the physical layout of bytes in the font. Its fields therefore remain directly accessible to parsing and writing infrastructure.
-
----
-
-#### `readonly record struct`
-
-Use `readonly record struct` for fully decoded value types such as points, ranges, coordinates, and other semantic values that do not need field-by-field mutation.
-
-Prefer properties in these types:
-
-```csharp
-public readonly record struct CffPoint(double X, double Y);
-public readonly record struct SourceSpan(long Offset, int Length);
-```
-
-Do not use a mutable wire-layout `record struct` merely because the type happens to be small. The distinction is semantic:
-
-* raw on-disk representation → mutable `record struct`
-* decoded immutable value → `readonly record struct`
-
-Do not use plain `class` or `struct` unless there is a concrete reason that the record patterns cannot express the type correctly.
-
----
-
-### Braces and Formatting
-
-Single-statement bodies do not get braces. The body follows the condition on the same line when it fits, or on the next line when it does not.
-
-```csharp
-// Correct
-if (offset < 0)
-    throw new ArgumentOutOfRangeException(nameof(offset));
-
-// Correct, wrapped
-if (destination.Length > _length || offset > _length - destination.Length)
-    throw new EndOfStreamException(
-        $"Read of {destination.Length} bytes at offset {offset} exceeds length {_length}.");
-
-// Wrong
-if (offset < 0)
-{
-    throw new ArgumentOutOfRangeException(nameof(offset));
-}
-```
-
-Braces are required when the body contains more than one statement:
-
-```csharp
-if (_isolated)
-{
-    ArgumentOutOfRangeException.ThrowIfNegative(offset);
-
-    if (destination.Length > _length || offset > _length - destination.Length)
-        throw new EndOfStreamException(...);
-}
-```
-
-The same rule applies to `for`, `foreach`, `while`, `do`, `using`, `lock`, and `fixed`.
-
-Other formatting rules:
-
-* **Four-space indentation**, no tabs.
-* `var` is permitted when the type is obvious from the right-hand side (`var cursor = source.CreateCursor()`).
-* Use explicit types when the type is not obvious or when they improve readability.
-* One statement per line.
-* Trailing commas in multi-line initializers are preferred.
-* Use `ArgumentNullException.ThrowIfNull` and `ArgumentOutOfRangeException.ThrowIf*` instead of manual argument checks.
-* File-scoped namespaces only.
-* `using` directives go outside the namespace.
-* `System.*` namespaces come before other namespaces.
-* Avoid unnecessary temporary variables and redundant conversions.
-* Do not use formatting tricks that obscure the binary layout of a type.
-
-The repository `.editorconfig` configures `csharp_prefer_braces = false` so IDEs do not suggest braces for single-statement bodies.
-
----
-
-### XML Documentation
-
-Every public type, method, property, field, and enum member carries an XML `<summary>` unless the member is compiler-generated or otherwise intentionally excluded from documentation.
-
-Document parameters when their meaning is not obvious. Document exceptions that callers can reasonably encounter.
-
-```csharp
-/// <summary>Reads the table header and constructs the parsed table.</summary>
-/// <param name="cursor">The cursor positioned at the table's first byte.</param>
-/// <param name="context">The containing parse context, or <c>null</c> when none is required.</param>
-/// <exception cref="InvalidDataException">The table version or required header value is invalid.</exception>
-static HeadTable IRecord<HeadTable>.Parse(ref Cursor cursor, object? context)
-{
-    // ...
-}
-```
-
-Do not write documentation that merely repeats a member name:
-
-```csharp
-// Bad
-/// <summary>Gets the MajorVersion.</summary>
-public ushort MajorVersion { get; init; }
-```
-
-Instead explain what the member means:
-
-```csharp
-/// <summary>Gets the major version of the table format.</summary>
-public ushort MajorVersion { get; init; }
-```
-
-Good documentation describes:
-
-* semantic meaning,
-* units,
-* valid ranges,
-* offsets,
-* version requirements,
-* relationships to other tables,
-* or relevant OpenType specification rules.
-
-When useful, include specification links in `<seealso href="..."/>` or inline `<see href="...">...</see>` elements.
-
-Keep XML documentation concise and technically precise. Do not turn straightforward members into essays.
-
----
-
-### Visibility
-
-Data types that describe font data are generally **public**, including:
-
-* tables,
-* subtables,
-* enums,
-* wire-layout structs,
-* context records,
-* public helper value types,
-* and their corresponding data members.
-
-Runtime implementation state may remain private or internal when exposing it would break invariants or unnecessarily expand the API.
-
-```csharp
-public sealed record HeadTable : IOpenTypeTable<HeadTable>
-{
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct Header : IBigEndianStruct<Header>
-    {
-        public ushort MajorVersion;
-        // ...
-    }
-}
-```
-
-A stateful parser or interpreter may keep its mutable state private:
-
-```csharp
-public sealed class CffInterpreter
-{
-    private readonly double[] _stack = new double[StackLimit];
-    private int _stackDepth;
-}
-```
-
-The distinction is:
-
-> If a type describes the shape or meaning of font data, it should generally be public. If a member exists only to maintain runtime state or an implementation invariant, it may be private.
-
-This is particularly important for a bidirectional library. A writer should be able to reuse the same public wire-layout structures that the parser reads. Hiding a header struct forces serialization code to duplicate the layout and creates two representations of the same binary contract.
-
-When unsure, ask:
-
-> Could code that writes or constructs this part of the OpenType data reasonably need to name this type or member?
-
-If yes, it should generally be public.
-
----
-
-### Interface Implementation
-
-The library intentionally distinguishes between **semantic/public members** and **parsing infrastructure members**.
-
-The implementation rule is:
-
-| Member                                  | Implementation                                                      | Reason                                                                                              |
-| --------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `IRecord<T>.Parse`                      | **Explicit**                                                        | Parsing is an infrastructure operation, not a convenience API on the concrete record.               |
-| `IHeaderRecord<T, THeader>.FromHeader`  | **Explicit**                                                        | Conversion from the raw header to the semantic record belongs to the header-record infrastructure.  |
-| Derived-record dispatch interfaces      | **Explicit where the interface defines the construction mechanism** | Keeps parser machinery out of the semantic public API.                                              |
-| `IBigEndianStruct<T>.ReverseEndianness` | **Implicit/public**                                                 | It is a meaningful operation on the wire-layout type and is used directly by binary infrastructure. |
-| `IOpenTypeTable<T>.Tag`                 | **Implicit/public**                                                 | The table tag is public type metadata and is used directly for table lookup.                        |
-
-These are deliberate API decisions.
-
-#### `Parse` is explicit
-
-For a record implementing `IRecord<T>`, the parser is written as:
-
-```csharp
-static MyRecord IRecord<MyRecord>.Parse(ref Cursor cursor, object? context)
-{
-    // ...
-}
-```
-
-Do **not** expose an additional public `Parse` method just to forward to the explicit implementation.
-
-This keeps parsing construction behind the common record infrastructure while still allowing every record to satisfy the same static interface contract.
-
-#### `FromHeader` is explicit
-
-Header-to-record conversion is also explicit:
-
-```csharp
-static MyRecord IHeaderRecord<MyRecord, Header>.FromHeader(
-    in Header header,
-    object? context) => new()
-{
-    // ...
-};
-```
-
-Do not make `FromHeader` a public static method.
-
-It is an internal construction mechanism between the raw wire representation and the semantic record representation.
-
-#### `ReverseEndianness` is implicit
-
-Do not make `ReverseEndianness` explicit.
-
-It is intentionally exposed:
-
-```csharp
-public static Header ReverseEndianness(Header value) => new()
-{
-    MajorVersion = BinaryPrimitives.ReverseEndianness(value.MajorVersion),
-    MinorVersion = BinaryPrimitives.ReverseEndianness(value.MinorVersion),
-};
-```
-
-The binary layer may invoke it through the `IBigEndianStruct<T>` constraint, while other code may also use it directly when constructing or examining a wire representation.
-
-#### `Tag` is implicit
-
-Table tags are semantic public metadata:
-
-```csharp
-public static Tag Tag => "head";
-```
-
-Do not hide `Tag` behind an explicit interface implementation.
-
-The tag is used directly by table lookup, registration, diagnostics, and other code that needs to identify the table.
-
----
-
-## The Record Pattern
-
-The library has one dominant structural pattern. Tables, subtables, and semantic records follow it consistently.
-
-### Leaf Records
-
-A leaf record is a table or subtable with no internal discriminant — the parser reads a fixed set of fields and returns the value.
-
-```csharp
-public sealed record HeadTable : IOpenTypeTable<HeadTable>
-{
-    public static Tag Tag => "head";
-
-    public ushort MajorVersion { get; init; }
-    public ushort MinorVersion { get; init; }
-
-    static HeadTable IRecord<HeadTable>.Parse(ref Cursor cursor, object? context)
-    {
-        Header header = cursor.ReadBigEndianStruct<Header>();
-
-        return new HeadTable
-        {
-            MajorVersion = header.MajorVersion,
-            MinorVersion = header.MinorVersion,
-        };
-    }
-}
-```
-
-Rules:
-
-* Use `sealed record`.
-* Implement `IOpenTypeTable<T>` for top-level tables or `IRecord<T>` for subtables.
-* `Tag` is public and implicit.
-* `Parse` is an **explicit** `IRecord<T>.Parse` implementation.
-* `Parse` takes `ref Cursor` and `object? context`.
-* Read what is needed from the cursor and construct the semantic record with an object initializer.
-* Do not add a constructor solely to assign parsed properties.
-* If construction logic genuinely needs more structure than an object initializer, use a named factory or another explicit mechanism rather than inventing an unrelated constructor pattern.
-
-A typical table therefore exposes its **data**, not its **parser implementation**.
-
----
-
-### Base and Derived Records
-
-When a table or subtable has a discriminant that selects between multiple layouts — a format number, lookup type, version, or similar discriminator — use the base/derived record pattern.
-
-```csharp
-public abstract record BaseCoord : IRecord<BaseCoord>, IBaseRecord<BaseCoord>
-{
-    public ushort Format { get; init; }
-
-    static BaseCoord IRecord<BaseCoord>.Parse(ref Cursor cursor, object? context)
-    {
-        ushort format = cursor.ReadUInt16();
-
-        return format switch
-        {
-            1 => IBaseRecord<BaseCoord>.Parse<BaseCoordFormat1>(ref cursor),
-            2 => IBaseRecord<BaseCoord>.Parse<BaseCoordFormat2>(ref cursor),
-            3 => IBaseRecord<BaseCoord>.Parse<BaseCoordFormat3>(ref cursor),
-            _ => throw new InvalidDataException(
-                $"BaseCoord format {format} is not defined."),
-        };
-    }
-}
-```
-
-The base record owns the invariant fields and dispatches to the appropriate derived layout.
-
-Derived records carry their layout-specific fields:
-
-```csharp
-public sealed record BaseCoordFormat1
-    : BaseCoord,
-      IBigEndianHeaderDerivedRecord<BaseCoord, BaseCoordFormat1, BaseCoordFormat1.Header>
-{
-    public override short Coordinate { get; init; }
-
-    static BaseCoordFormat1 IHeaderDerivedRecord<
-        BaseCoord,
-        BaseCoordFormat1,
-        Header>.FromHeader(in Header header, object? context) => new()
-    {
-        Format = 1,
-        Coordinate = header.Coordinate,
-    };
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct Header : IBigEndianStruct<Header>
-    {
-        public short Coordinate;
-
-        public static Header ReverseEndianness(Header value) => new()
-        {
-            Coordinate = BinaryPrimitives.ReverseEndianness(value.Coordinate),
-        };
-    }
-}
-```
-
-The rules are:
-
-* the base parser is explicit;
-* header-to-derived-record construction is explicit;
-* `ReverseEndianness` is public and implicit;
-* raw headers remain public;
-* inheritance is used for format/layout dispatch only.
-
-Do not introduce inheritance for unrelated semantic relationships. The library does not use class hierarchies merely to share convenience methods.
-
----
-
-### Header Records
-
-When a record is represented on disk by a fixed-layout header followed by additional data, implement the appropriate header-record interface:
-
-```csharp
-public sealed record BaseGlyphPaintRecord
-    : IBigEndianHeaderRecord<BaseGlyphPaintRecord, BaseGlyphPaintRecord.Header>
-{
-    public ushort GlyphId { get; init; }
-    public Paint Paint { get; init; } = null!;
-
-    static BaseGlyphPaintRecord IHeaderRecord<BaseGlyphPaintRecord, Header>.FromHeader(
-        in Header header,
-        object? context) => new()
-    {
-        GlyphId = header.GlyphId,
-        Paint = ((ParentContext)context!).ParentSource.ParseRecordAt<Paint>(
-            header.PaintOffset),
-    };
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct Header : IBigEndianStruct<Header>
-    {
-        public ushort GlyphId;
-        public uint PaintOffset;
-
-        public static Header ReverseEndianness(Header value) => new()
-        {
-            GlyphId = BinaryPrimitives.ReverseEndianness(value.GlyphId),
-            PaintOffset = BinaryPrimitives.ReverseEndianness(value.PaintOffset),
-        };
-    }
-}
-```
-
-The rules are strict:
-
-* `Header` is **public**.
-* Header fields are **public and mutable**.
-* `FromHeader` is **explicit**.
-* `ReverseEndianness` is **public and implicit**.
-* Parsed semantic properties are normally `{ get; init; }`.
-* Relative offsets are resolved through the existing source/cursor infrastructure instead of manually manipulating positions.
-
-The `Header` type is part of the public binary contract. It is not merely a parser implementation detail.
-
----
-
-## Big-Endian Handling
-
-OpenType data is big-endian on disk. Every multi-byte field must be interpreted accordingly.
-
-The library provides three primary mechanisms.
-
-### Scalar reads
-
-Use methods such as:
-
-```csharp
-cursor.ReadUInt16();
-cursor.ReadInt32();
-cursor.ReadUInt32();
-```
-
-These perform the required byte-order conversion automatically.
-
-Use scalar reads when only a small number of fields are being consumed individually.
-
-### Struct reads
-
-Use:
-
-```csharp
-cursor.ReadBigEndianStruct<T>();
-```
-
-when a fixed-layout struct represents multiple fields.
-
-`T` must implement `IBigEndianStruct<T>`.
-
-The struct's public `ReverseEndianness` implementation performs the field-by-field conversion.
-
-### Array reads
-
-Use:
-
-```csharp
-cursor.ReadBigEndianStructArray<T>(count);
-cursor.ReadUInt16Array(count);
-```
-
-and the corresponding primitive helpers for arrays.
-
-These APIs are preferred over manually reading individual elements when the data is already represented as a homogeneous binary sequence.
-
----
-
-### `ReverseEndianness`
-
-Every wire-layout struct containing multi-byte data implements `IBigEndianStruct<T>` with a **public, implicit** `ReverseEndianness` method.
-
-```csharp
-public static Header ReverseEndianness(Header value) => new()
-{
-    MajorVersion = BinaryPrimitives.ReverseEndianness(value.MajorVersion),
-    MinorVersion = BinaryPrimitives.ReverseEndianness(value.MinorVersion),
-    NumTables = BinaryPrimitives.ReverseEndianness(value.NumTables),
-};
-```
-
-Do **not** explicitly implement `ReverseEndianness`.
-
-The rule is:
-
-> If a struct contains any field larger than one byte, or any nested struct containing such a field, it must implement `IBigEndianStruct<T>` and reverse every multi-byte field.
-
-Structs whose fields are all `byte` or `sbyte` do not need the interface and may use `ReadStruct<T>()` instead.
-
-For example:
-
-* `CpalTable.ColorRecord` contains only bytes and does not need `IBigEndianStruct<T>`.
-* `HeadTable.Header` contains multiple multi-byte fields and does need it.
-
-If a struct contains nested wire types, recurse:
-
-```csharp
-public static Header ReverseEndianness(Header value) => new()
-{
-    FontRevision = Fixed.ReverseEndianness(value.FontRevision),
-    // ...
-};
-```
-
-Missing a nested reversal is a common and serious parsing bug.
-
-When reviewing a wire struct, compare:
-
-1. the number of multi-byte fields in the declaration;
-2. the number of corresponding conversions in `ReverseEndianness`.
-
-They should match exactly, including nested wire types.
-
----
-
-## Adding a New Table
-
-Walk through the following steps when adding a table that is not currently supported.
-
-### 1. Create the file
-
-Place the file in the appropriate folder under `Tables/`.
-
-Use the specification's conceptual grouping:
-
-```text
-Tables/
-Tables/Bitmap/
-Tables/Color/
-Tables/Layout/
-Tables/Metadata/
-Tables/Outlines/
-Tables/Hinting/
-Tables/Variations/
-```
-
-Global tables such as `head` may live directly under `Tables/`.
-
----
-
-### 2. Declare the type
-
-A top-level table is normally a sealed record implementing `IOpenTypeTable<T>`:
-
-```csharp
-public sealed record MyNewTable : IOpenTypeTable<MyNewTable>
-{
-    public static Tag Tag => "XXXX";
-
-    // ...
-}
-```
-
-`Tag` is public and implicit.
-
----
-
-### 3. Add the header struct
-
-If the table has a fixed-size header, add:
-
-```csharp
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-public record struct Header : IBigEndianStruct<Header>
-{
-    // fields in wire order
-
-    public static Header ReverseEndianness(Header value) => new()
-    {
-        // reverse every multi-byte field
-    };
-}
-```
-
-The declaration must match the specification exactly:
-
-* field order must match;
-* field sizes must match;
-* packing must be `Pack = 1`;
-* the resulting size must match the specification;
-* every multi-byte field must be reversed.
-
-Use `Unsafe.SizeOf<Header>()` where appropriate to validate the actual layout.
-
----
-
-### 4. Declare the semantic fields
-
-Each semantically meaningful field becomes a public property:
-
-```csharp
-public ushort MajorVersion { get; init; }
-public IReadOnlyList<Record> Records { get; init; } = [];
-```
-
-Use the specification's terminology, translated to normal C# naming conventions.
-
-If a value is optional by specification, model its absence explicitly rather than inventing a sentinel unless the specification itself defines one.
-
----
-
-### 5. Implement `Parse` explicitly
-
-The parser is an explicit interface implementation.
-
-```csharp
-static MyNewTable IRecord<MyNewTable>.Parse(
-    ref Cursor cursor,
-    object? context)
-{
-    Header header = cursor.ReadBigEndianStruct<Header>();
-
-    return new MyNewTable
-    {
-        // ...
-    };
-}
-```
-
-Do **not** expose a second public `Parse` method.
-
-If the table uses `IHeaderRecord<T, THeader>`, keep `FromHeader` explicit as well:
-
-```csharp
-static MyNewTable IHeaderRecord<MyNewTable, Header>.FromHeader(
-    in Header header,
-    object? context) => new()
-{
-    // ...
-};
-```
-
-`ReverseEndianness` remains public and implicit:
-
-```csharp
-public static Header ReverseEndianness(Header value) => new()
-{
-    // ...
-};
-```
-
-When a table contains subtables at offsets, use the existing source abstractions:
-
-```csharp
-cursor.Source.ParseRecordAt<T>(offset, context);
-```
-
-Do not manually reconstruct cursors or duplicate offset-resolution logic.
-
----
-
-### 6. Write a test
-
-At minimum, add a real-font test:
-
-```csharp
-[Fact]
-public void MyNewTable_FromRoboto_Parses()
-{
-    var face = Parse.Face(TestFonts.Bytes("Roboto-Regular.ttf"));
-    var table = face.GetTable<MyNewTable>();
-
-    Assert.Equal(expected, table.SomeField);
-}
-```
-
-If the table has version variants, offset edge cases, or branches that real fonts do not exercise, add byte-level tests using a minimal `byte[]`.
-
----
-
-### 7. Add documentation
-
-Add XML documentation to every new public type and member.
-
-Use specification links where appropriate and document:
-
-* wire offsets;
-* sizes;
-* version rules;
-* relationships to other tables;
-* valid ranges;
-* optionality;
-* and unusual implementation details.
-
----
-
-### 8. Update the README
-
-Add the table to the supported-tables list and update any related documentation or feature matrix.
-
----
-
-## Adding a New Analyzer
-
-Adding an analyzer for a table already covered by the parser follows this pattern.
-
-### 1. Create the file
-
-Create:
-
-```text
-Diagnostics/Analyzers/<TableName>Analyzer.cs
-```
-
-The class is `<TableName>Analyzer`.
-
-### 2. Implement `IFontAnalyzer`
-
-The analyzer is normally sealed, stateless, and exposed through a singleton:
-
-```csharp
-public sealed class MyNewTableAnalyzer : IFontAnalyzer
-{
-    private MyNewTableAnalyzer() { }
-
-    public static MyNewTableAnalyzer Instance => field ??= new();
-
-    public void Analyze(FontFace face, DiagnosticBag bag)
-    {
-        // ...
-    }
-}
-```
-
-The analyzer contains runtime behavior, not font-data representation. Its internal state may therefore remain private.
-
-### 3. Declare descriptors
-
-Each rule gets a:
-
-```csharp
-public static readonly DiagnosticDescriptor
-```
-
-Use the rule ID format defined in [Rule IDs](#rule-ids).
-
-The severity reflects the meaning of the rule:
-
-* `Error` — definite specification violation.
-* `Warning` — suspicious or potentially problematic data that remains legal.
-* `Information` — notable information that is not itself an error.
-
-### 4. Write the checks
-
-Group related checks into private static methods by concern.
-
-Before requesting another table, verify that it exists:
-
-```csharp
-if (!face.Directory.Contains(OtherTable.Tag))
-    return;
-```
-
-Do not assume a cross-referenced table is present merely because the current table normally occurs beside it.
-
-### 5. Report diagnostics
-
-Report through the shared diagnostic abstractions:
-
-```csharp
-bag.Add(descriptor.Create(args, ...));
-```
-
-The shared creation path should populate the severity, message arguments, table, field, and span information consistently.
-
-### 6. Register the analyzer
-
-Add it to `FontAnalyzer.Analyze`:
-
-```csharp
-Run<MyNewTable>(face, MyNewTableAnalyzer.Instance, bag);
-```
-
-### 7. Write a corpus test
-
-Every analyzer gets a corpus test:
-
-```csharp
-[Theory]
-[MemberData(nameof(AllFonts))]
-public void AllFonts_HaveNoSevereMyNewTableDiagnostics(string path)
-{
-    var face = Parse.Face(TestFonts.Bytes(path));
-
-    if (!face.Directory.Contains(MyNewTable.Tag))
-        return;
-
-    var bag = new DiagnosticBag();
-    MyNewTableAnalyzer.Instance.Analyze(face, bag);
-
-    var severe = bag.Diagnostics
-        .Where(d => d.Severity <= DiagnosticSeverity.Warning)
-        .ToList();
-
-    Assert.Empty(severe);
-}
-```
-
-Information-level diagnostics are expected to occur and are therefore excluded from the severe-diagnostic assertion.
-
----
-
-## Rule IDs
-
-Rule IDs use:
-
-```text
-OT.<table>.<slug>
-```
-
-where:
-
-* `OT` is the library prefix.
-* `<table>` is the lowercase sfnt tag with non-alphanumeric characters removed.
-* `<slug>` is a short kebab-case description of what the rule checks.
+Use a descriptive branch name that communicates the purpose of the work.
 
 Examples:
 
-| Rule                               | ID                         |
-| ---------------------------------- | -------------------------- |
-| `head.magicNumber != 0x5F0F3CF5`   | `OT.head.magic-number`     |
-| `head.unitsPerEm` out of range     | `OT.head.units-per-em`     |
-| `cmap` encoding records unsorted   | `OT.cmap.records-unsorted` |
-| `hmtx` count disagrees with `maxp` | `OT.hmtx.count-vs-maxp`    |
-| `OS/2` weight class invalid        | `OT.os2.weight-class`      |
-| `cvt ` data malformed              | `OT.cvt.data`              |
+- `fix-offset-validation`
+- `add-format-tests`
+- `improve-parser-diagnostics`
+- `docs-contribution-guide`
 
-Slugs describe the **failure or invariant**, not merely the field.
+Follow any more specific branching convention established for the relevant project or workflow.
 
-Prefer:
+### 5. Implement the smallest coherent change
 
-```text
-OT.cmap.records-unsorted
-```
+Prefer a focused implementation that solves the stated problem without introducing unrelated behavior changes.
 
-over:
+Avoid unnecessary renames, broad formatting changes, speculative abstractions, duplicated logic, and new dependencies that have not been justified.
 
-```text
-OT.cmap.encoding-records
-```
+### 6. Add or update tests
 
-### Cross-table rules
+Tests should establish the expected behavior and prevent the same problem from recurring.
 
-Rules that span multiple tables use the table of the **dependent** — the table that is considered wrong if the rule fires.
+Where applicable, include ordinary cases, boundary conditions, invalid input, and interactions with related functionality.
 
-For example:
+### 7. Validate locally
 
-```text
-OT.hmtx.count-vs-maxp
-```
+Build and test the affected projects. Review the output and investigate failures rather than assuming they are unrelated.
 
-belongs to `hmtx` when the rule checks that the number of horizontal metrics is consistent with `maxp.numGlyphs`.
+If a check cannot run because of an unavailable SDK, missing fixture, unsupported platform, or another environmental limitation, record the limitation accurately.
 
-### Stability
+### 8. Update documentation
 
-Rule IDs are stable API identifiers.
+Update user-facing and developer-facing documentation when behavior, supported functionality, configuration, public APIs, or contribution procedures change.
 
-Once a rule has been published:
+Ensure examples and links remain valid.
 
-* do not rename its ID;
-* do not silently reuse it for another invariant;
-* changing its message does not change its ID;
-* changing its severity does not change its ID;
-* changing its implementation does not change its ID.
+### 9. Review the final diff
 
-If a rule is removed, its ID is retired and should never be reused for a different rule.
+Inspect the complete change before committing. Check for accidental files, generated output, local paths, secrets, unrelated modifications, and misleading claims.
 
-Run `RuleIdConventionTests` to validate the convention automatically.
+### 10. Submit a pull request
 
----
+Explain the problem, the implementation, and the validation performed. Respond constructively to review feedback and rerun relevant checks after revisions.
 
-## Testing
+## General Engineering Expectations
 
-Three kinds of tests are used, roughly in order of breadth.
+The implementation details differ between projects, but these expectations apply across the repository.
 
-### Corpus tests
+### Correctness and robustness
 
-Corpus tests run against the real font collection under `Fonts/`.
+- Validate input at the appropriate abstraction boundary.
+- Consider empty input, boundary values, truncated input, invalid lengths, unexpected versions, and inconsistent references where applicable.
+- Do not silently convert invalid or unsupported input into plausible-looking but incorrect output.
+- Preserve useful error context without exposing secrets or dumping unnecessarily large amounts of input.
+- Do not suppress exceptions or weaken validation merely to make a test pass.
+- Make intentional limitations explicit.
+- Ensure that tests reflect the intended behavior rather than simply repeating the implementation's assumptions.
 
-They are the preferred first-line tests because they exercise the parser against real OpenType data.
+### Maintainability
 
-Every analyzer and every parser should have at least one meaningful corpus test.
+- Prefer descriptive, direct code over cleverness that obscures control flow or invariants.
+- Use names that accurately represent the concepts they model.
+- Avoid catch-all utility classes, duplicated rules, and abstractions without a clear purpose.
+- Explain non-obvious decisions, invariants, and workarounds in comments when useful.
+- Avoid changing public behavior as an incidental result of refactoring.
+- Keep formatting changes limited to the relevant code unless broader formatting is the explicit purpose of the change.
+- Do not introduce infrastructure solely because it might be useful in a hypothetical future scenario.
 
-### Byte-level tests
+### Public API and compatibility
 
-Use a minimal `byte[]` when you need to cover:
+Public API changes should be deliberate and justified.
 
-* version-specific branches;
-* malformed headers;
-* offset arithmetic;
-* absent optional data;
-* invalid counts;
-* unusual boundary conditions;
-* or specification branches not represented in the real font corpus.
+| Compatibility consideration | Questions to ask |
+| --- | --- |
+| Source compatibility | Will existing consumer code still compile? |
+| Binary compatibility | Could existing compiled consumers break? |
+| Behavioral compatibility | Does an existing operation now produce different results or exceptions? |
+| Performance compatibility | Could the change introduce significant allocation or latency regressions? |
+| Documentation compatibility | Do existing examples and documented assumptions remain accurate? |
+| Migration | If a breaking change is necessary, is there a clear migration path? |
 
-These tests should remain small and targeted.
+Do not remove, rename, or change the meaning of a public member merely to simplify an internal implementation without considering downstream impact.
 
-### Property tests
+Avoid claiming support for a feature solely because its types, interfaces, or initial implementation exist. Describe actual support and known limitations accurately.
 
-Use property-style tests selectively for structural invariants such as:
+### Performance
 
-* reversing endianness twice restores the original value;
-* a fixed-size struct has the expected size;
-* encoding and decoding preserve a known value;
-* range boundaries remain inclusive/exclusive as defined by the specification.
+Performance changes should address a demonstrated problem or protect an important hot path.
 
-Not every type needs property tests.
+When relevant:
 
-Run the full suite with:
+- Compare equivalent work before and after the change.
+- Keep input data and measurement conditions comparable.
+- Consider allocations, retained memory, throughput, and latency as appropriate.
+- Include benchmark results when they materially support the proposed improvement.
+- Avoid sacrificing correctness, safety, or maintainability for speculative gains.
 
-```bash
+A benchmark is evidence, not a substitute for correctness tests. Faster incorrect behavior is not an improvement.
+
+## Testing and Validation
+
+Tests are part of the implementation. They define intended behavior, make review more objective, and help prevent regressions.
+
+### Validation by change type
+
+| Change type | Expected validation |
+| --- | --- |
+| Documentation-only | Check Markdown structure, relative links, spelling, and consistency with the current implementation |
+| Bug fix | Add a regression test where practical and run the affected tests |
+| New feature | Test normal use, boundaries, invalid input, and relevant interactions |
+| Refactoring | Run tests that demonstrate existing behavior remains intact |
+| Public API change | Build affected projects and test representative consumer-facing usage |
+| Performance optimization | Run correctness tests and measure performance when practical |
+| Build or configuration change | Run the affected build workflow and document environmental requirements |
+| Cross-project change | Build and test every affected project |
+| Test infrastructure change | Verify that the tests still execute and that failures are reported correctly |
+
+### Standard .NET checks
+
+From the repository root, begin with:
+
+\`\`\`bash
+dotnet build
 dotnet test
-```
+\`\`\`
 
-Avoid adding tests that perform redundant parsing or repeated font loading. Test setup should be shared where the existing framework provides suitable helpers.
+Use the SDK and configuration required by the current project files. Run more targeted checks when they help isolate a problem, but do not substitute a narrow successful test for broader validation when the change affects shared infrastructure.
 
----
+### Test quality
 
-### Test Font Conventions
+Where applicable, tests should:
 
-Test fonts live in:
+- Exercise the behavior that changed.
+- Assert meaningful results rather than merely asserting that no exception occurred.
+- Include boundary and failure cases.
+- Be deterministic and reproducible.
+- Avoid unnecessary network access, timing dependencies, and machine-specific assumptions.
+- Preserve the strength of existing assertions.
+- Include enough context to make failures understandable.
 
-```text
-Mubarrat.Fonts.Tests/Fonts/
-```
+Do not delete or weaken a test merely to make the suite pass. If the expected behavior has genuinely changed, update the test and explain why.
 
-The test project should copy them to the output directory through its project configuration:
+### When validation cannot be completed
 
-```xml
-<None Include="Fonts\**\*" CopyToOutputDirectory="PreserveNewest" />
-```
+Sometimes a test requires a fixture that cannot be redistributed, a platform that is unavailable, or a toolchain that is not installed.
 
-Do not commit fonts that are not required by the test suite.
+In such cases, explain exactly what could not be run, why it could not be run, and what evidence was obtained instead. Do not describe an unexecuted test as passing.
 
-Every font in the corpus should exist for a reason and should be referenced by at least one test.
+## Documentation Expectations
 
-When adding a new font:
+Documentation should help readers understand what a feature does, how to use it, what it guarantees, and what it does not guarantee.
 
-1. give it a descriptive filename such as `NotoSansCJK-Regular.otf`;
-2. verify that its license permits redistribution;
-3. prefer fonts whose licensing terms are clear and compatible with repository distribution;
-4. add or update the corresponding helper in `TestFonts.cs`;
-5. add the test that actually requires the font.
+### Documentation change matrix
 
-Google Fonts commonly contains fonts licensed under OFL or Apache-2.0, but always verify the specific font before committing it.
+| Documentation area | Update it when |
+| --- | --- |
+| README | Setup, usage, project structure, capabilities, or major limitations change |
+| Public API documentation | A public type or member is added, changed, or gains important constraints |
+| Architecture documentation | Component boundaries, data flow, or major design decisions change |
+| Examples | Public APIs, setup requirements, or expected output change |
+| Test guidance | Test commands, fixtures, or validation workflows change |
+| Contribution guide | General workflow or project-specific implementation conventions change |
+| Security documentation | Vulnerability reporting or security expectations change |
+| Release notes or changelog | The repository's release process calls for documenting a user-visible change |
 
----
+### Accuracy and status
 
-## Performance
+Documentation must distinguish between:
 
-The library's performance depends on several properties that are easy to break accidentally.
+- **Implemented:** behavior exists in the current implementation.
+- **Partially implemented:** only some formats, versions, cases, or operations are supported.
+- **Planned:** work is intended but has not been implemented.
+- **Experimental:** behavior exists but is not yet considered stable.
+- **Unsupported:** behavior is intentionally absent or outside the current implementation.
 
-### 1. Keep parsing allocation-conscious
+Do not describe planned work as implemented, imply comprehensive coverage without evidence, or claim that a feature has been tested when it has not.
 
-A `Parse` method should allocate only the data structures it actually needs to return.
+Examples should compile against the current public API unless explicitly marked as pseudocode or conceptual examples. When a public API changes, search for examples and documentation that may have become outdated.
 
-Avoid unnecessary allocations such as:
+### Markdown links
 
-```csharp
-var list = new List<Record>();
-// ...
-return list.ToArray();
-```
+Every link added to repository documentation should be checked.
 
-when a direct array allocation or an existing binary-reader helper can produce the final representation directly.
+- Confirm that the target file or page exists.
+- Resolve relative paths from the Markdown file that contains the link.
+- Check heading anchors when linking to a section.
+- Prefer canonical repository paths for internal documents.
+- Do not add a link to a planned file as if the file already exists.
+- If a relevant guide has not yet been created, state that it has not been added instead of linking to a nonexistent destination.
 
-Avoid:
+## Dependencies and Licensing
 
-* unnecessary LINQ on hot paths;
-* boxing value types;
-* temporary strings created for every record;
-* redundant arrays;
-* repeated encoding/decoding;
-* repeated cursor construction when a source helper already exists.
+Keep dependencies small, justified, and compatible with the repository's goals.
 
-If a temporary array of structs is required, prefer the existing `ReadBigEndianStructArray<T>` infrastructure.
+Before proposing a new package, generator, runtime dependency, or external service, explain:
 
-If a temporary array of primitives is required, use the appropriate primitive-array reader.
+1. What capability is missing.
+2. Why existing framework APIs and repository code are insufficient.
+3. Whether the dependency is required at runtime, build time, or test time.
+4. Its licensing, maintenance, security, and compatibility implications.
+5. Whether the same outcome can be achieved without adding long-term maintenance cost.
 
-### 2. Avoid retaining `Source` unnecessarily
+This repository has a strict dependency preference for \`System.*\` and \`Microsoft.*\` APIs and packages. Introducing dependencies outside that boundary requires explicit justification and discussion; do not treat such a dependency as an incidental implementation detail.
 
-Most tables should materialize their semantic data during parsing and release the underlying `Source`.
+### Third-party material
 
-A table should retain a `Source` only when on-demand access is genuinely part of its design.
+Before copying code, font files, test data, documentation, or other assets into the repository, verify the applicable license and redistribution terms.
 
-If a new table needs to retain source data, document why and consider the lifetime and memory consequences before introducing it.
+- Preserve required attribution and license notices.
+- Do not assume that publicly downloadable material is free to redistribute.
+- Do not introduce third-party code whose license is incompatible with the repository.
+- Explain the origin of external fixtures and assets where appropriate.
+- Prefer minimal, redistributable test fixtures when they are sufficient.
 
-### 3. Do not introduce reflection
+Contributions must comply with the repository's [MIT license](LICENSE.md). That license does not grant permission to redistribute third-party material whose own terms prohibit it.
 
-Do not add:
+### Secrets and sensitive data
 
-```text
-System.Reflection
-System.Linq.Expressions
-```
+Never commit credentials, access tokens, private keys, personal data, or other secrets.
 
-to the parsing architecture.
-
-The library aims to remain compatible with trimming and AOT-oriented scenarios.
-
-Prefer:
-
-* static abstract interface members;
-* generic constraints;
-* compile-time dispatch;
-* direct data structures.
-
-### 4. Measure changes to hot paths
-
-If you change a commonly executed operation such as:
-
-```text
-CmapTable.GetGlyphId
-GlyfTable[int]
-Cursor.Read*
-Source.Read*
-```
-
-measure the effect before and after when practical.
-
-There is no requirement to benchmark every change, but performance-sensitive changes should be based on measurement rather than intuition.
-
----
+If a secret is accidentally committed, deleting it in a later commit may not remove it from Git history. Treat it as exposed and rotate or revoke it promptly. Follow the relevant security-reporting process if exposure creates a broader risk.
 
 ## Commit Messages
 
-Use the **present tense and imperative mood**.
+Write commit subjects in the **imperative mood** and describe what the commit changes.
 
-The subject describes what the commit does to the repository:
+| Prefer | Avoid |
+| --- | --- |
+| \`Add tests for truncated table data\` | \`Added tests for truncated table data\` |
+| \`Fix offset validation\` | \`Fixes offset validation\` |
+| \`Document contribution workflow\` | \`Documentation update\` |
+| \`Clarify supported format coverage\` | \`Some README changes\` |
 
-```text
-Add CFF2 analyzer with 13 rules
-```
+Keep the subject concise—72 characters or fewer where practical.
 
-```text
-Fix the SliceSource collapse when the outer slice is isolated
-```
+For changes that need additional explanation, add a body after a blank line. Explain the motivation, design choices, relevant trade-offs, and testing performed.
 
-```text
-Rename OffsetSource to SliceSource and unify the length semantics
-```
+Avoid vague subjects such as \`Update files\`, \`Changes\`, or \`Fix stuff\`. Do not add prefixes such as \`feat:\` or \`fix:\` unless the relevant repository workflow explicitly requires them.
 
-Do not write:
+Reference issues when useful. Use issue-closing keywords when the commit or pull request is intended to close the referenced issue.
 
-```text
-Added CFF2 analyzer
-Fixed SliceSource
-Renamed OffsetSource
-```
-
-The subject line should be no more than 72 characters where practical.
-
-For a non-trivial change, add a body after a blank line:
-
-```text
-Add CFF2 analyzer with 13 rules
-
-Covers header validation, FDArray/FDSelect cross-references, and the
-variation store presence check. Each rule is documented in the analyzer
-file with a specification reference.
-```
-
-Do not use prefixes such as:
-
-```text
-[fix]
-feat:
-fix:
-WIP
-```
-
-If a commit resolves an issue, add the issue reference:
-
-```text
-Fixes #42.
-```
-
-A commit message should describe the patch itself rather than serve as a diary entry about when the work was performed.
-
----
+A commit message should explain the change, not serve as a diary of the development session.
 
 ## Pull Requests
 
-A PR should be focused.
+A pull request should be focused enough to review carefully and complete enough to evaluate on its own.
 
-If you discover an unrelated bug while implementing a feature, open a separate PR unless the two changes are inseparable.
+If a feature can be divided into independent, useful changes, prefer separate pull requests. If several changes must be reviewed together, explain their relationship in the pull request description.
 
-Before opening the PR, confirm:
+### Pre-submission checklist
 
-* [ ] `dotnet build` succeeds with zero warnings.
-* [ ] `dotnet test` passes.
-* [ ] Every new public type has XML documentation.
-* [ ] Every new public member has meaningful XML documentation.
-* [ ] Every new data type representing font data is `public`.
-* [ ] Every raw wire-layout struct uses the appropriate packing and endianness pattern.
-* [ ] Every `Parse` implementation follows the explicit-interface rule.
-* [ ] Every `FromHeader` implementation follows the explicit-interface rule.
-* [ ] Every `ReverseEndianness` implementation is public and implicit.
-* [ ] Every new table has a real-font corpus test.
-* [ ] Every new analyzer has an `AllFonts_HaveNoSevere*Diagnostics` test.
-* [ ] Every new rule ID follows `OT.<table>.<slug>`.
-* [ ] The README supported-tables list is updated when a new table is added.
-* [ ] No unnecessary `System.Reflection` or `System.Linq.Expressions` usage was introduced.
-* [ ] No `unsafe` code was introduced without a documented and justified reason.
-* [ ] No unrelated formatting churn obscures the actual change.
+Before requesting review, confirm the items that apply:
 
-The PR description should include:
+- [ ] The change addresses a clearly described problem or agreed scope.
+- [ ] The implementation follows the relevant project conventions.
+- [ ] Tests were added or updated where appropriate.
+- [ ] Affected builds and tests were run.
+- [ ] Any validation that could not be performed is explained.
+- [ ] Public API changes and user-visible behavior are documented.
+- [ ] README examples and relative links remain valid.
+- [ ] Dependencies and copied assets comply with repository policy and licensing.
+- [ ] No secrets, local environment files, generated binaries, or unrelated changes were included.
+- [ ] The final diff was reviewed for accidental modifications.
+- [ ] The pull request description explains what changed, why it changed, and how it was validated.
 
-1. **What the change does.**
-2. **Why it is needed.**
-3. **How it was tested.**
+### Pull request description
 
-For example:
+| Section | What to include |
+| --- | --- |
+| **What** | The behavior or documentation added, corrected, or removed |
+| **Why** | The problem, requirement, or evidence that motivated the change |
+| **Implementation** | Important design decisions, boundaries, and trade-offs |
+| **Testing** | Commands, tests, fixtures, benchmarks, and environment details |
+| **Limitations** | Known gaps, unverified behavior, or checks that could not be completed |
+| **Related work** | Relevant issues, discussions, or dependent changes |
 
-```text
+Example:
+
+\`\`\`text
 What:
-Adds parsing support for the VVAR table.
+Corrects validation for an offset beyond the available input.
 
 Why:
-Variable fonts using vertical metric variations were previously ignored.
+The previous behavior allowed a read attempt outside the declared data
+region.
+
+Implementation:
+Validates the offset and remaining length before attempting the read.
 
 Testing:
-Added a VVAR corpus test using the existing variable-font fixture and
-byte-level tests for optional DeltaSetIndexMap offsets.
-```
+Adds a regression test for the invalid offset and runs the relevant
+test suite.
+\`\`\`
 
-A maintainer may ask questions about whether the change fits the existing architecture. That is a normal part of maintaining consistency across the library.
+Keep the description factual. Do not claim that tests passed, performance improved, or specification coverage is complete unless supporting evidence exists.
 
----
+## Review and Follow-up
 
-## Using AI Assistants
+Code review is a collaborative quality check. Reviewers may request clearer tests, narrower scope, better naming, specification evidence, or a different design when the current approach introduces correctness, maintenance, or compatibility concerns.
 
-AI tools are welcome during development. You may use Copilot, Claude, ChatGPT, Cursor, or another tool without being required to disclose its use.
+### Contributor expectations
 
-The requirement is the same as for manually written code:
+- Respond to technical feedback with evidence or a clear explanation of trade-offs.
+- Ask for clarification when a requested change is ambiguous.
+- Keep follow-up commits understandable and relevant to the pull request.
+- Rerun relevant validation after changing behavior.
+- Resolve review discussions when appropriate and supported by the platform.
+- If you disagree with feedback, explain the technical reason respectfully.
 
-> The contribution must follow the repository's conventions and must be reviewed by the contributor before submission.
+### Reviewer expectations
 
-AI-generated code is not exempt from any architectural rule.
+- Focus on correctness, maintainability, security, consistency, and the stated scope.
+- Explain why a requested change matters, especially when the reason is not self-evident.
+- Distinguish blocking correctness issues from optional preferences.
+- Avoid requesting unrelated cleanup in an otherwise focused pull request.
+- Consider tests, documentation, and compatibility alongside the implementation.
 
-In particular, verify:
+A single review comment does not automatically establish a repository-wide convention. Repeated patterns and explicit project guidance should determine conventions. Substantial new rules should be discussed and documented.
 
-* **Record pattern**
+## Using AI-Assisted Tools
 
-  * `sealed record` for semantic tables and records;
-  * `public record struct Header : IBigEndianStruct<Header>` for fixed-layout headers;
-  * `readonly record struct` for immutable decoded values.
+AI-assisted coding, research, and writing tools may be used. However, the contributor remains responsible for everything submitted, including code, tests, documentation, licensing, and technical claims.
 
-* **Interface implementation**
+Before submitting AI-assisted work:
 
-  * `Parse` is explicitly implemented;
-  * `FromHeader` is explicitly implemented;
-  * `ReverseEndianness` is publicly and implicitly implemented;
-  * `Tag` is publicly and implicitly implemented.
+- Verify API names, framework behavior, specifications, and external references.
+- Review generated code for incorrect assumptions, unnecessary abstractions, hidden dependencies, and unsafe input handling.
+- Ensure tests validate expected behavior rather than simply repeating the generated implementation's assumptions.
+- Confirm that examples and documentation match the actual repository state.
+- Check the origin and license of any incorporated third-party code or assets.
+- Never provide credentials, private keys, confidential information, or other secrets to tools that are not authorized to process them.
+- Disclose AI assistance if a specific contribution process or reviewer reasonably requires it.
 
-* **Visibility**
+AI-generated output is subject to the same standards as manually written work. The use of AI does not reduce the contributor's responsibility or the standard of review.
 
-  * font-data types are public;
-  * runtime state remains private where appropriate.
+## Community Conduct and Security Reports
 
-* **Binary correctness**
+All contributors are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md). Keep discussions respectful, focus criticism on ideas and implementations, and do not publish another person's private information.
 
-  * field order matches the specification;
-  * offsets are measured from the correct origin;
-  * sizes match the specification;
-  * all multi-byte fields are reversed correctly;
-  * nested wire structs are reversed recursively.
+**Do not report suspected vulnerabilities through a public issue or pull request.** Follow the private reporting procedure in [SECURITY.md](SECURITY.md), which explains how to submit a report and what information to include.
 
-* **Documentation**
-
-  * every public member is documented meaningfully;
-  * specification links are correct;
-  * documentation does not merely repeat member names.
-
-* **Testing**
-
-  * each parser has real-font coverage;
-  * each analyzer has corpus coverage;
-  * edge cases have byte-level tests where necessary.
-
-* **Architecture**
-
-  * no unnecessary dependencies;
-  * no reflection-based parsing;
-  * no duplicated offset logic;
-  * no unnecessary source retention;
-  * no unrelated abstraction introduced merely because an AI suggested it.
-
-AI-generated code that follows these conventions is welcome. AI-generated code that does not follow them should be changed before the PR is submitted.
-
-The source of the code does not change the review standard. The maintainer will review the resulting code, its tests, its documentation, and its fit with the architecture.
-
----
+Ordinary correctness bugs and specification-conformance problems can generally be reported through the public issue tracker unless they also create a security risk. If you are unsure whether a problem is security-sensitive, consult the security policy before disclosing technical details publicly.
 
 ## Questions
 
-If something in this document is unclear, or if you are unsure whether a proposed change fits the conventions, open an issue or start a discussion.
+If you are unsure where a change belongs, whether a design fits the project, or how to validate a behavior, ask a focused question or open an issue before undertaking a large implementation.
 
-The conventions exist to keep the codebase readable, predictable, and internally consistent. They are not intended to prevent legitimate new designs; unusual cases should be discussed rather than forcing them into an existing pattern incorrectly.
+Include enough context for another contributor to understand the problem, what you have already investigated, and what decision or clarification you need.
 
-Thank you for contributing.
+Thank you for helping improve Mubarrat.Fonts.
