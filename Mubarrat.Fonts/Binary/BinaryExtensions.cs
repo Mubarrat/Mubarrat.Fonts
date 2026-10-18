@@ -20,7 +20,7 @@ namespace Mubarrat.Fonts.Binary;
     "ApiDesign",
     "RS0026:Do not add multiple public overloads with optional parameters",
     Scope = "type",
-    Target = "~T:Mubarrat.Fonts.OpenType.Binary.BinaryExtensions",
+    Target = "~T:Mubarrat.Fonts.Binary.BinaryExtensions",
     Justification = "Overloads are disambiguated by the type of their span/count parameter and, for the header-record readers, by whether the receiver is a Source or a ref Cursor; the optional 'context' and 'isLittleEndian' cannot introduce ambiguity between them.")]
 public static class BinaryExtensions
 {
@@ -252,6 +252,7 @@ public static class BinaryExtensions
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
     public static void ReadEnumArrayAt<TEnum>(this Source source, long offset, Span<TEnum> destination, bool isLittleEndian = false) where TEnum : unmanaged, Enum
     {
+        ArgumentNullException.ThrowIfNull(source);
         if (destination.IsEmpty) return;
 
         // Read the raw bytes into the enum storage.

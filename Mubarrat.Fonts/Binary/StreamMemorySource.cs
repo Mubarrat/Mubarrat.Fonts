@@ -20,7 +20,7 @@
     "ApiDesign",
     "RS0026:Do not add multiple public overloads with optional parameters",
     Scope = "type",
-    Target = "~T:Mubarrat.Fonts.OpenType.Binary.StreamMemorySource",
+    Target = "~T:Mubarrat.Fonts.Binary.StreamMemorySource",
     Justification = "The two constructors are disambiguated by the type of their second parameter (bool ownsStream vs long length); the trailing optional 'ownsStream' cannot introduce ambiguity between them.")]
 public sealed class StreamMemorySource : Source
 {
@@ -162,7 +162,7 @@ public sealed class StreamMemorySource : Source
     /// <inheritdoc/>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>Only hands out a span when the requested range is already buffered; extending here would require the lock, and the caller's fallback path (<c>stackalloc</c> + <see cref="ReadAtCore"/> already covers the miss case.</description></item>
+    /// <item><description>Only hands out a span when the requested range is already buffered; extending here would require the lock, and the caller's fallback path (<c>stackalloc</c> + <see cref="ReadAtCore"/>) already covers the miss case.</description></item>
     /// <item><description>The returned span aliases the internal buffer. If the buffer is later replaced by <see cref="ExtendLocked"/>, the span continues to reference the old array — safe to read, but not current with subsequent writes.</description></item>
     /// </list>
     /// </remarks>

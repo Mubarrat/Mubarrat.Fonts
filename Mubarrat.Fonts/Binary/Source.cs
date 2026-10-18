@@ -24,7 +24,7 @@ namespace Mubarrat.Fonts.Binary;
     "ApiDesign",
     "RS0026:Do not add multiple public overloads with optional parameters",
     Scope = "type",
-    Target = "~T:Mubarrat.Fonts.OpenType.Binary.Source",
+    Target = "~T:Mubarrat.Fonts.Binary.Source",
     Justification = "Overloads are disambiguated by the type of their first parameter (int count vs Span<T> destination); the trailing optional 'context' and 'isLittleEndian' cannot introduce ambiguity between them.")]
 public abstract class Source : IDisposable
 {
@@ -419,10 +419,10 @@ public abstract class Source : IDisposable
     public float ReadSingleAt(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 4, out var span))
-            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadSingleBigEndian(span) : BinaryPrimitives.ReadSingleLittleEndian(span);
+            return isLittleEndian ? BinaryPrimitives.ReadSingleLittleEndian(span) : BinaryPrimitives.ReadSingleBigEndian(span);
         Span<byte> buffer = stackalloc byte[4];
         ReadAt(offset, buffer);
-        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadSingleBigEndian(buffer) : BinaryPrimitives.ReadSingleLittleEndian(buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadSingleLittleEndian(buffer) : BinaryPrimitives.ReadSingleBigEndian(buffer);
     }
 
     /// <summary>Reads <paramref name="count"/> 32-bit IEEE 754 floating-point values at an absolute offset in the requested wire byte order.</summary>
@@ -472,10 +472,10 @@ public abstract class Source : IDisposable
     public double ReadDoubleAt(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 8, out var span))
-            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadDoubleBigEndian(span) : BinaryPrimitives.ReadDoubleLittleEndian(span);
+            return isLittleEndian ? BinaryPrimitives.ReadDoubleLittleEndian(span) : BinaryPrimitives.ReadDoubleBigEndian(span);
         Span<byte> buffer = stackalloc byte[8];
         ReadAt(offset, buffer);
-        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadDoubleBigEndian(buffer) : BinaryPrimitives.ReadDoubleLittleEndian(buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadDoubleLittleEndian(buffer) : BinaryPrimitives.ReadDoubleBigEndian(buffer);
     }
 
     /// <summary>Reads <paramref name="count"/> 64-bit IEEE 754 floating-point values at an absolute offset in the requested wire byte order.</summary>

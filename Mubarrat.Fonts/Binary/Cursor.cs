@@ -20,7 +20,7 @@ namespace Mubarrat.Fonts.Binary;
     "ApiDesign",
     "RS0026:Do not add multiple public overloads with optional parameters",
     Scope = "type",
-    Target = "~T:Mubarrat.Fonts.OpenType.Binary.Cursor",
+    Target = "~T:Mubarrat.Fonts.Binary.Cursor",
     Justification = "Cursor overloads are disambiguated by the type of their first parameter (int count vs Span<T> destination); the optional 'context' and 'isLittleEndian' cannot introduce ambiguity between them.")]
 public ref struct Cursor
 {
