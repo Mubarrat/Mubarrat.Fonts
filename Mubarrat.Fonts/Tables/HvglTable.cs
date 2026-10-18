@@ -10,7 +10,8 @@ namespace Mubarrat.Fonts.Tables;
 /// <remarks>
 /// <list type="bullet">
 /// <item><description><b>Little-endian throughout.</b> Every multi-byte read passes <c>isLittleEndian: true</c>, unlike every other sfnt table. Floating-point values are IEEE 754; composites use <c>Float32</c>, shapes use <c>Float64</c>.</description></item>
-/// <item><description>Parts are addressed through a flat <c>UInt32</c> index of offsets, one per part plus a sentinel. Each part begins with a <c>UInt16</c> flags word whose bit 0 selects the format: <c>0</c> for a shape, <c>1</c> for a composite.</description></item>
+/// <item><description>Parts are addressed through a flat <c>UInt32</c> index of offsets, one per part plus a trailing sentinel. Each entry is a byte offset <em>from the start of the part index</em>, not from the start of the table — a distinction the parser honours by slicing the source at the part-index offset before reading the offsets.</description></item>
+/// <item><description>Each part begins with a <c>UInt16</c> flags word whose bit 0 selects the format: <c>0</c> for a shape, <c>1</c> for a composite.</description></item>
 /// <item><description>Shape data must be <c>Float64</c>-aligned within the table; composite data must be <c>Float32</c>-aligned. Padding to those boundaries is embedded in the table and honoured by the parser.</description></item>
 /// <item><description>Sparse matrices and sparse vectors are preserved in their on-disk (compressed sparse column / parallel index list) form. The parser establishes structure; it does not evaluate axes or blend.</description></item>
 /// <item><description>Version is checked strictly against <see cref="CurrentMajorVersion"/>.<see cref="CurrentMinorVersion"/>; non-zero format flags are stored rather than rejected, per the parse/diagnose split.</description></item>
@@ -39,29 +40,45 @@ public sealed record HvglTable : IFontTable<HvglTable>, IRecord<HvglTable>
     public ushort MinorVersion { get; init; }
 
     /// <summary>Gets the raw format flags from the table header.</summary>
+    /// <value>The <c>formatFlags</c> field as stored. The specification defines it as zero; the parser preserves the value for round-tripping and diagnostics.</value>
     /// <remarks>The parser stores the value rather than rejecting non-zero flags; a diagnostics analyzer is the appropriate place to flag them.</remarks>
     public uint FormatFlags { get; init; }
 
     /// <summary>Gets the total number of parts: every shape and every composite, including those not externally visible.</summary>
+    /// <value>The <c>numberOfParts</c> field. Equal to <c>Parts.Count</c>.</value>
     public uint NumberOfParts { get; init; }
 
     /// <summary>Gets the number of externally visible parts. Visible parts are always first by part index.</summary>
+    /// <value>The <c>numberOfGlyphs</c> field. The first <see cref="NumberOfGlyphs"/> entries of <see cref="Parts"/> are the externally visible glyphs.</value>
     public uint NumberOfGlyphs { get; init; }
 
     /// <summary>Gets every part in the table.</summary>
-    /// <value>An array whose entry <c>i</c> is the part at index <c>i</c>, in depth-first order. The first <see cref="NumberOfGlyphs"/> entries are the externally visible glyphs.</value>
-    public required HvglPart[] Parts { get; init; }
-
-    /// <summary>Gets the externally visible glyph parts, in glyph index order.</summary>
-    public ReadOnlySpan<HvglPart> Glyphs => Parts.AsSpan(0, checked((int)NumberOfGlyphs));
+    /// <value>A read-only view over the part list in depth-first order. Its count equals <see cref="NumberOfParts"/>; the trailing sentinel of the on-disk part index is not retained. The first <see cref="NumberOfGlyphs"/> entries are the externally visible glyphs.</value>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The element type <see cref="HvglPart"/> is a reference type, so this property follows the <see cref="IReadOnlyList{T}"/> convention rather than the <see cref="ReadOnlyMemory{T}"/> convention used for unmanaged element types.</description></item>
+    /// <item><description>Callers that need only the visible glyphs can slice the first <see cref="NumberOfGlyphs"/> entries themselves, or use <see cref="GetGlyph(int)"/> for validated access.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="GetGlyph(int)"/>
+    /// <seealso cref="TryGetPart(int, out HvglPart?)"/>
+    public required IReadOnlyList<HvglPart> Parts { get; init; }
 
     /// <summary>Tries to get the part at <paramref name="index"/>.</summary>
     /// <param name="index">The part index.</param>
     /// <param name="part">When this method returns <see langword="true"/>, contains the part; otherwise, <c>null</c>.</param>
     /// <returns><see langword="true"/> when <paramref name="index"/> is within range; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Handles negative indices without an explicit comparison by casting to <see cref="uint"/>, matching the convention used throughout the reader family.</remarks>
+    /// <seealso cref="Parts"/>
+    /// <seealso cref="GetGlyph(int)"/>
     public bool TryGetPart(int index, out HvglPart? part)
     {
-        if ((uint)index < (uint)Parts.Length) { part = Parts[index]; return true; }
+        if ((uint)index < (uint)Parts.Count)
+        {
+            part = Parts[index];
+            return true;
+        }
+
         part = null;
         return false;
     }
@@ -70,35 +87,44 @@ public sealed record HvglTable : IFontTable<HvglTable>, IRecord<HvglTable>
     /// <param name="glyphIndex">The glyph index in <c>[0, NumberOfGlyphs)</c>.</param>
     /// <returns>The glyph part.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="glyphIndex"/> is negative or beyond <see cref="NumberOfGlyphs"/>.</exception>
+    /// <seealso cref="Parts"/>
+    /// <seealso cref="TryGetPart(int, out HvglPart?)"/>
     public HvglPart GetGlyph(int glyphIndex)
     {
         if ((uint)glyphIndex >= NumberOfGlyphs)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(glyphIndex), glyphIndex,
                 $"Glyph index {glyphIndex} is outside the visible range [0, {NumberOfGlyphs}).");
+        }
+
         return Parts[glyphIndex];
     }
 
-    /// <inheritdoc/>
-    /// <exception cref="InvalidDataException">The table's version is not <see cref="CurrentMajorVersion"/>.<see cref="CurrentMinorVersion"/>, or the part count exceeds the representable range.</exception>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The header is read via <c>ReadEndianReversibleStruct</c> with <c>isLittleEndian: true</c>, which reverses multi-byte fields only when the host order differs from the wire order. The header is consumed locally and not retained on the record.</description></item>
-    /// <item><description>The part index is read as a single bulk <c>UInt32</c> array; each entry is an offset from the part-index base, and the trailing sentinel is not retained.</description></item>
-    /// <item><description>Each part is dispatched through <see cref="IRecord{T}.Parse(ref Cursor, object?)"/> after seeking to its offset. Parts are not assumed to be contiguous.</description></item>
-    /// </list>
-    /// </remarks>
     static HvglTable IRecord<HvglTable>.Parse(ref Cursor cursor, object? context)
     {
         Header header = cursor.ReadEndianReversibleStruct<Header>(isLittleEndian: true);
 
         if (header.MajorVersion != CurrentMajorVersion || header.MinorVersion != CurrentMinorVersion)
+        {
             throw new InvalidDataException(
                 $"'hvgl'.version is {header.MajorVersion}.{header.MinorVersion}, expected {CurrentMajorVersion}.{CurrentMinorVersion}.");
+        }
         if (header.NumberOfParts > int.MaxValue)
+        {
             throw new InvalidDataException(
                 $"'hvgl'.numberOfParts is {header.NumberOfParts}, which exceeds the supported maximum.");
+        }
+
+        // Part-index offsets are measured from the start of the part index, not
+        // from the start of the table. Slice the source there and read the offset
+        // array from position 0; each value then resolves as a slice-relative
+        // offset, matching the specification. The trailing sentinel entry is
+        // intentionally not read: it points at the end of the last part's data
+        // and carries no part.
+        HvglPart[] parts = cursor.Source
+            .WithOffset(header.PartIndexOffset)
+            .ReadOffset32ArrayParseRecordAt<HvglPart>(0, (int)header.NumberOfParts, isLittleEndian: true);
 
         return new()
         {
@@ -107,7 +133,7 @@ public sealed record HvglTable : IFontTable<HvglTable>, IRecord<HvglTable>
             FormatFlags = header.FormatFlags,
             NumberOfParts = header.NumberOfParts,
             NumberOfGlyphs = header.NumberOfGlyphs,
-            Parts = cursor.Source.ReadOffset32ArrayParseRecordAt<HvglPart>(header.PartIndexOffset, (int)header.NumberOfParts + 1, isLittleEndian: true),
+            Parts = Array.AsReadOnly(parts),
         };
     }
 
@@ -115,7 +141,7 @@ public sealed record HvglTable : IFontTable<HvglTable>, IRecord<HvglTable>
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>All fields are little-endian on disk. Declared as a mutable <c>record struct</c> with <see cref="StructLayoutAttribute"/> so the field layout matches the wire layout exactly.</description></item>
-    /// <item><description>The two version fields are <c>UInt16</c>; the remaining fields are <c>UInt32</c>, so field-by-field reversal is used rather than a word-width cast.</description></item>
+    /// <item><description>The two version fields are <c>UInt16</c>; the remaining fields are <c>UInt32</c>, so field-by-field reversal is used rather than a word-span cast.</description></item>
     /// <item><description>The <c>&lt;Clone&gt;$()</c> method generated by the <c>record struct</c> declaration must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
     /// </list>
     /// </remarks>
@@ -123,29 +149,43 @@ public sealed record HvglTable : IFontTable<HvglTable>, IRecord<HvglTable>
     public record struct Header : IEndianReversibleStruct<Header>
     {
         /// <summary>Major version at byte offset 0.</summary>
+        /// <value>The constant <see cref="CurrentMajorVersion"/>.</value>
+        /// <seealso cref="CurrentMajorVersion"/>
         public ushort MajorVersion;       // +0
 
         /// <summary>Minor version at byte offset 2.</summary>
+        /// <value>The constant <see cref="CurrentMinorVersion"/>.</value>
+        /// <seealso cref="CurrentMinorVersion"/>
         public ushort MinorVersion;       // +2
 
         /// <summary>Format flags at byte offset 4.</summary>
+        /// <value>The <c>formatFlags</c> word; defined as zero, preserved by the parser for round-tripping and diagnostics.</value>
+        /// <seealso cref="HvglTable.FormatFlags"/>
         public uint FormatFlags;          // +4
 
         /// <summary>Total number of parts at byte offset 8.</summary>
+        /// <value>The count of parts in the table; the part index carries one more entry for its sentinel.</value>
+        /// <seealso cref="HvglTable.NumberOfParts"/>
         public uint NumberOfParts;        // +8
 
         /// <summary>Byte offset of the part index from the start of the table, at byte offset 12.</summary>
+        /// <value>The byte position of the first part-index entry; each entry is a byte offset from this position to the corresponding part's data.</value>
+        /// <seealso cref="HvglTable.Parts"/>
         public uint PartIndexOffset;      // +12
 
         /// <summary>Number of externally visible parts at byte offset 16.</summary>
+        /// <value>The size of the visible prefix of the part list; the remainder are hidden sub-parts.</value>
+        /// <seealso cref="HvglTable.NumberOfGlyphs"/>
         public uint NumberOfGlyphs;       // +16
 
         /// <summary>Unused; currently zero, at byte offset 20.</summary>
+        /// <value>The reserved word; preserved by the parser for round-tripping and diagnostics.</value>
         public uint Unused;               // +20
 
-        /// <summary>Reverses the byte order of every multi-byte field.</summary>
-        /// <param name="value">The value to reverse.</param>
-        /// <returns>A new header with each multi-byte field reversed.</returns>
+        /// <summary>Reverses the byte order of every multi-byte field in a <see cref="Header"/>.</summary>
+        /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
+        /// <returns>A new header with each field reversed.</returns>
+        /// <remarks>The struct mixes 16-bit and 32-bit fields, so the reversal is field-by-field rather than a single word-span pass.</remarks>
         public static Header ReverseEndianness(Header value) => new()
         {
             MajorVersion = BinaryPrimitives.ReverseEndianness(value.MajorVersion),
@@ -165,6 +205,7 @@ public sealed record HvglTable : IFontTable<HvglTable>, IRecord<HvglTable>
 /// <item><description>Every part begins with a <c>UInt16</c> flags word. Bit 0 is <c>0</c> for a shape and <c>1</c> for a composite; all other bits are currently zero and ignored.</description></item>
 /// <item><description>Dispatch happens in <see cref="IRecord{T}.Parse(ref Cursor, object?)"/> through the <see cref="IBaseRecord{TBase}"/> helper, mirroring the pattern used by <c>Coverage</c> and the GSUB/GPOS lookup subtable formats.</description></item>
 /// <item><description>The flags word is little-endian, so the dispatch peek passes <c>isLittleEndian: true</c>; a misread would select the wrong part kind because bit 0 of <c>0x0001</c> lives in byte 0 of the wire encoding.</description></item>
+/// <item><description>The dispatch <em>peeks</em> the flags word without advancing, so each derived parser sees its part from offset 0 and can read the flags word as part of its own header.</description></item>
 /// </list>
 /// </remarks>
 /// <seealso cref="HvglShapePart"/>
@@ -172,15 +213,9 @@ public sealed record HvglTable : IFontTable<HvglTable>, IRecord<HvglTable>
 public abstract record HvglPart : IRecord<HvglPart>, IBaseRecord<HvglPart>
 {
     /// <summary>Gets the raw flags word from the part's header.</summary>
-    /// <value>The flags value, whose bit 0 encodes the part kind.</value>
+    /// <value>The flags value whose bit 0 encodes the part kind.</value>
     public abstract ushort Flags { get; init; }
 
-    /// <summary>Reads one part from <paramref name="cursor"/>, dispatching on bit 0 of the leading flags word.</summary>
-    /// <param name="cursor">The cursor positioned at the part's first byte.</param>
-    /// <param name="context">Unused; parts are self-contained.</param>
-    /// <returns>A <see cref="HvglShapePart"/> when bit 0 is clear, otherwise a <see cref="HvglCompositePart"/>.</returns>
-    /// <exception cref="EndOfStreamException">The part extends past the end of the table-scoped source.</exception>
-    /// <seealso cref="IBaseRecord{TBase}"/>
     static HvglPart IRecord<HvglPart>.Parse(ref Cursor cursor, object? context) =>
         (cursor.PeekUInt16(isLittleEndian: true) & 1) == 0
             ? IBaseRecord<HvglPart>.Parse<HvglShapePart>(ref cursor, context)
@@ -194,17 +229,18 @@ public abstract record HvglPart : IRecord<HvglPart>, IBaseRecord<HvglPart>
 /// <item><description>For curve-type segments, the on-curve point is not stored; its x-coordinate holds the parallel factor, and its y-coordinate is zero. The delta matrix stores the delta of the parallel factor.</description></item>
 /// <item><description>The master coordinate vector holds four <c>Float64</c> values per segment, in order: on-curve x, on-curve y, off-curve x, off-curve y.</description></item>
 /// <item><description>The delta matrix is column-major, with <c>4 × TotalSegmentCount</c> rows and <c>2 × NumberOfAxes</c> columns.</description></item>
-/// <item><description>The shape header is consumed at parse time and not retained on the record; its fields are exposed as individual properties.</description></item>
+/// <item><description>Every array element type is unmanaged, so the arrays are exposed as <see cref="ReadOnlyMemory{T}"/>; <see cref="ReadOnlyMemory{T}.Span"/> gives zero-copy access.</description></item>
 /// </list>
 /// </remarks>
 /// <seealso cref="HvglPart"/>
-/// <seealso cref="HvglShapePart.Header"/>
+/// <seealso cref="HvglCompositePart"/>
 public sealed record HvglShapePart : HvglPart, IDerivedRecord<HvglPart, HvglShapePart>
 {
     /// <inheritdoc/>
     public override ushort Flags { get; init; }
 
     /// <summary>Gets the number of axes this shape is registered against.</summary>
+    /// <value>The <c>numberOfAxes</c> field. Bounds the column count of <see cref="DeltaCoordinates"/>.</value>
     public ushort NumberOfAxes { get; init; }
 
     /// <summary>Gets the number of paths in the shape.</summary>
@@ -216,29 +252,21 @@ public sealed record HvglShapePart : HvglPart, IDerivedRecord<HvglPart, HvglShap
     public ushort TotalSegmentCount { get; init; }
 
     /// <summary>Gets the segment count for each path, in path order.</summary>
-    public required ushort[] PathSizes { get; init; }
+    /// <value>One <c>UInt16</c> per path; the entries sum to <see cref="TotalSegmentCount"/>.</value>
+    public required ReadOnlyMemory<ushort> PathSizes { get; init; }
 
     /// <summary>Gets the blend type for each segment, in segment order.</summary>
     /// <value>One byte per segment. Values are defined by the specification: <c>0</c> curve, <c>1</c> corner or tangent surrounded by identical types, <c>2</c> isolated tangent, <c>3</c> first of two adjacent tangents, <c>4</c> second of two adjacent tangents.</value>
-    public required byte[] BlendTypes { get; init; }
+    public required ReadOnlyMemory<byte> BlendTypes { get; init; }
 
     /// <summary>Gets the master coordinate vector.</summary>
-    /// <value>Four <c>Float64</c> values per segment: on-curve x, on-curve y, off-curve x, off-curve y.</value>
-    public required double[] MasterCoordinates { get; init; }
+    /// <value>Four <c>Float64</c> values per segment, in order: on-curve x, on-curve y, off-curve x, off-curve y.</value>
+    public required ReadOnlyMemory<double> MasterCoordinates { get; init; }
 
     /// <summary>Gets the delta coordinate matrix in column-major order.</summary>
     /// <value><c>4 × TotalSegmentCount</c> rows by <c>2 × NumberOfAxes</c> columns, stored as a flat column-major array.</value>
-    public required double[] DeltaCoordinates { get; init; }
+    public required ReadOnlyMemory<double> DeltaCoordinates { get; init; }
 
-    /// <inheritdoc/>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The header is read via <c>ReadEndianReversibleStruct</c> with <c>isLittleEndian: true</c>; only <see cref="Flags"/> and the field values used to construct the record are extracted from it.</description></item>
-    /// <item><description>Path sizes and blend types follow the header as bulk arrays. The cursor is advanced up to the next <c>Float64</c> boundary before the master coordinates and delta matrix, satisfying the specification's alignment requirement for shape data.</description></item>
-    /// <item><description>All numeric reads pass <c>isLittleEndian: true</c>; the reversal is applied internally by the reader only when the host order differs.</description></item>
-    /// </list>
-    /// </remarks>
     static HvglShapePart IDerivedRecord<HvglPart, HvglShapePart>.Parse(ref Cursor cursor, object? context)
     {
         Header header = cursor.ReadEndianReversibleStruct<Header>(isLittleEndian: true);
@@ -248,8 +276,9 @@ public sealed record HvglShapePart : HvglPart, IDerivedRecord<HvglPart, HvglShap
 
         cursor.Position = (cursor.Position + 7) & ~7L;
 
-        double[] masterCoords = cursor.ReadDoubleArray(4 * header.TotalSegmentCount, isLittleEndian: true);
-        double[] deltaMatrix = cursor.ReadDoubleArray(4 * header.TotalSegmentCount * 2 * header.NumberOfAxes, isLittleEndian: true);
+        int masterCount = 4 * header.TotalSegmentCount;
+        double[] masterCoords = cursor.ReadDoubleArray(masterCount, isLittleEndian: true);
+        double[] deltaMatrix = cursor.ReadDoubleArray(masterCount * 2 * header.NumberOfAxes, isLittleEndian: true);
 
         return new()
         {
@@ -267,8 +296,8 @@ public sealed record HvglShapePart : HvglPart, IDerivedRecord<HvglPart, HvglShap
     /// <summary>The 8-byte <c>hvgl</c> shape header. Consumed at parse time and not retained on <see cref="HvglShapePart"/>.</summary>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>All four fields are <c>UInt16</c>, so the reversal is a single pass over the struct reinterpreted as four 16-bit words — no field-by-field code is needed.</description></item>
-    /// <item><description>The header is a transport type only. The semantic record exposes its field values directly.</description></item>
+    /// <item><description>All four fields are <c>UInt16</c>, so the reversal is a single word-span pass over the struct reinterpreted as four 16-bit words.</description></item>
+    /// <item><description>Consumed at parse time and not retained on <see cref="HvglShapePart"/>; its field values are exposed as individual properties.</description></item>
     /// </list>
     /// </remarks>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -287,12 +316,12 @@ public sealed record HvglShapePart : HvglPart, IDerivedRecord<HvglPart, HvglShap
         public ushort TotalSegmentCount;  // +6
 
         /// <summary>Reverses the byte order of every field in one pass.</summary>
-        /// <param name="value">The value to reverse.</param>
+        /// <param name="value">The value whose fields are to be reversed.</param>
         /// <returns>A new header with all four fields reversed.</returns>
         /// <remarks>The header is entirely <c>UInt16</c> fields, so it is reinterpreted as a span of four 16-bit words and reversed with a single <see cref="BinaryPrimitives.ReverseEndianness(ReadOnlySpan{ushort}, Span{ushort})"/> call.</remarks>
         public static Header ReverseEndianness(Header value)
         {
-            Span<ushort> words = MemoryMarshal.CreateSpan(ref Unsafe.As<Header, ushort>(ref value), 4);
+            Span<ushort> words = MemoryMarshal.CreateSpan(ref value.Flags, 4);
             BinaryPrimitives.ReverseEndianness(words, words);
             return value;
         }
@@ -306,7 +335,7 @@ public sealed record HvglShapePart : HvglPart, IDerivedRecord<HvglPart, HvglShap
 /// <item><description>Subpart references and every matrix row index are expressed in depth-first order over the composite's structure tree, excluding the composite's own root. The first immediate subpart always has row and axis offsets of zero.</description></item>
 /// <item><description>Sparse matrices and vectors are preserved in their on-disk forms — a sparse vector is row indices parallel to values; a matrix is CSC with column starts, row indices, and parallel values. The parser does not densify or evaluate them, per the parse/evaluate split.</description></item>
 /// <item><description>All header offsets are stored divided by four; the parser multiplies back to recover byte offsets from the start of the composite.</description></item>
-/// <item><description>The composite header is consumed at parse time and not retained on the record; its field values are exposed as individual properties where they are useful to a consumer.</description></item>
+/// <item><description>Every array element type is unmanaged, so the arrays are exposed as <see cref="ReadOnlyMemory{T}"/>. The sparse sections are read sequentially from the cursor within each composite's declared region.</description></item>
 /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6hvgl.html">composite part data</see> in the Apple TrueType Reference Manual.</description></item>
 /// </list>
 /// </remarks>
@@ -331,77 +360,61 @@ public sealed record HvglCompositePart : HvglPart, IDerivedRecord<HvglPart, Hvgl
     public ushort MaxNumberOfExtremes { get; init; }
 
     /// <summary>Gets the immediate subparts, in order.</summary>
-    /// <value>One entry per direct child. The first entry always has <see cref="SubpartEntry.TreePartOffset"/> and <see cref="SubpartEntry.TreeAxisOffset"/> equal to zero.</value>
-    public required SubpartEntry[] Subparts { get; init; }
-
-    // ─── Sparse axis-value deltas ───
+    /// <value>One <see cref="SubpartEntry"/> per direct child. The first entry always has <see cref="SubpartEntry.TreePartOffset"/> and <see cref="SubpartEntry.TreeAxisOffset"/> equal to zero.</value>
+    public required ReadOnlyMemory<SubpartEntry> Subparts { get; init; }
 
     /// <summary>Gets the CSC column starts for the extremum axis-value matrix.</summary>
     /// <value><c>2 × NumberOfAxes + 1</c> entries, non-decreasing, with a trailing sentinel equal to <see cref="ExtremumRowIndices"/>'s length.</value>
-    public required ushort[] ExtremumColumnStarts { get; init; }
+    public required ReadOnlyMemory<ushort> ExtremumColumnStarts { get; init; }
 
     /// <summary>Gets the master axis-value row indices.</summary>
     /// <value>Ascending row indices, parallel to <see cref="MasterAxisValueDeltas"/>.</value>
-    public required ushort[] MasterRowIndices { get; init; }
+    public required ReadOnlyMemory<ushort> MasterRowIndices { get; init; }
 
     /// <summary>Gets the extremum axis-value row indices in CSC order.</summary>
     /// <value>Ascending within each column, grouped by the offsets in <see cref="ExtremumColumnStarts"/>, parallel to <see cref="ExtremumAxisValueDeltas"/>.</value>
-    public required ushort[] ExtremumRowIndices { get; init; }
+    public required ReadOnlyMemory<ushort> ExtremumRowIndices { get; init; }
 
     /// <summary>Gets the non-zero master axis-value deltas.</summary>
     /// <value>One <c>Float32</c> per entry of <see cref="MasterRowIndices"/>.</value>
-    public required float[] MasterAxisValueDeltas { get; init; }
+    public required ReadOnlyMemory<float> MasterAxisValueDeltas { get; init; }
 
     /// <summary>Gets the non-zero extremum axis-value deltas.</summary>
     /// <value>One <c>Float32</c> per entry of <see cref="ExtremumRowIndices"/>.</value>
-    public required float[] ExtremumAxisValueDeltas { get; init; }
-
-    // ─── Sparse translations ───
+    public required ReadOnlyMemory<float> ExtremumAxisValueDeltas { get; init; }
 
     /// <summary>Gets the master translation deltas, interleaved as x, y pairs.</summary>
     /// <value><c>2 × CountOfMasterTranslations</c> floats; entry <c>2i</c> is x, entry <c>2i + 1</c> is y, parallel to <see cref="MasterTranslationIndices"/>.</value>
-    public required float[] MasterTranslationDeltas { get; init; }
+    public required ReadOnlyMemory<float> MasterTranslationDeltas { get; init; }
 
     /// <summary>Gets the extremum translation deltas, interleaved as x, y pairs.</summary>
     /// <value><c>2 × CountOfExtremumTranslations</c> floats; entry <c>2i</c> is x, entry <c>2i + 1</c> is y, parallel to <see cref="ExtremumTranslationIndices"/>.</value>
-    public required float[] ExtremumTranslationDeltas { get; init; }
+    public required ReadOnlyMemory<float> ExtremumTranslationDeltas { get; init; }
 
     /// <summary>Gets the extremum translation row and column indices, interleaved as (row, column) pairs.</summary>
     /// <value><c>2 × CountOfExtremumTranslations</c> ushorts; entry <c>2i</c> is row, entry <c>2i + 1</c> is column. Ascending by row, then by column within each row.</value>
-    public required ushort[] ExtremumTranslationIndices { get; init; }
+    public required ReadOnlyMemory<ushort> ExtremumTranslationIndices { get; init; }
 
     /// <summary>Gets the master translation row indices.</summary>
     /// <value><c>CountOfMasterTranslations</c> ushorts, ascending by row.</value>
-    public required ushort[] MasterTranslationIndices { get; init; }
-
-    // ─── Sparse rotations ───
+    public required ReadOnlyMemory<ushort> MasterTranslationIndices { get; init; }
 
     /// <summary>Gets the master rotation deltas, in radians, measured counterclockwise.</summary>
     /// <value><c>CountOfMasterRotations</c> floats, parallel to <see cref="MasterRotationIndices"/>.</value>
-    public required float[] MasterRotationDeltas { get; init; }
+    public required ReadOnlyMemory<float> MasterRotationDeltas { get; init; }
 
     /// <summary>Gets the extremum rotation deltas, in radians, measured counterclockwise.</summary>
     /// <value><c>CountOfExtremumRotations</c> floats, parallel to <see cref="ExtremumRotationIndices"/>.</value>
-    public required float[] ExtremumRotationDeltas { get; init; }
+    public required ReadOnlyMemory<float> ExtremumRotationDeltas { get; init; }
 
     /// <summary>Gets the extremum rotation row and column indices, interleaved as (row, column) pairs.</summary>
     /// <value><c>2 × CountOfExtremumRotations</c> ushorts; entry <c>2i</c> is row, entry <c>2i + 1</c> is column. Ascending by row, then by column within each row.</value>
-    public required ushort[] ExtremumRotationIndices { get; init; }
+    public required ReadOnlyMemory<ushort> ExtremumRotationIndices { get; init; }
 
     /// <summary>Gets the master rotation row indices.</summary>
     /// <value><c>CountOfMasterRotations</c> ushorts, ascending by row.</value>
-    public required ushort[] MasterRotationIndices { get; init; }
+    public required ReadOnlyMemory<ushort> MasterRotationIndices { get; init; }
 
-    /// <inheritdoc/>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The header is read with <c>ReadEndianReversibleStruct</c>; the subpart array with <c>ReadEndianReversibleStructArray</c>. Both pass <c>isLittleEndian: true</c>.</description></item>
-    /// <item><description>Offsets in the composite header are stored divided by four and multiplied back to recover absolute byte positions; the cursor is positioned with those absolute offsets, so the composite's sections need not be contiguous.</description></item>
-    /// <item><description>The three CSC sections (extremum column starts, master row indices, extremum row indices) are stored contiguously and read sequentially as three separate calls, each sized by its own count.</description></item>
-    /// <item><description>Translations and rotations interleave their pair members on disk; the parser preserves the interleaving rather than splitting into parallel arrays, so the returned data matches the wire layout byte-for-byte.</description></item>
-    /// </list>
-    /// </remarks>
     static HvglCompositePart IDerivedRecord<HvglPart, HvglCompositePart>.Parse(ref Cursor cursor, object? context)
     {
         long start = cursor.Position;
@@ -461,10 +474,10 @@ public sealed record HvglCompositePart : HvglPart, IDerivedRecord<HvglPart, Hvgl
     /// <summary>The 36-byte composite header: eighteen little-endian <c>UInt16</c> fields. Consumed at parse time and not retained on <see cref="HvglCompositePart"/>.</summary>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>Every field is <c>UInt16</c>, so the reversal is a single pass over the struct reinterpreted as eighteen 16-bit words — no field-by-field code is needed.</description></item>
+    /// <item><description>Every field is <c>UInt16</c>, so the reversal is a single pass over the struct reinterpreted as eighteen 16-bit words.</description></item>
     /// <item><description>The byte size is an even number of 16-bit integers, so the data that follows the header naturally begins on a 4-byte boundary.</description></item>
     /// <item><description>Offsets are stored divided by four and must be multiplied back to recover byte offsets from the start of the composite.</description></item>
-    /// <item><description>This is a transport type. The semantic record exposes the header's useful field values directly and does not retain a copy of the header itself.</description></item>
+    /// <item><description>Consumed at parse time and not retained on <see cref="HvglCompositePart"/>; its field values are exposed as individual properties.</description></item>
     /// </list>
     /// </remarks>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -525,12 +538,12 @@ public sealed record HvglCompositePart : HvglPart, IDerivedRecord<HvglPart, Hvgl
         public ushort OffsetToAllRotations;         // +34
 
         /// <summary>Reverses the byte order of every field in one pass.</summary>
-        /// <param name="value">The value to reverse.</param>
+        /// <param name="value">The value whose fields are to be reversed.</param>
         /// <returns>A new header with all eighteen 16-bit fields reversed.</returns>
         /// <remarks>The header is entirely <c>UInt16</c> fields, so it is reinterpreted as a span of eighteen 16-bit words and reversed with a single <see cref="BinaryPrimitives.ReverseEndianness(ReadOnlySpan{ushort}, Span{ushort})"/> call.</remarks>
         public static Header ReverseEndianness(Header value)
         {
-            Span<ushort> words = MemoryMarshal.CreateSpan(ref Unsafe.As<Header, ushort>(ref value), 18);
+            Span<ushort> words = MemoryMarshal.CreateSpan(ref value.Flags, 18);
             BinaryPrimitives.ReverseEndianness(words, words);
             return value;
         }
@@ -557,8 +570,9 @@ public sealed record HvglCompositePart : HvglPart, IDerivedRecord<HvglPart, Hvgl
         public ushort TreeAxisOffset;  // +6
 
         /// <summary>Reverses the byte order of every multi-byte field.</summary>
-        /// <param name="value">The value to reverse.</param>
+        /// <param name="value">The value whose fields are to be reversed.</param>
         /// <returns>A new entry with each multi-byte field reversed.</returns>
+        /// <remarks>The struct mixes a <c>UInt32</c> and two <c>UInt16</c> fields, so the reversal is field-by-field.</remarks>
         public static SubpartEntry ReverseEndianness(SubpartEntry value) => new()
         {
             PartTableIndex = BinaryPrimitives.ReverseEndianness(value.PartTableIndex),

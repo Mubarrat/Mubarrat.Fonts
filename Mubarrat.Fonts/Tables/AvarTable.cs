@@ -20,11 +20,12 @@ public record struct AxisValueMap : IEndianReversibleStruct<AxisValueMap>
     public F2Dot14 ToCoordinate;
 
     /// <summary>Reverses the byte order of both coordinates.</summary>
-    public static AxisValueMap ReverseEndianness(AxisValueMap value) => new()
+    public static AxisValueMap ReverseEndianness(AxisValueMap value)
     {
-        FromCoordinate = F2Dot14.ReverseEndianness(value.FromCoordinate),
-        ToCoordinate = F2Dot14.ReverseEndianness(value.ToCoordinate),
-    };
+        var span = MemoryMarshal.CreateSpan(ref value.FromCoordinate, 2);
+        F2Dot14.ReverseEndianness(span, span);
+        return value;
+    }
 }
 
 /// <summary>The <c>avar</c> table: piecewise-linear remapping of normalized variation-axis coordinates.</summary>
@@ -85,13 +86,12 @@ public sealed record AvarTable : IFontTable<AvarTable>
         public ushort AxisCount; // +6
 
         /// <summary>Reverses the byte order of every field in a <see cref="Header"/>.</summary>
-        public static Header ReverseEndianness(Header value) => new()
+        public static Header ReverseEndianness(Header value)
         {
-            MajorVersion = BinaryPrimitives.ReverseEndianness(value.MajorVersion),
-            MinorVersion = BinaryPrimitives.ReverseEndianness(value.MinorVersion),
-            Reserved = BinaryPrimitives.ReverseEndianness(value.Reserved),
-            AxisCount = BinaryPrimitives.ReverseEndianness(value.AxisCount),
-        };
+            var span = MemoryMarshal.CreateSpan(ref value.MajorVersion, 4);
+            BinaryPrimitives.ReverseEndianness(span, span);
+            return value;
+        }
     }
 
     /// <summary>Remaps one normalized coordinate through the segment map for <paramref name="axisIndex"/>.</summary>

@@ -177,6 +177,14 @@ public readonly struct F2Dot14 :
     public static F2Dot14 ReverseEndianness(F2Dot14 value) =>
         new(BinaryPrimitives.ReverseEndianness(value._bits));
 
+    /// <summary>
+    /// Reverses the byte order of every element in a source span and writes the results to a destination span.
+    /// </summary>
+    /// <param name="source">The source span.</param>
+    /// <param name="destination">The destination span.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ReverseEndianness(ReadOnlySpan<F2Dot14> source, Span<F2Dot14> destination) => BinaryPrimitives.ReverseEndianness(MemoryMarshal.Cast<F2Dot14, short>(source), MemoryMarshal.Cast<F2Dot14, short>(destination));
+
     /// <summary>Converts to <see cref="double"/>.</summary>
     /// <param name="value">The value to convert.</param>
     /// <returns>The numeric value as a <see cref="double"/>.</returns>

@@ -151,11 +151,11 @@ public sealed record VariationRegionList : IRecord<VariationRegionList>
 
     /// <summary>Gets the variation regions in table order.</summary>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otvarcommon#variation-region-list"/>
-    public required IReadOnlyList<VariationRegion> Regions { get; init; }
+    public required ReadOnlyMemory<VariationRegion> Regions { get; init; }
 
     /// <summary>Gets the number of variation regions.</summary>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otvarcommon#variation-region-list"/>
-    public int RegionCount => Regions.Count;
+    public int RegionCount => Regions.Length;
 
     /// <summary>Reads a <see cref="VariationRegionList"/> from <paramref name="cursor"/>.</summary>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otvarcommon#variation-region-list"/>
@@ -176,7 +176,7 @@ public sealed record VariationRegionList : IRecord<VariationRegionList>
 
         var regions = new VariationRegion[regionCount];
         for (int r = 0; r < regionCount; r++)
-            regions[r] = new() { Axes = new ArraySegment<AxisRegionCoordinates>(flat, r * axisCount, axisCount) };
+            regions[r] = new() { Axes = new(flat, r * axisCount, axisCount) };
 
         return new() { AxisCount = axisCount, Regions = regions };
     }
@@ -214,7 +214,7 @@ public record struct VariationRegion
 {
     /// <summary>Gets or sets the per-axis region coordinates in variation-axis order.</summary>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otvarcommon#axisregion"/>
-    public IReadOnlyList<AxisRegionCoordinates> Axes;
+    public ReadOnlyMemory<AxisRegionCoordinates> Axes;
 }
 
 /// <summary>A variation axis record defining an axis tag, user-space coordinate range, qualifiers, and display name.</summary>

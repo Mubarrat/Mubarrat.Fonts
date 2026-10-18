@@ -105,12 +105,12 @@ public abstract record Coverage : IRecord<Coverage>, IBaseRecord<Coverage>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
         /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#coverage-format-2">OpenType specification: Coverage Format 2</seealso>
-        public static RangeRecord ReverseEndianness(RangeRecord v) => new()
+        public static RangeRecord ReverseEndianness(RangeRecord v)
         {
-            StartGlyphId = BinaryPrimitives.ReverseEndianness(v.StartGlyphId),
-            EndGlyphId = BinaryPrimitives.ReverseEndianness(v.EndGlyphId),
-            StartCoverageIndex = BinaryPrimitives.ReverseEndianness(v.StartCoverageIndex),
-        };
+            var span = MemoryMarshal.CreateSpan(ref v.StartGlyphId, 3);
+            BinaryPrimitives.ReverseEndianness(span, span);
+            return v;
+        }
     }
 }
 

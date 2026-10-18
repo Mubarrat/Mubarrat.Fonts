@@ -83,6 +83,12 @@ The distinction between cursor and source operations matters:
 - `source.Read...At(offset)` reads at an explicit offset without relying on a cursor's position.
 - Offset-based record helpers should be preferred when a structure points elsewhere in the source.
 
+A cursor is a sequential reader first. When a parser enters a region and consumes fields in on-disk order, use the cursor for those reads. Use `cursor.Position = offset` to jump to a new region within the same logical structure and let subsequent reads advance from there. Use `cursor.Source.Read...At(offset)` when the target is at an arbitrary source offset with no relationship to where the cursor is currently pointing.
+
+Do not replace sequential reads with hand-written offset arithmetic. A loop of `pos = pos + n; source.Read...At(pos)` duplicates what the cursor already does and is easier to get wrong. Conversely, do not mutate the cursor to peek at a value that could be read with `Source.Read...At(offset)`; that is a peek, and it should be expressed as a peek.
+
+An `IRecord<T>.Parse` implementation is entered with the cursor at position `0` by contract. Do not capture `long start = cursor.Position` in a top-level parser: the start is already `0`, and reading subsequent fields from `start + offset` is a no-op that misleads readers into thinking the parser was entered at an arbitrary position. A dispatched derived parser — one invoked through `IBaseRecord<TBase>.Parse<TDerived>` — may capture the cursor's position to use as the base of its offsets, because the base format may have advanced the cursor past a discriminant or intervening bytes before delegating.
+
 A cursor is a parsing-time value, not a persistent representation of a parsed record. Do not store it in ordinary objects, capture it in callbacks, or make parsed table models depend on a live cursor.
 
 ### 2.4 Bulk reads, spans, and allocation
@@ -103,6 +109,8 @@ When changing these methods, preserve their distinctions between:
 
 Do not silently change one operation's cursor or allocation semantics while optimizing another.
 
+When a struct carries a fixed-size buffer — a `byte` name field of a specific width, for example — declare it with `[StructLayout(LayoutKind.Sequential, Size = N, Pack = 1)]` and a single `byte First` field. Expose the buffer to callers through `MemoryMarshal.CreateSpan(ref First, N)` rather than a `fixed` statement and a `new Span<byte>(p, N)` over a raw pointer. The `MemoryMarshal.CreateSpan` form produces a ref-based span the GC tracks; the pointer-based form does not. The unsafe context stays confined to the struct's type definition, not the accessor.
+
 ## 3. Record contracts and static dispatch
 
 `Binary/IRecord.cs` defines the record contracts used throughout the project. These contracts are related, but they are not interchangeable.
@@ -115,7 +123,7 @@ Use `IRecord<T>` for a type that can construct its parsed representation from a 
 static abstract T Parse(ref Cursor cursor, object? context = null);
 ```
 
-Concrete types can implement the contract explicitly or expose a compatible public static parsing method. Follow the convention used by the surrounding code.
+Implement the entry point explicitly, as `static ExampleTable IRecord<ExampleTable>.Parse(ref Cursor cursor, object? context)`. Do not also expose a public static `Parse` method; the interface member is the contract and it should be the only parser entry point. This keeps the parse signature under interface control and prevents callers from binding to a concrete parser shape that may not be stable.
 
 A top-level table generally follows this pattern:
 
@@ -139,6 +147,8 @@ public sealed record ExampleTable : IFontTable<ExampleTable>
 This is a structural example, not a complete parser. Replace the placeholder with real parsing and validation before introducing a table implementation.
 
 The self-referential generic constraint lets the compiler associate a concrete type with its own parser. It avoids a central dictionary of parser delegates and allows generic callers to use static interface dispatch without reflection.
+
+Do not place XML documentation on explicit interface implementations. The interface member carries its own documentation; the implementer's body is not part of the type's public surface. Public members — properties, methods, constants, nested types — are documented. Explicit implementations, private helpers, and internal methods are not.
 
 ### 3.2 Header-based records
 
@@ -182,6 +192,24 @@ return format switch
 
 Use the project's existing base-record dispatch contract and helpers when implementing a real type. The snippet illustrates the pattern; it is not a replacement for the actual parsing sequence.
 
+The dispatcher should peek the format discriminator with the correct wire byte order and leave the cursor at the derived format's first byte. The derived parser is responsible for reading the discriminator as part of its own header if the spec defines it that way; the base must not consume bytes the derived parser needs.
+
+When the derived format's parse is exactly "read a fixed-layout header, convert it to a semantic record," implement `IHeaderDerivedRecord<TBase, TDerived, THeader>` (or `IEndianReversibleHeaderDerivedRecord<TBase, TDerived, THeader>` for big-endian headers) rather than `IDerivedRecord<TBase, TDerived>.Parse` directly. The interface supplies the default `Parse` body; the record supplies only `FromHeader`.
+
+When the base dispatcher needs the discriminator to decide which format to construct anyway, it can forward the already-read header through `IBaseRecord<TBase>.FromHeader<TDerived, THeader>(in THeader, context)` instead of the cursor-based helper. This avoids re-reading the same header in the derived parser:
+
+```csharp
+static Base IRecord<Base>.Parse(ref Cursor cursor, object? context)
+{
+    Header header = cursor.ReadEndianReversibleStruct<Header>();
+    return header.IsFormat1
+        ? IBaseRecord<Base>.FromHeader<Format1, Header>(in header, context)
+        : IBaseRecord<Base>.FromHeader<Format2, Header>(in header, context);
+}
+```
+
+A shallow hierarchy whose formats are fixed-size, whose dispatch is expressible as a single ternary on a header field, and whose derived bodies have no data beyond what `FromHeader` can construct may skip the `IBaseRecord`/`IDerivedRecord` interface machinery entirely. Keep the class hierarchy — an abstract base with two or three `sealed record` subclasses — and expose an `internal static FromHeader` factory on each subclass; the base's `IRecord<T>.Parse` invokes those factories through the C# inheritance relationship rather than through the constraint graph. Introduce the full interface family when the derived formats read variable-length data, when their number exceeds two or three, when their headers diverge, or when the base's dispatch stops being a one-line expression.
+
 Keep format-specific behavior in the derived implementation. Do not scatter repeated format switches throughout unrelated callers, and do not silently interpret an unknown format as a known one.
 
 A new format should be added as a new supported branch when the format warrants its own representation. If the specification defines a format as invalid or unsupported, fail explicitly rather than returning an unrelated default object.
@@ -200,6 +228,8 @@ Examples of legitimate context include:
 Use an existing context type when it expresses the required relationship. If a new context is necessary, define a small, named type that communicates what the parser needs.
 
 A parser should not obtain this information through global mutable state or an implicit dependency on whichever table happened to be parsed earlier. Validate the context when it is required; do not silently substitute unrelated defaults when the context is missing or of the wrong type.
+
+`ParentContext(cursor.Source)` is the standard way to carry the table-scoped source to a nested record's `FromHeader`. A nested record whose own header declares an offset relative to the parent table resolves that offset by reading from `ParentContext.ParentSource`, not from the cursor's source — the cursor's source may be a slice that reflects a different origin.
 
 ### 3.5 `IFontTable<T>` identifies top-level tables
 
@@ -251,6 +281,8 @@ The mutable header and the parsed model serve different purposes.
 A header is a compact, fixed-layout representation used to read and transform fields efficiently. A semantic record exposes meaningful properties and may contain lists, nested records, or computed values. It should not be treated as a raw memory image of the file.
 
 Do not expose an in-memory struct layout as if it were a portable serialization contract unless the layout, padding, and endianness requirements have been established. When a record's representation is not a direct fixed-size mapping, parse it field by field or through the relevant helpers.
+
+A fixed-layout header is declared `public`, never `internal`, regardless of whether the semantic record exposes it as a property. Headers are wire-format transport types that a writer fills in memory, reverses for endianness, and then writes by blittable cast; a diagnostics analyzer or an external writer assembly must be able to construct and pass the type by value. Visibility is part of the write contract, not a stylistic choice. A header that is only consumed by one parser should still be public — it is the parser's *property exposure* that should be minimal, not the header's visibility.
 
 ## 5. Primitive types in `Primitives/`
 
@@ -325,6 +357,10 @@ When implementing this pattern:
 - Preserve the original record order unless the specification defines a different interpretation.
 
 Do not assume that an offset points to the byte immediately after the offset field. Do not assume that all referenced structures are contiguous, unique, or stored in the same order as their references.
+
+`Source` and `Cursor` expose F-bounded CRTP helpers such as `ReadOffset32ArrayParseRecordAt<T>(long, int, bool)`, `ParseRecordArrayAt<T>(long, int, object?)`, `ParseRecordAt<T>(long, object?)`, `ReadEndianReversibleHeaderRecordArray<T, THeader>(int, object?)`, and `ReadEndianReversibleHeaderRecordArrayAt<T, THeader>(long, int, object?)`. These helpers create the correct parser entry point, invoke the static abstract `Parse` through the contract, apply the correct slice origin where applicable, and return the materialized array. Prefer them over hand-written loops that reposition a cursor and call `Parse` per element; the helpers handle array shape, bounds, slice creation, and static dispatch in one place.
+
+When an offset array is measured from a base other than the containing table's start, slice the source at that base with `WithOffset` (or `WithOffsetAndLength`) before passing it to the array helper. The helper's offset parameters then apply to the slice's coordinate system, and each value resolves relative to the base the specification names.
 
 ### 6.3 Variable formats and nested dispatch
 
@@ -464,6 +500,8 @@ Performance improvements should preserve the abstractions rather than bypassing 
 - Do not add reflection-based dispatch or runtime parser registries.
 - Do not add dependencies outside the project's established dependency policy without a compelling reason.
 
+Fixed-layout buffers inside structs use `[StructLayout(Size = N, Pack = 1)]` with a single `byte First` field and expose the range through `MemoryMarshal.CreateSpan(ref First, N)`. Do not use a `fixed` statement and a raw pointer to construct the span; the `MemoryMarshal.CreateSpan` form preserves the same zero-copy semantics while keeping the span backed by a GC-tracked ref instead of a bare pointer.
+
 Do not add unsafe code merely because the project permits it. An unsafe implementation should have a specific benefit that can be measured and should retain the same bounds and representation guarantees as the safe implementation.
 
 Likewise, do not assume that a hand-written optimization is faster than a straightforward implementation. Benchmark the relevant workload and account for realistic font sizes, malformed-input handling, and the cost of allocations.
@@ -478,13 +516,52 @@ Use a `record struct` for a small fixed-layout header when that matches the exis
 
 Use strongly typed properties when a field has a known semantic type. Use computed properties for values that can be derived reliably from the stored representation. Avoid maintaining duplicate mutable state for a value that can be derived from another property unless caching or a format-specific requirement justifies it.
 
-For collections, follow the surrounding model's convention, which commonly exposes read-only collection interfaces while using arrays internally where appropriate. Do not claim deep immutability merely because a property is typed as `IReadOnlyList<T>`; the backing collection and its ownership still matter.
+Array-valued properties follow a type-based convention:
 
-## 10. Documentation and public API compatibility
+- When the element type is unmanaged (`ushort`, `float`, a header struct, or another unmanaged `record struct`), expose `ReadOnlyMemory<T>`. Callers obtain a `ReadOnlySpan<T>` via `.Span`, which the JIT compiles to a pointer and a length with no additional allocation. `ReadOnlyMemory<T>` on unmanaged element types carries no wrapper object beyond the array itself.
+- When the element type is a reference type (a semantic record, an abstract base, or any other class), expose `IReadOnlyList<T>`. `ReadOnlyMemory<T>` on a reference type does not carry a performance advantage — the underlying array is the same — and communicates the wrong lifetime model for reference-typed data.
+
+Wrap the underlying array with `Array.AsReadOnly` when exposing an `IReadOnlyList<T>`, or construct `ReadOnlyMemory<T>` directly from the array when exposing an unmanaged collection. Do not expose mutable arrays through public properties; the type's read-only surface is what a caller binds to. Do not expose a reference-typed collection as `ReadOnlyMemory<T>` just because some of the record's other fields are unmanaged; apply the rule per property.
+
+Do not claim deep immutability merely because a property is typed as `IReadOnlyList<T>` or `ReadOnlyMemory<T>` — the backing array may still be reachable through other references. Document what the type actually guarantees.
+
+## 10. CommunityToolkit.HighPerformance
+
+Use `CommunityToolkit.HighPerformance` when its memory abstractions accurately represent the data being parsed or exposed. Do not introduce a toolkit type merely because it is described as high-performance; the type must fit the underlying data layout and the library's ownership and lifetime semantics.
+
+### 1. Two-dimensional memory
+
+Use `ReadOnlyMemory2D<T>` when a parsed structure is naturally represented as a rectangular, read-only region of unmanaged elements and callers benefit from explicit row and column indexing.
+
+The classic AAT state array is an example. Its dimensions are `StateCount × StateSize`, and the element at `[state, class]` is a zero-based index into the subtable's entry table. Representing this array as `ReadOnlyMemory2D<byte>` expresses its structure directly and avoids requiring callers to calculate flattened indexes.
+
+Derive dimensions from the two-dimensional view when they are already represented by it. For example, use `StateArray.Height` for the number of states and `StateArray.Width` for the number of bytes per state row rather than maintaining duplicate mutable dimension fields.
+
+Use `ReadOnlyMemory2D<T>` only when the data is genuinely rectangular. Do not use it for ordinary one-dimensional arrays, offset lists, variable-length records, or data whose logical structure is better represented by a different abstraction. A two-dimensional view does not itself validate the binary format or guarantee that its contents are semantically valid.
+
+### 2. Preserve the existing storage when constructing views
+
+When a suitable array has already been materialized, construct the two-dimensional view over that array instead of copying the elements into a second array solely to obtain a two-dimensional representation.
+
+Before constructing a view from untrusted binary data, validate the dimensions and the relationship between the buffer length and those dimensions. For a dense array with `height` rows and `width` columns, ensure that the dimensions are valid and that their product matches the intended element count. Perform overflow-safe validation before calculating sizes or allocating buffers.
+
+Do not infer that a two-dimensional view owns its backing storage. Preserve the lifetime and ownership rules of the underlying memory, and do not expose mutable access when the public contract promises read-only access.
+
+### 3. Dependency and API boundaries
+
+`CommunityToolkit.HighPerformance` is an external dependency. Use its types when they provide a meaningful abstraction that would otherwise require unnecessary custom infrastructure, but do not add unrelated toolkit APIs merely because the package is already referenced.
+
+A toolkit type exposed by a public member becomes part of the public API contract. Before exposing one, consider whether the dependency is appropriate for consumers of `Mubarrat.Fonts`, including its compatibility, versioning, trimming, and ahead-of-time compilation requirements.
+
+Prefer the existing BCL abstractions for ordinary byte ranges, spans, and one-dimensional memory. Use toolkit abstractions when the data model requires their additional capabilities, such as rectangular memory views. Do not assume that a toolkit abstraction is inherently faster than a direct `Span<T>` or `ReadOnlyMemory<T>` implementation; performance claims should be supported by measurements of the relevant workload.
+
+## 11. Documentation and public API compatibility
 
 Public types and members are part of the library's contract. Document non-obvious format semantics, units, offset origins, endianness, nullability, and exception behavior where those details matter to callers.
 
-The project includes `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt`, and treats compiler warnings as errors. Public API changes must therefore be deliberate.
+Do not document explicit interface implementations. The interface member carries its own documentation, and the implementer's body is not part of the type's public surface. Do not document private helpers, internal methods, or protected members that are reachable only through the type's own assembly. Document public properties, public methods, public constants, and public nested types in full — summary, value, parameters, returns, exceptions, remarks, and cross-references to the specification as the surrounding code does.
+
+The project includes `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt`, and treats compiler warnings as errors. Public API changes must therefore be deliberate. `record struct` declarations generate a `<Clone>$()` method that appears in the public API and must be added to the baseline alongside any other public member.
 
 When adding a public member, update the public API baseline through the project's intended workflow. Do not suppress a public API or compiler diagnostic just to make a build pass. If a suppression is genuinely necessary, scope it narrowly and explain the reason.
 
@@ -492,7 +569,7 @@ Avoid exposing a helper publicly when it is only an implementation detail of a p
 
 A public API change should consider source compatibility, behavior on malformed input, AOT and trimming behavior, and whether the type can be used without reflection.
 
-## 11. Tests and validation
+## 12. Tests and validation
 
 A parser change should include tests that exercise the actual representation being changed. A test that merely constructs a record in memory does not prove that its wire-format parser handles the corresponding bytes correctly.
 
@@ -513,7 +590,7 @@ Use real font files as integration fixtures when they provide coverage that synt
 
 Run the project build and the relevant test project before submitting changes. A change that introduces compiler warnings is not complete while the project treats warnings as errors.
 
-## 12. A practical implementation workflow
+## 13. A practical implementation workflow
 
 When adding a new table or parser, begin by identifying the table's tag, supported versions, fixed header layout, and offset origins. Record which structures are fixed-width, which depend on counts or flags, and which select a derived format.
 
@@ -523,21 +600,42 @@ Implement the parser in layers: read the header, validate it, resolve child stru
 
 Finally, add focused tests, run the build and relevant tests, review the public API baseline if necessary, and verify that no accidental changes to ownership, offset semantics, endianness, or cursor advancement have been introduced.
 
-## 13. Contribution checklist
+## 14. Contribution checklist
 
 Before submitting a change to `Mubarrat.Fonts`, verify the following:
 
 - [ ] The implementation follows the existing binary and record contracts where applicable.
 - [ ] Every offset is interpreted relative to the origin defined by the specification.
+- [ ] When an offset array's values are not measured from the containing table's start, the source is sliced at the correct base before the helper is invoked.
 - [ ] Wire endianness is handled exactly once.
 - [ ] Header structures and semantic records remain distinct where appropriate.
+- [ ] Fixed-layout headers are `public` even when no public member exposes them as a property, so that writer assemblies and diagnostics analyzers can construct, reverse, and write them by blittable cast.
+- [ ] `IRecord<T>.Parse` implementations are explicit interface implementations and carry no XML documentation.
+- [ ] `IRecord<T>.Parse` implementations do not capture `cursor.Position` as a base offset; the contract guarantees it is `0` on entry.
+- [ ] Sequential field reads use `cursor.Read...`; arbitrary offset reads use `Source.Read...At` or `Source.Parse...At`, and neither pattern substitutes for the other.
 - [ ] Version and format dispatch reject unsupported representations explicitly.
 - [ ] Counts, offsets, lengths, and indexes are validated before use.
-- [ ] Context-dependent records receive the correct explicit context.
-- [ ] Arrays and spans are used with appropriate allocation and lifetime semantics.
+- [ ] Context-dependent records receive the correct explicit context; `ParentContext` carries the table-scoped source when a nested record resolves offsets against the parent.
+- [ ] Arrays and spans are used with appropriate allocation and lifetime semantics; header-record arrays are read through the CRTP helpers rather than hand-written loops.
+- [ ] Unmanaged collections are exposed as `ReadOnlyMemory<T>`; reference-typed collections as `IReadOnlyList<T>`.
+- [ ] Fixed-size buffers are exposed through `MemoryMarshal.CreateSpan`, not a `fixed` statement and raw pointer.
 - [ ] Tests cover valid data and relevant malformed or boundary cases.
 - [ ] The project builds without warnings.
 - [ ] Public API baselines and documentation are updated when necessary.
 - [ ] No unnecessary dependencies, reflection-based dispatch, or unrelated refactoring have been introduced.
 
 The guiding principle is to preserve the relationship between the serialized font format and the library's semantic model. A good contribution does more than parse a valid example: it makes the representation explicit, keeps parsing responsibilities separated, and behaves predictably when the input is invalid.
+
+## 15. Keeping this guide and the codebase in sync
+
+This guide is a description of the project's current conventions, not an aspiration. If a section of this document describes a pattern that the codebase does not follow, or if a section of the codebase follows a pattern this document does not describe, then at least one of the two is wrong.
+
+When you encounter that divergence in a file that has already shipped in a commit:
+
+- If the code is correct and this guide describes a pattern that has been intentionally superseded, update this guide in the same change. Explain the new convention, its rationale, and where in the codebase it is used.
+- If the code violates a pattern this guide still describes as correct, fix the code. Do not update this guide to match a violation merely because the violation already exists.
+- If both are partially correct and the divergence is a genuine trade-off, reconcile them explicitly. State which sections of each are authoritative, and update the other side to match.
+
+Do not carry a silent divergence forward. A commit that touches a file whose contents disagree with this guide is the natural moment to resolve the disagreement, whether by fixing the code or amending the guide. Do not defer the resolution to a future change on the grounds that the divergence predates your work.
+
+A newly added contribution is expected to conform to this guide in its final form. If a contribution introduces a new pattern that this guide does not yet describe, update this guide in the same change so the pattern is documented alongside the code that adopts it.

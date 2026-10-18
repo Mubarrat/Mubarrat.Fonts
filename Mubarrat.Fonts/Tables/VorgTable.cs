@@ -36,10 +36,10 @@ public sealed record VorgTable : IFontTable<VorgTable>
     /// <summary>Gets the per-glyph vertical origin overrides, sorted by increasing glyph ID.</summary>
     /// <remarks>A glyph whose origin equals <see cref="DefaultVertOriginY"/> can be omitted from this array.</remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/vorg"/>
-    public IReadOnlyList<VertOriginYMetric> VertOriginYMetrics { get; init; } = [];
+    public ReadOnlyMemory<VertOriginYMetric> VertOriginYMetrics { get; init; }
 
     /// <summary>Gets the number of per-glyph vertical origin overrides.</summary>
-    public int Count => VertOriginYMetrics.Count;
+    public int Count => VertOriginYMetrics.Length;
 
     /// <summary>Gets the vertical origin y coordinate of <paramref name="glyphId"/>.</summary>
     /// <remarks>Returns the per-glyph override when present; otherwise returns <see cref="DefaultVertOriginY"/>. The override array is searched by binary search.</remarks>
@@ -47,11 +47,11 @@ public sealed record VorgTable : IFontTable<VorgTable>
     public short GetVerticalOrigin(int glyphId)
     {
         // Binary search: the array is sorted by glyph ID.
-        int lo = 0, hi = VertOriginYMetrics.Count - 1;
+        int lo = 0, hi = VertOriginYMetrics.Length - 1;
         while (lo <= hi)
         {
             int mid = (lo + hi) >> 1;
-            var rec = VertOriginYMetrics[mid];
+            var rec = VertOriginYMetrics.Span[mid];
             int cmp = rec.GlyphIndex - glyphId;
             if (cmp == 0) return rec.VertOriginY;
             if (cmp < 0) lo = mid + 1;

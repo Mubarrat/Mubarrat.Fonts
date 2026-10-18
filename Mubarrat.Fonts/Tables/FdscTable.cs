@@ -210,17 +210,12 @@ public sealed record FdscTable : IFontTable<FdscTable>, IRecord<FdscTable>
         Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != CurrentVersion)
-        {
-            throw new InvalidDataException(
-                $"'fdsc'.version is 0x{header.Version.Bits:X8}, expected 0x{CurrentVersion.Bits:X8}.");
-        }
-
-        var descriptors = cursor.ReadEndianReversibleStructArray<Descriptor>(checked((int)header.DescriptorCount));
+            throw new InvalidDataException($"'fdsc'.version is 0x{header.Version.Bits:X8}, expected 0x{CurrentVersion.Bits:X8}.");
 
         return new()
         {
             Version = header.Version,
-            Descriptors = descriptors,
+            Descriptors = cursor.ReadEndianReversibleStructArray<Descriptor>(checked((int)header.DescriptorCount)),
         };
     }
 }

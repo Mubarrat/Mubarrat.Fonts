@@ -1,7 +1,11 @@
 ﻿using Mubarrat.Fonts.Binary;
+using System.Buffers.Binary;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 
 namespace Mubarrat.Fonts.Primitives;
 
@@ -288,6 +292,29 @@ public readonly struct Int24 :
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: int24</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Int24 ReverseEndianness(Int24 value) => new(value._b2, value._b1, value._b0);
+
+    /// <summary>Reverses the byte order of every 24-bit signed integer in <paramref name="source"/>, writing the results to <paramref name="destination"/>.</summary>
+    /// <param name="source">The source span. Each element occupies three bytes; bytes 0 and 2 are swapped, byte 1 stays in place.</param>
+    /// <param name="destination">The destination span. Must be at least as long as <paramref name="source"/>; only the first <c>source.Length</c> elements are written.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="destination"/> is shorter than <paramref name="source"/>.</exception>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The operation is byte-for-byte: for each 3-byte element <c>[a, b, c]</c>, the destination receives <c>[c, b, a]</c>. The reversal is independent of the host's byte order because it operates on the raw byte representation.</description></item>
+    /// <item><description>Exact in-place operation — where <paramref name="source"/> and <paramref name="destination"/> refer to the same memory at the same start offset — is supported. Partial overlap with different start offsets is not supported; the caller must ensure the two spans either coincide exactly or do not overlap.</description></item>
+    /// <item><description>Four SIMD tiers are tried in descending width. The 3-byte group is not a natural SIMD width, so each tier loads a full vector but advances by a multiple of three, leaving the trailing byte(s) of the iteration for the next one or the scalar tail.</description></item>
+    /// <item><description>AVX-512 VBMI performs the reversal with a single 64-byte permute per 63 bytes. AVX2's <c>vpshufb</c> is lane-local and cannot reverse the 3-byte group that straddles the 128-bit lane boundary; the 256-bit tier reverses both lanes and then corrects the straddling group with a scalar swap.</description></item>
+    /// <item><description>On ARM64 the 128-bit tier uses <c>tbl</c> via <see cref="AdvSimd.Arm64.VectorTableLookup(Vector128{byte}, Vector128{byte})"/>; on x86 the 128-bit tier uses <c>pshufb</c> via <see cref="Ssse3.Shuffle(Vector128{byte}, Vector128{byte})"/>.</description></item>
+    /// <item><description>The 64-bit tier uses a <c>ulong</c> mask on little-endian hosts; x86 has no byte-shuffle at <see cref="Vector64{T}"/> width, so the ulong path is the honest equivalent. On big-endian hosts the tier is skipped.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="ReverseEndianness(Int24)"/>
+    /// <seealso cref="BinaryPrimitives.ReverseEndianness(ReadOnlySpan{ushort}, Span{ushort})"/>
+    public static void ReverseEndianness(ReadOnlySpan<Int24> source, Span<Int24> destination)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(destination.Length, source.Length);
+        if (!source.IsEmpty)
+            UInt24.ReverseByteGroups(MemoryMarshal.AsBytes(source), MemoryMarshal.AsBytes(destination)[..(source.Length * 3)]);
+    }
 
     /// <summary>Creates a value from three bytes in big-endian order. The result is identical on every host.</summary>
     /// <param name="msb">The most significant byte.</param>

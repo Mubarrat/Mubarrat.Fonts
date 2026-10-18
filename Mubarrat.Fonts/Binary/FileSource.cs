@@ -47,8 +47,7 @@ public sealed class FileSource : Source
         {
             int read = RandomAccess.Read(_handle, destination[total..], offset + total);
             if (read == 0)
-                throw new EndOfStreamException(
-                    $"Unexpected end of file while reading at offset {offset + total}.");
+                throw new EndOfStreamException($"Unexpected end of file while reading at offset {offset + total}.");
             total += read;
         }
     }

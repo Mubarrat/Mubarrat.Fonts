@@ -21,12 +21,12 @@ public sealed record VmtxTable : IFontTable<VmtxTable>
     /// <summary>Gets the advance heights of the long vertical metric records.</summary>
     /// <remarks>The length is <see cref="NumberOfVMetrics"/>. Glyphs at or beyond that index reuse the final advance height.</remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/vmtx"/>
-    public IReadOnlyList<ushort> AdvanceHeights { get; init; } = [];
+    public ReadOnlyMemory<ushort> AdvanceHeights { get; init; }
 
     /// <summary>Gets the top side bearing of every glyph.</summary>
     /// <remarks>The length is <see cref="NumGlyphs"/>. The first <see cref="NumberOfVMetrics"/> entries come from <c>longVerMetric</c> records; the remainder come from the trailing top-side-bearing array.</remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/vmtx"/>
-    public IReadOnlyList<short> TopSideBearings { get; init; } = [];
+    public ReadOnlyMemory<short> TopSideBearings { get; init; }
 
     /// <summary>Gets the number of <c>longVerMetric</c> records.</summary>
     /// <remarks>This value is taken from <c>vhea.numberOfVMetrics</c>.</remarks>
@@ -50,7 +50,7 @@ public sealed record VmtxTable : IFontTable<VmtxTable>
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(glyphId, NumGlyphs);
 
         int index = glyphId < NumberOfVMetrics ? glyphId : NumberOfVMetrics - 1;
-        return AdvanceHeights[index];
+        return AdvanceHeights.Span[index];
     }
 
     /// <summary>Gets the top side bearing of glyph <paramref name="glyphId"/>.</summary>
@@ -60,7 +60,7 @@ public sealed record VmtxTable : IFontTable<VmtxTable>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(glyphId);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(glyphId, NumGlyphs);
-        return TopSideBearings[glyphId];
+        return TopSideBearings.Span[glyphId];
     }
 
     /// <summary>Gets the advance height and top side bearing of glyph <paramref name="glyphId"/>.</summary>
@@ -73,7 +73,7 @@ public sealed record VmtxTable : IFontTable<VmtxTable>
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(glyphId, NumGlyphs);
 
         int index = glyphId < NumberOfVMetrics ? glyphId : NumberOfVMetrics - 1;
-        return (AdvanceHeights[index], TopSideBearings[glyphId]);
+        return (AdvanceHeights.Span[index], TopSideBearings.Span[glyphId]);
     }
 
     /// <summary>The 4-byte fixed-layout <c>longVerMetric</c> record containing an advance height and top side bearing.</summary>

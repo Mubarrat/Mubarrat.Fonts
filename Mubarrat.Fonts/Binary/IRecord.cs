@@ -345,4 +345,27 @@ public interface IBaseRecord<TBase> : IRecord where TBase : IBaseRecord<TBase>
     /// <seealso href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/protected">C# reference: <c>protected</c></seealso>
     protected static TDerived Parse<TDerived>(ref Cursor cursor, object? context = null) where TDerived : TBase, IDerivedRecord<TBase, TDerived>
         => TDerived.Parse(ref cursor, context);
+
+    /// <summary>Builds one derived format of this base from an already-read header. Called by the base's dispatcher; not part of the public API of any format class.</summary>
+    /// <typeparam name="TDerived">The concrete format to build. Must be a derived record of this base: the constraint <c>TDerived : TBase, IHeaderDerivedRecord&lt;TBase, TDerived, THeader&gt;</c> ties the three types together, so <c>FromHeader&lt;WrongFormat, THeader&gt;</c> does not compile when the wrong type is supplied.</typeparam>
+    /// <typeparam name="THeader">The header type. A blittable struct the base has already read; forwarded to <c>TDerived.FromHeader</c> by readonly reference.</typeparam>
+    /// <param name="header">The already-read header. Passed by readonly reference to <c>TDerived.FromHeader</c> without copying.</param>
+    /// <param name="context">External values the format needs, or <c>null</c>. Passed unchanged to <c>TDerived.FromHeader</c>.</param>
+    /// <returns>The decoded format.</returns>
+    /// <exception cref="InvalidDataException">The header's fields describe a structure the format cannot represent, or the context does not supply a value the format requires.</exception>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>This helper is <c>protected</c>: it is callable from the base's <c>Parse</c> method, but not from user code.</description></item>
+    /// <item><description>It is the header-driven counterpart of <see cref="Parse{TDerived}(ref Cursor, object?)"/>. Where that helper reads the header from the cursor before dispatching, this helper passes an already-read header through, so the base can avoid a second read when it needs the discriminant to decide which format to build.</description></item>
+    /// <item><description><see cref="IEndianReversibleHeaderDerivedRecord{TBase, TDerived, THeader}"/> satisfies the constraint because it extends <see cref="IHeaderDerivedRecord{TBase, TDerived, THeader}"/>; the helper therefore dispatches both plain and endian-reversible derived records through the same path.</description></item>
+    /// <item><description>The reversal, when applicable, was already applied by whatever <c>ReadEndianReversibleStruct</c> call the base used to produce <paramref name="header"/>; the derived format sees a native-order header either way.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="IHeaderDerivedRecord{TBase, TDerived, THeader}.FromHeader(in THeader, object?)"/>
+    /// <seealso cref="IEndianReversibleHeaderDerivedRecord{TBase, TDerived, THeader}"/>
+    /// <seealso cref="Parse{TDerived}(ref Cursor, object?)"/>
+    protected static TDerived FromHeader<TDerived, THeader>(in THeader header, object? context = null)
+        where TDerived : TBase, IHeaderDerivedRecord<TBase, TDerived, THeader>
+        where THeader : unmanaged
+        => TDerived.FromHeader(in header, context);
 }

@@ -204,6 +204,14 @@ public readonly struct Fixed :
     public static Fixed ReverseEndianness(Fixed value) =>
         new(BinaryPrimitives.ReverseEndianness(value._bits));
 
+    /// <summary>
+    /// Reverses the endianness of a span of <see cref="Fixed"/> values, writing the results to a destination span.
+    /// </summary>
+    /// <param name="source">The source span of <see cref="Fixed"/> values.</param>
+    /// <param name="destination">The destination span to write the reversed values to.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ReverseEndianness(ReadOnlySpan<Fixed> source, Span<Fixed> destination) => BinaryPrimitives.ReverseEndianness(MemoryMarshal.Cast<Fixed, int>(source), MemoryMarshal.Cast<Fixed, int>(destination));
+
     // ────────────────────────────── Conversion ──────────────────────────────
 
     /// <summary>Converts to <see cref="double"/>.</summary>

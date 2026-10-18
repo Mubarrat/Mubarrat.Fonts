@@ -1,4 +1,6 @@
 ﻿using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Mubarrat.Fonts.Binary;
@@ -48,24 +50,24 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
     public ushort Version { get; init; }
 
     /// <summary>Gets the <c>FOND</c> entries, in table order.</summary>
-    /// <value>The array of <see cref="FondEntry"/> records, one per classic <c>FOND</c> resource the table replaces.</value>
+    /// <value>A read-only view over the <see cref="FondEntry"/> records, one per classic <c>FOND</c> resource the table replaces.</value>
     /// <seealso cref="FondEntry"/>
     /// <seealso cref="NfntEntries"/>
-    public IReadOnlyList<FondEntry> FondEntries { get; init; } = [];
+    public required IReadOnlyList<FondEntry> FondEntries { get; init; }
 
     /// <summary>Gets the <c>NFNT</c> entries, in table order.</summary>
-    /// <value>The array of <see cref="NfntEntry"/> records, one per classic <c>NFNT</c> resource the table replaces.</value>
+    /// <value>A read-only view over the <see cref="NfntEntry"/> records, one per classic <c>NFNT</c> resource the table replaces.</value>
     /// <seealso cref="NfntEntry"/>
     /// <seealso cref="FondEntries"/>
-    public IReadOnlyList<NfntEntry> NfntEntries { get; init; } = [];
+    public required IReadOnlyList<NfntEntry> NfntEntries { get; init; }
 
     /// <summary>Gets the number of <c>FOND</c> entries.</summary>
-    /// <value>The length of <see cref="FondEntries"/>.</value>
+    /// <value>The count of <see cref="FondEntries"/>.</value>
     /// <seealso cref="FondEntries"/>
     public int FondCount => FondEntries.Count;
 
     /// <summary>Gets the number of <c>NFNT</c> entries.</summary>
-    /// <value>The length of <see cref="NfntEntries"/>.</value>
+    /// <value>The count of <see cref="NfntEntries"/>.</value>
     /// <seealso cref="NfntEntries"/>
     public int NfntCount => NfntEntries.Count;
 
@@ -76,7 +78,7 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
     /// <remarks>The lookup is linear over <see cref="FondEntries"/>. When duplicate resource IDs are present — which the specification does not forbid — the first match in table order is returned.</remarks>
     /// <seealso cref="FondEntries"/>
     /// <seealso cref="FondEntry"/>
-    public bool TryGetFondEntry(short resourceId, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out FondEntry? entry)
+    public bool TryGetFondEntry(short resourceId, [NotNullWhen(true)] out FondEntry? entry)
     {
         foreach (var candidate in FondEntries)
         {
@@ -98,7 +100,7 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
     /// <remarks>The lookup is linear over <see cref="NfntEntries"/>. When duplicate resource IDs are present, the first match in table order is returned.</remarks>
     /// <seealso cref="NfntEntries"/>
     /// <seealso cref="NfntEntry"/>
-    public bool TryGetNfntEntry(short resourceId, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out NfntEntry? entry)
+    public bool TryGetNfntEntry(short resourceId, [NotNullWhen(true)] out NfntEntry? entry)
     {
         foreach (var candidate in NfntEntries)
         {
@@ -111,6 +113,22 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
 
         entry = null;
         return false;
+    }
+
+    static FondTable IRecord<FondTable>.Parse(ref Cursor cursor, object? context)
+    {
+        Header header = cursor.ReadEndianReversibleStruct<Header>();
+
+        if (header.Version != CurrentVersion)
+            throw new InvalidDataException($"'fond'.version is {header.Version}, expected {CurrentVersion}.");
+
+        var ctx = new ParentContext(cursor.Source);
+        return new()
+        {
+            Version = header.Version,
+            FondEntries = Array.AsReadOnly(cursor.ReadEndianReversibleHeaderRecordArray<FondEntry, FondEntry.Header>(header.FondCount, ctx)),
+            NfntEntries = Array.AsReadOnly(cursor.ReadEndianReversibleHeaderRecordArray<NfntEntry, NfntEntry.Header>(header.NfntCount, ctx)),
+        };
     }
 
     /// <summary>The 8-byte <c>fond</c> table header. Blittable, no padding.</summary>
@@ -143,12 +161,126 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
         /// <summary>Reverses the byte order of every field in a <see cref="Header"/>.</summary>
         /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
         /// <returns>A new header with each field reversed.</returns>
-        public static Header ReverseEndianness(Header value) => new()
+        public static Header ReverseEndianness(Header value)
         {
-            Version = BinaryPrimitives.ReverseEndianness(value.Version),
-            FondCount = BinaryPrimitives.ReverseEndianness(value.FondCount),
-            NfntCount = BinaryPrimitives.ReverseEndianness(value.NfntCount),
-            Unused = BinaryPrimitives.ReverseEndianness(value.Unused),
+            Span<ushort> span = MemoryMarshal.CreateSpan(ref value.Version, 4);
+            BinaryPrimitives.ReverseEndianness(span, span);
+            return value;
+        }
+    }
+
+    internal static string DecodeCString(ReadOnlySpan<byte> bytes, int length)
+    {
+        if (length <= 0) return string.Empty;
+
+        int limit = Math.Min(length, bytes.Length);
+        int end = 0;
+        while (end < limit && bytes[end] != 0)
+            end++;
+
+        return end == 0 ? string.Empty : Encoding.Latin1.GetString(bytes[..end]);
+    }
+}
+
+/// <summary>A parsed <c>fond</c> entry: the Resource Manager data for one classic <c>FOND</c> resource, together with the resolved resource mappings and raw FOND data.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>The record replaces the wire offsets with the resolved resource mappings and FOND bytes; the offsets are consumed during parse and are not exposed.</description></item>
+/// <item><description>Implements <see cref="IEndianReversibleHeaderRecord{T, THeader}"/>, so the framework's default <c>Parse</c> reads the 276-byte wire header and forwards to <see cref="IHeaderRecord{T, THeader}.FromHeader"/>; the enclosing table drives the array read via <c>ReadEndianReversibleHeaderRecordArray</c>.</description></item>
+/// <item><description>The <c>FromHeader</c> implementation resolves both the mapping array and the raw FOND bytes by absolute offsets within <see cref="ParentContext.ParentSource"/>; it never mutates a cursor.</description></item>
+/// <item><description>Declared as a <c>sealed record</c>, so the compiler-generated <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="FondTable"/>
+/// <seealso cref="ResourceMapping"/>
+/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
+public sealed record FondEntry : IEndianReversibleHeaderRecord<FondEntry, FondEntry.Header>
+{
+    /// <summary>Gets the resource ID of the <c>FOND</c> resource.</summary>
+    /// <value>A signed 16-bit value. Usually equal to <see cref="FamilyID"/>.</value>
+    /// <seealso cref="FamilyID"/>
+    public required short ResourceID { get; init; }
+
+    /// <summary>Gets the family ID field within the <c>FOND</c> resource.</summary>
+    /// <value>A signed 16-bit value. The specification notes some exceptional cases where it differs from <see cref="ResourceID"/>.</value>
+    /// <seealso cref="ResourceID"/>
+    public required short FamilyID { get; init; }
+
+    /// <summary>Gets the Resource Manager attributes.</summary>
+    /// <value>The value returned by classic Mac OS <c>GetResAttrs()</c> for the <c>FOND</c> resource.</value>
+    public required ushort Flags { get; init; }
+
+    /// <summary>Gets the QuickDraw style value.</summary>
+    /// <value>Zero for the plain style, one for bold, and so on.</value>
+    public required ushort Style { get; init; }
+
+    /// <summary>Gets the script code.</summary>
+    /// <value>A signed 16-bit script code. Together with <see cref="Language"/> it determines how to convert <see cref="Name"/> to Unicode.</value>
+    public required short Script { get; init; }
+
+    /// <summary>Gets the language code.</summary>
+    /// <value>A signed 16-bit language code.</value>
+    public required short Language { get; init; }
+
+    /// <summary>Gets the resource name.</summary>
+    /// <value>The name decoded from the entry's fixed-size name buffer, stopping at the first null byte or the declared length.</value>
+    /// <seealso cref="Script"/>
+    /// <seealso cref="Language"/>
+    public required string Name { get; init; }
+
+    /// <summary>Gets the resource-ID-to-PostScript-name mappings for the associated TrueType fonts.</summary>
+    /// <value>A read-only view over the <see cref="ResourceMapping"/> entries, or an empty list when the block declares no mappings.</value>
+    /// <seealso cref="ResourceMapping"/>
+    public required IReadOnlyList<ResourceMapping> ResourceMappings { get; init; }
+
+    /// <summary>Gets the raw embedded <c>FOND</c> resource data.</summary>
+    /// <value>A read-only view over the bytes that follow the resource mapping array within the entry's data block. The library does not parse the internal structure of a classic <c>FOND</c> resource; the bytes are exposed as-is.</value>
+    public required IReadOnlyList<byte> FondData { get; init; }
+
+    static FondEntry IHeaderRecord<FondEntry, Header>.FromHeader(in Header header, object? context)
+    {
+        if (context is not ParentContext ctx)
+            throw new InvalidDataException("'fond' FOND entry requires a ParentContext carrying the table-scoped source.");
+
+        Source source = ctx.ParentSource;
+        long tableLength = source.Length;
+
+        long dataStart = header.Offset;
+        long dataEnd = dataStart + header.Length;
+        if (dataStart < 0 || dataEnd > tableLength)
+            throw new InvalidDataException(
+                $"'fond' FOND entry resource ID {header.ResourceID} declares data range [{dataStart}, {dataEnd}), exceeding the table length {tableLength}.");
+
+        uint mappingCount = source.ReadUInt32At(dataStart);
+        if (mappingCount > int.MaxValue)
+            throw new InvalidDataException(
+                $"'fond' FOND entry resource ID {header.ResourceID} declares {mappingCount} mappings, which exceeds the supported maximum.");
+
+        long mappingStart = dataStart + sizeof(uint);
+        long mappingBytes = (long)mappingCount * Unsafe.SizeOf<ResourceMapping.Header>();
+        if (mappingStart + mappingBytes > dataEnd)
+            throw new InvalidDataException(
+                $"'fond' FOND entry resource ID {header.ResourceID} declares {mappingCount} mappings ({mappingBytes} bytes) at offset {mappingStart}, exceeding its data block end {dataEnd}.");
+
+        ResourceMapping[] mappings = source.ReadEndianReversibleHeaderRecordArrayAt<ResourceMapping, ResourceMapping.Header>(
+            mappingStart, (int)mappingCount);
+
+        long fondDataStart = mappingStart + mappingBytes;
+        int fondDataLength = checked((int)(dataEnd - fondDataStart));
+        byte[] fondData = fondDataLength > 0 ? source.ReadBytesAt(fondDataStart, fondDataLength) : [];
+
+        return new()
+        {
+            ResourceID = header.ResourceID,
+            FamilyID = header.FamilyID,
+            Flags = header.Flags,
+            Style = header.Style,
+            Script = header.Script,
+            Language = header.Language,
+            Name = FondTable.DecodeCString(header.Name.AsSpan(), header.NameLength),
+            ResourceMappings = Array.AsReadOnly(mappings),
+            FondData = Array.AsReadOnly(fondData),
         };
     }
 
@@ -161,11 +293,10 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
     /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="FondTable"/>
     /// <seealso cref="FondEntry"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct FondEntryRecord : IEndianReversibleStruct<FondEntryRecord>
+    public record struct Header : IEndianReversibleStruct<Header>
     {
         /// <summary>The resource ID of the <c>FOND</c> resource at byte offset 0.</summary>
         /// <value>A signed 16-bit value. Usually equal to <see cref="FamilyID"/>; the specification notes some exceptional cases where they differ.</value>
@@ -204,10 +335,10 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
         /// <value>A fixed 255-byte field. The meaningful portion is the first <see cref="NameLength"/> bytes; the remainder is conventionally filled with <c>0xFF</c> or <c>0x00</c>.</value>
         public FixedBuffer255 Name;  // +21
 
-        /// <summary>Reverses the byte order of every multi-byte field in a <see cref="FondEntryRecord"/>.</summary>
+        /// <summary>Reverses the byte order of every multi-byte field in a <see cref="Header"/>.</summary>
         /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
         /// <returns>A new record with the multi-byte fields reversed and the byte-only fields copied through.</returns>
-        public static FondEntryRecord ReverseEndianness(FondEntryRecord value) => new()
+        public static Header ReverseEndianness(Header value) => new()
         {
             ResourceID = BinaryPrimitives.ReverseEndianness(value.ResourceID),
             FamilyID = BinaryPrimitives.ReverseEndianness(value.FamilyID),
@@ -221,6 +352,73 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
             Name = value.Name,
         };
     }
+}
+
+/// <summary>A parsed <c>fond</c> <c>NFNT</c> entry: the Resource Manager data for one classic <c>NFNT</c> resource, together with the raw NFNT data.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>The record replaces the wire offsets with the resolved NFNT bytes; the offsets are consumed during parse and are not exposed.</description></item>
+/// <item><description>Implements <see cref="IEndianReversibleHeaderRecord{T, THeader}"/>, so the framework's default <c>Parse</c> reads the 274-byte wire header and forwards to <see cref="IHeaderRecord{T, THeader}.FromHeader"/>.</description></item>
+/// <item><description>Declared as a <c>sealed record</c>, so the compiler-generated <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="FondTable"/>
+/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
+public sealed record NfntEntry : IEndianReversibleHeaderRecord<NfntEntry, NfntEntry.Header>
+{
+    /// <summary>Gets the resource ID of the <c>NFNT</c> resource.</summary>
+    public required short ResourceID { get; init; }
+
+    /// <summary>Gets the Resource Manager attributes.</summary>
+    /// <value>The value returned by classic Mac OS <c>GetResAttrs()</c> for the <c>NFNT</c> resource.</value>
+    public required ushort Flags { get; init; }
+
+    /// <summary>Gets the QuickDraw style value.</summary>
+    public required ushort Style { get; init; }
+
+    /// <summary>Gets the script code.</summary>
+    public required short Script { get; init; }
+
+    /// <summary>Gets the language code.</summary>
+    public required short Language { get; init; }
+
+    /// <summary>Gets the resource name.</summary>
+    /// <value>The name decoded from the entry's fixed-size name buffer, stopping at the first null byte or the declared length.</value>
+    public required string Name { get; init; }
+
+    /// <summary>Gets the raw embedded <c>NFNT</c> resource data.</summary>
+    /// <value>A read-only view over the bytes at the entry's declared offset and length. The library does not parse the internal structure of a classic <c>NFNT</c> resource; the bytes are exposed as-is.</value>
+    public required IReadOnlyList<byte> NfntData { get; init; }
+
+    static NfntEntry IHeaderRecord<NfntEntry, Header>.FromHeader(in Header header, object? context)
+    {
+        if (context is not ParentContext ctx)
+            throw new InvalidDataException("'fond' NFNT entry requires a ParentContext carrying the table-scoped source.");
+
+        Source source = ctx.ParentSource;
+        long tableLength = source.Length;
+
+        long dataStart = header.Offset;
+        long dataEnd = dataStart + header.Length;
+        if (dataStart < 0 || dataEnd > tableLength)
+            throw new InvalidDataException(
+                $"'fond' NFNT entry resource ID {header.ResourceID} declares data range [{dataStart}, {dataEnd}), exceeding the table length {tableLength}.");
+
+        int dataLength = checked((int)header.Length);
+        byte[] data = dataLength > 0 ? source.ReadBytesAt(dataStart, dataLength) : [];
+
+        return new()
+        {
+            ResourceID = header.ResourceID,
+            Flags = header.Flags,
+            Style = header.Style,
+            Script = header.Script,
+            Language = header.Language,
+            Name = FondTable.DecodeCString(header.Name.AsSpan(), header.NameLength),
+            NfntData = Array.AsReadOnly(data),
+        };
+    }
 
     /// <summary>The 274-byte wire form of an <c>NFNT</c> entry: the Resource Manager data for one classic <c>NFNT</c> resource plus the offset of its data block. Blittable, no padding.</summary>
     /// <remarks>
@@ -231,11 +429,10 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
     /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="FondTable"/>
     /// <seealso cref="NfntEntry"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct NfntEntryRecord : IEndianReversibleStruct<NfntEntryRecord>
+    public record struct Header : IEndianReversibleStruct<Header>
     {
         /// <summary>The resource ID of the <c>NFNT</c> resource at byte offset 0.</summary>
         public short ResourceID;     // +0
@@ -267,10 +464,10 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
         /// <value>A fixed 255-byte field. The meaningful portion is the first <see cref="NameLength"/> bytes.</value>
         public FixedBuffer255 Name;  // +19
 
-        /// <summary>Reverses the byte order of every multi-byte field in a <see cref="NfntEntryRecord"/>.</summary>
+        /// <summary>Reverses the byte order of every multi-byte field in a <see cref="Header"/>.</summary>
         /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
         /// <returns>A new record with the multi-byte fields reversed and the byte-only fields copied through.</returns>
-        public static NfntEntryRecord ReverseEndianness(NfntEntryRecord value) => new()
+        public static Header ReverseEndianness(Header value) => new()
         {
             ResourceID = BinaryPrimitives.ReverseEndianness(value.ResourceID),
             Flags = BinaryPrimitives.ReverseEndianness(value.Flags),
@@ -283,26 +480,33 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
             Name = value.Name,
         };
     }
+}
 
-    /// <summary>The 4-byte header of a <c>Resource_fond</c> block: the number of resource mappings that follow. Blittable, no padding.</summary>
-    /// <remarks>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</remarks>
-    /// <seealso cref="FondTable"/>
-    /// <seealso cref="ResourceMappingRecord"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct ResourceFondHeader : IEndianReversibleStruct<ResourceFondHeader>
+/// <summary>A parsed resource mapping from a <c>fond</c> entry's <c>Resource_fond</c> block: a resource ID and the PostScript name of the associated TrueType font.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>Implements <see cref="IEndianReversibleHeaderRecord{T, THeader}"/>, so the framework's default <c>Parse</c> reads the 66-byte wire header and forwards to <see cref="IHeaderRecord{T, THeader}.FromHeader"/>; the enclosing <see cref="FondEntry"/> drives the bulk array read.</description></item>
+/// <item><description>Declared as a <c>sealed record</c>, so the compiler-generated <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="FondTable"/>
+/// <seealso cref="FondEntry"/>
+/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
+public sealed record ResourceMapping : IEndianReversibleHeaderRecord<ResourceMapping, ResourceMapping.Header>
+{
+    /// <summary>Gets the resource ID.</summary>
+    public required int ResourceID { get; init; }
+
+    /// <summary>Gets the PostScript name of the associated TrueType font.</summary>
+    /// <value>An ASCII string decoded from the mapping's fixed-size name buffer, stopping at the first null byte or the end of the buffer.</value>
+    public required string PostScriptName { get; init; }
+
+    static ResourceMapping IHeaderRecord<ResourceMapping, Header>.FromHeader(in Header header, object? context) => new()
     {
-        /// <summary>The number of <see cref="ResourceMappingRecord"/> entries that follow at byte offset 0.</summary>
-        public uint MappingCount;    // +0
-
-        /// <summary>Reverses the byte order of the field in a <see cref="ResourceFondHeader"/>.</summary>
-        /// <param name="value">The value whose field is to be reversed.</param>
-        /// <returns>A new header with the field reversed.</returns>
-        public static ResourceFondHeader ReverseEndianness(ResourceFondHeader value) => new()
-        {
-            MappingCount = BinaryPrimitives.ReverseEndianness(value.MappingCount),
-        };
-    }
+        ResourceID = header.ResourceID,
+        PostScriptName = FondTable.DecodeCString(header.PostScriptName.AsSpan(), FondTable.MaxPostScriptNameLength),
+    };
 
     /// <summary>The 66-byte wire form of a resource mapping: a resource ID and the PostScript name of the associated TrueType font. Blittable, no padding.</summary>
     /// <remarks>
@@ -312,11 +516,10 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
     /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</description></item>
     /// </list>
     /// </remarks>
-    /// <seealso cref="FondTable"/>
     /// <seealso cref="ResourceMapping"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct ResourceMappingRecord : IEndianReversibleStruct<ResourceMappingRecord>
+    public record struct Header : IEndianReversibleStruct<Header>
     {
         /// <summary>The resource ID at byte offset 0.</summary>
         public int ResourceID;              // +0
@@ -325,180 +528,14 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
         /// <value>A fixed 62-byte field holding an ASCII C string. Unused bytes are conventionally filled with <c>0xFF</c> or <c>0x00</c>.</value>
         public FixedBuffer62 PostScriptName; // +4
 
-        /// <summary>Reverses the byte order of the multi-byte fields in a <see cref="ResourceMappingRecord"/>.</summary>
+        /// <summary>Reverses the byte order of the multi-byte fields in a <see cref="Header"/>.</summary>
         /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
         /// <returns>A new record with the multi-byte fields reversed and the byte-only fields copied through.</returns>
-        public static ResourceMappingRecord ReverseEndianness(ResourceMappingRecord value) => new()
+        public static Header ReverseEndianness(Header value) => new()
         {
             ResourceID = BinaryPrimitives.ReverseEndianness(value.ResourceID),
             PostScriptName = value.PostScriptName,
         };
-    }
-
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the first byte of the <c>fond</c> table.</param>
-    /// <param name="context">Unused. The table is self-contained.</param>
-    /// <returns>The parsed <c>fond</c> table with every entry's data block resolved.</returns>
-    /// <exception cref="InvalidDataException">The version is not 2, or an entry's offset and length exceed the table-scoped source length.</exception>
-    /// <exception cref="EndOfStreamException">The header, an entry array, or a data block extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The parse is eager: both entry arrays are read in bulk, then each entry's data block is resolved by its declared offset.</description></item>
-    /// <item><description>Each <c>FOND</c> entry's data block begins with a <see cref="ResourceFondHeader"/> and a variable-length array of <see cref="ResourceMappingRecord"/> entries, followed by the raw <c>FOND</c> data. The two are separated during parse.</description></item>
-    /// <item><description>Each <c>NFNT</c> entry's data block is exposed as raw bytes; the table carries no internal structure to parse.</description></item>
-    /// <item><description>The specification does not cap either entry count. A malformed font that declares very large counts is bounded by the read, which throws <see cref="EndOfStreamException"/> when the array overruns the table-scoped source.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="Header"/>
-    /// <seealso cref="FondEntryRecord"/>
-    /// <seealso cref="NfntEntryRecord"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
-    static FondTable IRecord<FondTable>.Parse(ref Cursor cursor, object? context)
-    {
-        Header header = cursor.ReadEndianReversibleStruct<Header>();
-
-        if (header.Version != CurrentVersion)
-        {
-            throw new InvalidDataException(
-                $"'fond'.version is {header.Version}, expected {CurrentVersion}.");
-        }
-
-        long tableLength = cursor.Source.Length;
-
-        FondEntryRecord[] fondRecords = cursor.ReadEndianReversibleStructArray<FondEntryRecord>(header.FondCount);
-        NfntEntryRecord[] nfntRecords = cursor.ReadEndianReversibleStructArray<NfntEntryRecord>(header.NfntCount);
-
-        var fondEntries = new FondEntry[fondRecords.Length];
-        for (int i = 0; i < fondRecords.Length; i++)
-            fondEntries[i] = ParseFondEntry(cursor.Source, tableLength, fondRecords[i]);
-
-        var nfntEntries = new NfntEntry[nfntRecords.Length];
-        for (int i = 0; i < nfntRecords.Length; i++)
-            nfntEntries[i] = ParseNfntEntry(cursor.Source, tableLength, nfntRecords[i]);
-
-        return new()
-        {
-            Version = header.Version,
-            FondEntries = fondEntries,
-            NfntEntries = nfntEntries,
-        };
-    }
-
-    /// <summary>Resolves one <c>FOND</c> entry's data block into its resource mappings and raw FOND bytes.</summary>
-    /// <param name="source">The table-scoped source.</param>
-    /// <param name="tableLength">The table's total byte length.</param>
-    /// <param name="record">The wire entry record.</param>
-    /// <returns>The resolved semantic entry.</returns>
-    /// <exception cref="InvalidDataException">The entry's offset and length exceed the table length, or the mapping count exceeds the available bytes.</exception>
-    /// <exception cref="EndOfStreamException">The data block extends past the end of the source.</exception>
-    private static FondEntry ParseFondEntry(Source source, long tableLength, FondEntryRecord record)
-    {
-        long dataStart = record.Offset;
-        long dataEnd = dataStart + record.Length;
-
-        if (dataStart < 0 || dataEnd > tableLength)
-        {
-            throw new InvalidDataException(
-                $"'fond' entry resource ID {record.ResourceID} declares data range [{dataStart}, {dataEnd}), exceeding the table length {tableLength}.");
-        }
-
-        var dataCursor = source.CreateCursor(dataStart);
-        ResourceFondHeader resourceHeader = dataCursor.ReadEndianReversibleStruct<ResourceFondHeader>();
-
-        long mappingBytes = (long)resourceHeader.MappingCount * Marshal.SizeOf<ResourceMappingRecord>();
-        if (dataCursor.Position + mappingBytes > dataEnd)
-        {
-            throw new InvalidDataException(
-                $"'fond' entry resource ID {record.ResourceID} declares {resourceHeader.MappingCount} mappings ({mappingBytes} bytes), exceeding its data block of {record.Length} bytes.");
-        }
-
-        ResourceMappingRecord[] mappingRecords = dataCursor.ReadEndianReversibleStructArray<ResourceMappingRecord>(checked((int)resourceHeader.MappingCount));
-
-        var mappings = new ResourceMapping[mappingRecords.Length];
-        for (int j = 0; j < mappingRecords.Length; j++)
-        {
-            mappings[j] = new ResourceMapping
-            {
-                ResourceID = mappingRecords[j].ResourceID,
-                PostScriptName = DecodeCString(mappingRecords[j].PostScriptName.AsSpan(), MaxPostScriptNameLength),
-            };
-        }
-
-        long fondDataStart = dataCursor.Position;
-        int fondDataLength = checked((int)(dataEnd - fondDataStart));
-        byte[] fondData = fondDataLength > 0
-            ? source.ReadBytesAt(fondDataStart, fondDataLength)
-            : [];
-
-        return new FondEntry
-        {
-            ResourceID = record.ResourceID,
-            FamilyID = record.FamilyID,
-            Flags = record.Flags,
-            Style = record.Style,
-            Script = record.Script,
-            Language = record.Language,
-            Name = DecodeCString(record.Name.AsSpan(), record.NameLength),
-            ResourceMappings = mappings,
-            FondData = fondData,
-        };
-    }
-
-    /// <summary>Resolves one <c>NFNT</c> entry's data block into its raw bytes.</summary>
-    /// <param name="source">The table-scoped source.</param>
-    /// <param name="tableLength">The table's total byte length.</param>
-    /// <param name="record">The wire entry record.</param>
-    /// <returns>The resolved semantic entry.</returns>
-    /// <exception cref="InvalidDataException">The entry's offset and length exceed the table length.</exception>
-    /// <exception cref="EndOfStreamException">The data block extends past the end of the source.</exception>
-    private static NfntEntry ParseNfntEntry(Source source, long tableLength, NfntEntryRecord record)
-    {
-        long dataStart = record.Offset;
-        long dataEnd = dataStart + record.Length;
-
-        if (dataStart < 0 || dataEnd > tableLength)
-        {
-            throw new InvalidDataException(
-                $"'fond' NFNT resource ID {record.ResourceID} declares data range [{dataStart}, {dataEnd}), exceeding the table length {tableLength}.");
-        }
-
-        int dataLength = checked((int)record.Length);
-        byte[] data = dataLength > 0
-            ? source.ReadBytesAt(dataStart, dataLength)
-            : [];
-
-        return new NfntEntry
-        {
-            ResourceID = record.ResourceID,
-            Flags = record.Flags,
-            Style = record.Style,
-            Script = record.Script,
-            Language = record.Language,
-            Name = DecodeCString(record.Name.AsSpan(), record.NameLength),
-            NfntData = data,
-        };
-    }
-
-    /// <summary>Decodes a fixed-size byte buffer as a C string, stopping at the first null byte or the given length.</summary>
-    /// <param name="bytes">The fixed-size byte buffer.</param>
-    /// <param name="length">The meaningful length, or the full buffer length when the caller wants the entire buffer scanned.</param>
-    /// <returns>The decoded string, or an empty string when the length is zero or the first byte is null.</returns>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The bytes are decoded as Latin-1, which maps each byte to one character without loss. Legacy Mac OS resource names are Mac Roman encoded, and PostScript names are ASCII; Latin-1 preserves the raw bytes either way for a consumer that needs to re-decode.</description></item>
-    /// <item><description>The scan stops at the first null byte, matching the specification's note that the name is stored as a C string even though it can be read as a Pascal string by treating <c>NameLength</c> as the length byte.</description></item>
-    /// </list>
-    /// </remarks>
-    private static string DecodeCString(ReadOnlySpan<byte> bytes, int length)
-    {
-        if (length <= 0) return string.Empty;
-
-        int limit = Math.Min(length, bytes.Length);
-        int end = 0;
-        while (end < limit && bytes[end] != 0)
-            end++;
-
-        return end == 0 ? string.Empty : Encoding.Latin1.GetString(bytes[..end]);
     }
 }
 
@@ -506,148 +543,28 @@ public sealed record FondTable : IFontTable<FondTable>, IRecord<FondTable>
 /// <remarks>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</remarks>
 /// <seealso cref="FondTable"/>
 /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
-[StructLayout(LayoutKind.Sequential, Size = FondTable.MaxNameLength, Pack = 1)]
-public unsafe struct FixedBuffer255
+[StructLayout(LayoutKind.Sequential, Size = 255, Pack = 1)]
+public struct FixedBuffer255
 {
     /// <summary>The first byte of the fixed buffer.</summary>
     public byte First;
 
     /// <summary>Gets the buffer contents as a span.</summary>
     /// <returns>A span covering the full 255 bytes.</returns>
-    public readonly Span<byte> AsSpan()
-    {
-        fixed (byte* p = &First)
-            return new Span<byte>(p, FondTable.MaxNameLength);
-    }
+    public Span<byte> AsSpan() => MemoryMarshal.CreateSpan(ref First, 255);
 }
 
 /// <summary>A 62-byte fixed buffer used for PostScript names in the <c>fond</c> table's resource mappings.</summary>
 /// <remarks>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</remarks>
 /// <seealso cref="FondTable"/>
 /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
-[StructLayout(LayoutKind.Sequential, Size = FondTable.MaxPostScriptNameLength, Pack = 1)]
-public unsafe struct FixedBuffer62
+[StructLayout(LayoutKind.Sequential, Size = 62, Pack = 1)]
+public struct FixedBuffer62
 {
     /// <summary>The first byte of the fixed buffer.</summary>
     public byte First;
 
     /// <summary>Gets the buffer contents as a span.</summary>
     /// <returns>A span covering the full 62 bytes.</returns>
-    public readonly Span<byte> AsSpan()
-    {
-        fixed (byte* p = &First)
-            return new Span<byte>(p, FondTable.MaxPostScriptNameLength);
-    }
-}
-
-/// <summary>A parsed <c>fond</c> entry: the Resource Manager data for one classic <c>FOND</c> resource, together with the resolved resource mappings and raw FOND data.</summary>
-/// <remarks>
-/// <list type="bullet">
-/// <item><description>The record replaces the wire offsets with the resolved resource mappings and FOND bytes; the offsets are consumed during parse and are not exposed.</description></item>
-/// <item><description>Declared as a <c>sealed record</c>, so the compiler-generated <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
-/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</description></item>
-/// </list>
-/// </remarks>
-/// <seealso cref="FondTable"/>
-/// <seealso cref="ResourceMapping"/>
-/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
-public sealed record FondEntry
-{
-    /// <summary>Gets the resource ID of the <c>FOND</c> resource.</summary>
-    /// <value>A signed 16-bit value. Usually equal to <see cref="FamilyID"/>.</value>
-    /// <seealso cref="FamilyID"/>
-    public required short ResourceID { get; init; }
-
-    /// <summary>Gets the family ID field within the <c>FOND</c> resource.</summary>
-    /// <value>A signed 16-bit value. The specification notes some exceptional cases where it differs from <see cref="ResourceID"/>.</value>
-    /// <seealso cref="ResourceID"/>
-    public required short FamilyID { get; init; }
-
-    /// <summary>Gets the Resource Manager attributes.</summary>
-    /// <value>The value returned by classic Mac OS <c>GetResAttrs()</c> for the <c>FOND</c> resource.</value>
-    public required ushort Flags { get; init; }
-
-    /// <summary>Gets the QuickDraw style value.</summary>
-    /// <value>Zero for the plain style, one for bold, and so on.</value>
-    public required ushort Style { get; init; }
-
-    /// <summary>Gets the script code.</summary>
-    /// <value>A signed 16-bit script code. Together with <see cref="Language"/> it determines how to convert <see cref="Name"/> to Unicode.</value>
-    public required short Script { get; init; }
-
-    /// <summary>Gets the language code.</summary>
-    /// <value>A signed 16-bit language code.</value>
-    public required short Language { get; init; }
-
-    /// <summary>Gets the resource name.</summary>
-    /// <value>The name decoded from the entry's fixed-size name buffer, stopping at the first null byte or the declared length.</value>
-    /// <seealso cref="Script"/>
-    /// <seealso cref="Language"/>
-    public required string Name { get; init; }
-
-    /// <summary>Gets the resource-ID-to-PostScript-name mappings for the associated TrueType fonts.</summary>
-    /// <value>An array of <see cref="ResourceMapping"/> entries, or an empty array when the block declares no mappings.</value>
-    /// <seealso cref="ResourceMapping"/>
-    public required IReadOnlyList<ResourceMapping> ResourceMappings { get; init; }
-
-    /// <summary>Gets the raw embedded <c>FOND</c> resource data.</summary>
-    /// <value>The bytes that follow the resource mapping array within the entry's data block. The library does not parse the internal structure of a classic <c>FOND</c> resource; the bytes are exposed as-is.</value>
-    public required IReadOnlyList<byte> FondData { get; init; }
-}
-
-/// <summary>A parsed <c>fond</c> <c>NFNT</c> entry: the Resource Manager data for one classic <c>NFNT</c> resource, together with the raw NFNT data.</summary>
-/// <remarks>
-/// <list type="bullet">
-/// <item><description>The record replaces the wire offsets with the resolved NFNT bytes; the offsets are consumed during parse and are not exposed.</description></item>
-/// <item><description>Declared as a <c>sealed record</c>, so the compiler-generated <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
-/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</description></item>
-/// </list>
-/// </remarks>
-/// <seealso cref="FondTable"/>
-/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
-public sealed record NfntEntry
-{
-    /// <summary>Gets the resource ID of the <c>NFNT</c> resource.</summary>
-    public required short ResourceID { get; init; }
-
-    /// <summary>Gets the Resource Manager attributes.</summary>
-    /// <value>The value returned by classic Mac OS <c>GetResAttrs()</c> for the <c>NFNT</c> resource.</value>
-    public required ushort Flags { get; init; }
-
-    /// <summary>Gets the QuickDraw style value.</summary>
-    public required ushort Style { get; init; }
-
-    /// <summary>Gets the script code.</summary>
-    public required short Script { get; init; }
-
-    /// <summary>Gets the language code.</summary>
-    public required short Language { get; init; }
-
-    /// <summary>Gets the resource name.</summary>
-    /// <value>The name decoded from the entry's fixed-size name buffer, stopping at the first null byte or the declared length.</value>
-    public required string Name { get; init; }
-
-    /// <summary>Gets the raw embedded <c>NFNT</c> resource data.</summary>
-    /// <value>The bytes at the entry's declared offset and length. The library does not parse the internal structure of a classic <c>NFNT</c> resource; the bytes are exposed as-is.</value>
-    public required IReadOnlyList<byte> NfntData { get; init; }
-}
-
-/// <summary>A parsed resource mapping from a <c>fond</c> entry's <c>Resource_fond</c> block: a resource ID and the PostScript name of the associated TrueType font.</summary>
-/// <remarks>
-/// <list type="bullet">
-/// <item><description>Declared as a <c>sealed record</c>, so the compiler-generated <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
-/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">font resource table</see> in the Apple TrueType Reference Manual.</description></item>
-/// </list>
-/// </remarks>
-/// <seealso cref="FondTable"/>
-/// <seealso cref="FondEntry"/>
-/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fond.html">TrueType Reference Manual: The <c>fond</c> table</seealso>
-public sealed record ResourceMapping
-{
-    /// <summary>Gets the resource ID.</summary>
-    public required int ResourceID { get; init; }
-
-    /// <summary>Gets the PostScript name of the associated TrueType font.</summary>
-    /// <value>An ASCII string decoded from the mapping's fixed-size name buffer, stopping at the first null byte or the end of the buffer.</value>
-    public required string PostScriptName { get; init; }
+    public Span<byte> AsSpan() => MemoryMarshal.CreateSpan(ref First, 62);
 }

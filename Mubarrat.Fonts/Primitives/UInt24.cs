@@ -1,8 +1,12 @@
 ﻿using Mubarrat.Fonts.Binary;
+using System.Buffers.Binary;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 
 namespace Mubarrat.Fonts.Primitives;
 
@@ -289,6 +293,152 @@ public readonly struct UInt24 :
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: uint24</seealso>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UInt24 ReverseEndianness(UInt24 value) => new(value._b2, value._b1, value._b0);
+
+    /// <summary>Reverses the byte order of every 24-bit unsigned integer in <paramref name="source"/>, writing the results to <paramref name="destination"/>.</summary>
+    /// <param name="source">The source span. Each element occupies three bytes; bytes 0 and 2 are swapped, byte 1 stays in place.</param>
+    /// <param name="destination">The destination span. Must be at least as long as <paramref name="source"/>; only the first <c>source.Length</c> elements are written.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="destination"/> is shorter than <paramref name="source"/>.</exception>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The operation is byte-for-byte: for each 3-byte element <c>[a, b, c]</c>, the destination receives <c>[c, b, a]</c>. The reversal is independent of the host's byte order because it operates on the raw byte representation.</description></item>
+    /// <item><description>Exact in-place operation — where <paramref name="source"/> and <paramref name="destination"/> refer to the same memory at the same start offset — is supported. Partial overlap with different start offsets is not supported; the caller must ensure the two spans either coincide exactly or do not overlap.</description></item>
+    /// <item><description>Four SIMD tiers are tried in descending width. The 3-byte group is not a natural SIMD width, so each tier loads a full vector but advances by a multiple of three, leaving the trailing byte(s) of the iteration for the next one or the scalar tail.</description></item>
+    /// <item><description>AVX-512 VBMI performs the reversal with a single 64-byte permute per 63 bytes. AVX2's <c>vpshufb</c> is lane-local and cannot reverse the 3-byte group that straddles the 128-bit lane boundary; the 256-bit tier reverses both lanes and then corrects the straddling group with a scalar swap.</description></item>
+    /// <item><description>On ARM64 the 128-bit tier uses <c>tbl</c> via <see cref="AdvSimd.Arm64.VectorTableLookup(Vector128{byte}, Vector128{byte})"/>; on x86 the 128-bit tier uses <c>pshufb</c> via <see cref="Ssse3.Shuffle(Vector128{byte}, Vector128{byte})"/>.</description></item>
+    /// <item><description>The 64-bit tier uses a <c>ulong</c> mask on little-endian hosts; x86 has no byte-shuffle at <see cref="Vector64{T}"/> width, so the ulong path is the honest equivalent. On big-endian hosts the tier is skipped.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="ReverseEndianness(UInt24)"/>
+    /// <seealso cref="BinaryPrimitives.ReverseEndianness(ReadOnlySpan{ushort}, Span{ushort})"/>
+    public static void ReverseEndianness(ReadOnlySpan<UInt24> source, Span<UInt24> destination)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(destination.Length, source.Length);
+        if (!source.IsEmpty)
+            ReverseByteGroups(MemoryMarshal.AsBytes(source), MemoryMarshal.AsBytes(destination)[..(source.Length * 3)]);
+    }
+
+    /// <summary>Reverses the byte order of every 3-byte group in <paramref name="src"/>, writing to <paramref name="dst"/>.</summary>
+    /// <param name="src">The source bytes. Its length must be a multiple of three.</param>
+    /// <param name="dst">The destination bytes. Its length must equal <paramref name="src"/>'s length.</param>
+    /// <remarks>See the public overload for the tiering and the load-wide / advance-narrow loop pattern.</remarks>
+    internal static void ReverseByteGroups(ReadOnlySpan<byte> src, Span<byte> dst)
+    {
+        int len = src.Length;
+        if (len < 3) return;
+
+        ref byte srcRef = ref MemoryMarshal.GetReference(src);
+        ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+        int i = 0;
+
+        // ── Vector512 tier: AVX-512 VBMI, full 64-byte permute, stride 63 ──
+        // vpermb indexes the whole 64-byte register regardless of 128-bit lane
+        // boundaries, so the group that straddles a lane is reversed in one pass.
+        if (Avx512Vbmi.IsSupported)
+        {
+            Vector512<byte> mask = Vector512.Create(
+                Vector256.Create(
+                    Vector128.Create((byte)2, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 14, 13, 12, 17),
+                    Vector128.Create((byte)16, 15, 20, 19, 18, 23, 22, 21, 26, 25, 24, 29, 28, 27, 32, 31)),
+                Vector256.Create(
+                    Vector128.Create((byte)30, 35, 34, 33, 38, 37, 36, 41, 40, 39, 44, 43, 42, 47, 46, 45),
+                    Vector128.Create((byte)50, 49, 48, 53, 52, 51, 56, 55, 54, 59, 58, 57, 62, 61, 60, 63)));
+
+            int limit = len - 64;
+            while (i <= limit)
+            {
+                Vector512<byte> v = Vector512.LoadUnsafe(in Unsafe.Add(ref srcRef, i));
+                Avx512Vbmi.PermuteVar64x8(v, mask).StoreUnsafe(ref Unsafe.Add(ref dstRef, i));
+                i += 63;
+            }
+        }
+
+        // ── Vector256 tier: AVX2 vpshufb, per-lane masks, stride 30 ──
+        // Lane 0 reverses bytes 0-14 (five groups) and leaves byte 15 (which is
+        // the first byte of the straddling group). Lane 1 leaves bytes 0 and 1
+        // (the rest of the straddling group), reverses bytes 2-13 (four groups),
+        // and leaves the top two bytes (part of the next straddling group). After
+        // the shuffle, one scalar swap fixes the straddling group.
+        if (Avx2.IsSupported && Ssse3.IsSupported)
+        {
+            Vector256<byte> mask = Vector256.Create(
+                Vector128.Create((byte)2, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 14, 13, 12, 15),
+                Vector128.Create((byte)0, 1, 4, 3, 2, 7, 6, 5, 10, 9, 8, 13, 12, 11, 14, 15));
+
+            int limit = len - 32;
+            while (i <= limit)
+            {
+                Vector256<byte> v = Vector256.LoadUnsafe(in Unsafe.Add(ref srcRef, i));
+                Avx2.Shuffle(v, mask).StoreUnsafe(ref Unsafe.Add(ref dstRef, i));
+
+                ref byte slotA = ref Unsafe.Add(ref dstRef, i + 15);
+                ref byte slotB = ref Unsafe.Add(ref dstRef, i + 17);
+                (slotA, slotB) = (slotB, slotA);
+
+                i += 30;
+            }
+        }
+
+        // ── Vector128 tier: SSSE3 (x86) or AdvSimd (ARM64), 16-byte shuffle, stride 15 ──
+        if (Ssse3.IsSupported)
+        {
+            Vector128<byte> mask = Vector128.Create(
+                (byte)2, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 14, 13, 12, 15);
+
+            int limit = len - 16;
+            while (i <= limit)
+            {
+                Vector128<byte> v = Vector128.LoadUnsafe(in Unsafe.Add(ref srcRef, i));
+                Ssse3.Shuffle(v, mask).StoreUnsafe(ref Unsafe.Add(ref dstRef, i));
+                i += 15;
+            }
+        }
+        else if (AdvSimd.Arm64.IsSupported)
+        {
+            Vector128<byte> mask = Vector128.Create(
+                (byte)2, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 14, 13, 12, 15);
+
+            int limit = len - 16;
+            while (i <= limit)
+            {
+                Vector128<byte> v = Vector128.LoadUnsafe(in Unsafe.Add(ref srcRef, i));
+                AdvSimd.Arm64.VectorTableLookup(v, mask).StoreUnsafe(ref Unsafe.Add(ref dstRef, i));
+                i += 15;
+            }
+        }
+
+        // ── Vector64 tier: 8-byte load, 6-byte stride, ulong byte permutation ──
+        // x86 has no byte-shuffle at Vector64 width; on little-endian hosts the
+        // same work is done with three shifts, four masks and two OR-chains per
+        // 6 bytes. Big-endian hosts skip this tier and fall through to scalar.
+        if (BitConverter.IsLittleEndian)
+        {
+            int limit = len - 8;
+            while (i <= limit)
+            {
+                ulong v = Unsafe.ReadUnaligned<ulong>(ref Unsafe.AsRef(in Unsafe.Add(ref srcRef, i)));
+                ulong r = ((v >> 16) & 0x00000000000000FFUL)   // b2 → byte 0
+                        | (v & 0x000000000000FF00UL)    // b1 → byte 1
+                        | ((v << 16) & 0x0000000000FF0000UL)   // b0 → byte 2
+                        | ((v >> 16) & 0x00000000FF000000UL)   // b5 → byte 3
+                        | (v & 0x000000FF00000000UL)    // b4 → byte 4
+                        | ((v << 16) & 0x0000FF0000000000UL)   // b3 → byte 5
+                        | (v & 0xFFFF000000000000UL);   // b6 b7 unchanged
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, i), r);
+                i += 6;
+            }
+        }
+
+        // ── Scalar tail ──
+        // Up to 20 elements remain after AVX-512, 10 after AVX2, 5 after SSSE3 or
+        // AdvSimd, 2 after the ulong tier. The loop is trivially correct and always
+        // advances by a whole element, so the boundary stays aligned.
+        for (; i < len; i += 3)
+        {
+            Unsafe.Add(ref dstRef, i + 0) = Unsafe.Add(ref srcRef, i + 2);
+            Unsafe.Add(ref dstRef, i + 1) = Unsafe.Add(ref srcRef, i + 1);
+            Unsafe.Add(ref dstRef, i + 2) = Unsafe.Add(ref srcRef, i + 0);
+        }
+    }
 
     /// <summary>Creates a <see cref="UInt24"/> from three bytes in big-endian order, regardless of the host's endianness.</summary>
     /// <param name="msb">The most significant byte.</param>

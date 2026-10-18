@@ -180,15 +180,12 @@ public record struct Affine2x3 : IEndianReversibleStruct<Affine2x3>
     /// <remarks>All six fields are <see cref="Fixed"/> values and are reversed independently.</remarks>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
-    public static Affine2x3 ReverseEndianness(Affine2x3 v) => new()
+    public static Affine2x3 ReverseEndianness(Affine2x3 v)
     {
-        Xx = Fixed.ReverseEndianness(v.Xx),
-        Yx = Fixed.ReverseEndianness(v.Yx),
-        Xy = Fixed.ReverseEndianness(v.Xy),
-        Yy = Fixed.ReverseEndianness(v.Yy),
-        Dx = Fixed.ReverseEndianness(v.Dx),
-        Dy = Fixed.ReverseEndianness(v.Dy),
-    };
+        var span = MemoryMarshal.CreateSpan(ref v.Xx, 6);
+        Fixed.ReverseEndianness(span, span);
+        return v;
+    }
 }
 
 /// <summary>A color stop in a gradient. Blittable, size 6.</summary>
@@ -877,16 +874,13 @@ public sealed record PaintLinearGradient : Paint, IDerivedRecord<Paint, PaintLin
         /// <remarks>The <c>ColorLineOffset</c> field uses <see cref="UInt24.ReverseEndianness(UInt24)"/>; the coordinate fields are reversed through <see cref="BinaryPrimitives.ReverseEndianness(short)"/>.</remarks>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
         /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
-        public static Header ReverseEndianness(Header value) => new()
+        public static Header ReverseEndianness(Header value)
         {
-            ColorLineOffset = UInt24.ReverseEndianness(value.ColorLineOffset),
-            X0 = BinaryPrimitives.ReverseEndianness(value.X0),
-            Y0 = BinaryPrimitives.ReverseEndianness(value.Y0),
-            X1 = BinaryPrimitives.ReverseEndianness(value.X1),
-            Y1 = BinaryPrimitives.ReverseEndianness(value.Y1),
-            X2 = BinaryPrimitives.ReverseEndianness(value.X2),
-            Y2 = BinaryPrimitives.ReverseEndianness(value.Y2),
-        };
+            value.ColorLineOffset = UInt24.ReverseEndianness(value.ColorLineOffset);
+            var span = MemoryMarshal.CreateSpan(ref value.X0, 6);
+            BinaryPrimitives.ReverseEndianness(span, span);
+            return value;
+        }
     }
 }
 

@@ -94,12 +94,12 @@ public abstract record ClassDef : IRecord<ClassDef>, IBaseRecord<ClassDef>
         /// <seealso cref="IEndianReversibleStruct{T}"/>
         /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/chapter2#class-definition-table">OpenType specification: Class Definition table</seealso>
-        public static ClassRange ReverseEndianness(ClassRange v) => new()
+        public static ClassRange ReverseEndianness(ClassRange v)
         {
-            StartGlyphId = BinaryPrimitives.ReverseEndianness(v.StartGlyphId),
-            EndGlyphId = BinaryPrimitives.ReverseEndianness(v.EndGlyphId),
-            Class = BinaryPrimitives.ReverseEndianness(v.Class),
-        };
+            var span = MemoryMarshal.CreateSpan(ref v.StartGlyphId, 3);
+            BinaryPrimitives.ReverseEndianness(span, span);
+            return v;
+        }
     }
 }
 

@@ -1,7 +1,6 @@
 ﻿using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using Mubarrat.Fonts.Binary;
-using Mubarrat.Fonts.Primitives;
 
 namespace Mubarrat.Fonts.Tables;
 
@@ -57,14 +56,12 @@ public record struct BinSrchHeader : IEndianReversibleStruct<BinSrchHeader>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6Tables.html">TrueType Reference Manual: Binary Searching Tables</seealso>
-    public static BinSrchHeader ReverseEndianness(BinSrchHeader v) => new()
+    public static BinSrchHeader ReverseEndianness(BinSrchHeader v)
     {
-        UnitSize = BinaryPrimitives.ReverseEndianness(v.UnitSize),
-        UnitCount = BinaryPrimitives.ReverseEndianness(v.UnitCount),
-        SearchRange = BinaryPrimitives.ReverseEndianness(v.SearchRange),
-        EntrySelector = BinaryPrimitives.ReverseEndianness(v.EntrySelector),
-        RangeShift = BinaryPrimitives.ReverseEndianness(v.RangeShift),
-    };
+        var span = MemoryMarshal.CreateSpan(ref v.UnitSize, 5);
+        BinaryPrimitives.ReverseEndianness(span, span);
+        return v;
+    }
 }
 
 /// <summary>One <c>LookupSegment</c> of a format 2 lookup table: a contiguous glyph range that shares one two-byte lookup value.</summary>
@@ -94,12 +91,12 @@ public record struct LookupSegment : IEndianReversibleStruct<LookupSegment>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6Tables.html">TrueType Reference Manual: Segment Single Format 2 Lookup Table</seealso>
-    public static LookupSegment ReverseEndianness(LookupSegment v) => new()
+    public static LookupSegment ReverseEndianness(LookupSegment v)
     {
-        LastGlyph = BinaryPrimitives.ReverseEndianness(v.LastGlyph),
-        FirstGlyph = BinaryPrimitives.ReverseEndianness(v.FirstGlyph),
-        Value = BinaryPrimitives.ReverseEndianness(v.Value),
-    };
+        var span = MemoryMarshal.CreateSpan(ref v.LastGlyph, 3);
+        BinaryPrimitives.ReverseEndianness(span, span);
+        return v;
+    }
 }
 
 /// <summary>One <c>LookupSegment</c> of a format 4 lookup table: a contiguous glyph range whose per-glyph values live at an offset from the start of the lookup table.</summary>
@@ -130,12 +127,12 @@ public record struct LookupSegment4 : IEndianReversibleStruct<LookupSegment4>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6Tables.html">TrueType Reference Manual: Segment Array Format 4 Lookup Table</seealso>
-    public static LookupSegment4 ReverseEndianness(LookupSegment4 v) => new()
+    public static LookupSegment4 ReverseEndianness(LookupSegment4 v)
     {
-        LastGlyph = BinaryPrimitives.ReverseEndianness(v.LastGlyph),
-        FirstGlyph = BinaryPrimitives.ReverseEndianness(v.FirstGlyph),
-        Offset = BinaryPrimitives.ReverseEndianness(v.Offset),
-    };
+        var span = MemoryMarshal.CreateSpan(ref v.LastGlyph, 3);
+        BinaryPrimitives.ReverseEndianness(span, span);
+        return v;
+    }
 }
 
 /// <summary>One <c>LookupSingle</c> entry of a format 6 lookup table: a glyph index and its two-byte lookup value.</summary>
@@ -162,11 +159,12 @@ public record struct LookupSingle : IEndianReversibleStruct<LookupSingle>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6Tables.html">TrueType Reference Manual: Single Table Format 6 Lookup Table</seealso>
-    public static LookupSingle ReverseEndianness(LookupSingle v) => new()
+    public static LookupSingle ReverseEndianness(LookupSingle v)
     {
-        Glyph = BinaryPrimitives.ReverseEndianness(v.Glyph),
-        Value = BinaryPrimitives.ReverseEndianness(v.Value),
-    };
+        var span = MemoryMarshal.CreateSpan(ref v.Glyph, 2);
+        BinaryPrimitives.ReverseEndianness(span, span);
+        return v;
+    }
 }
 
 /// <summary>A glyph-to-value lookup table, one of the six formats Apple Advanced Typography tables use to map glyph indices onto per-glyph information.</summary>
@@ -708,11 +706,12 @@ public sealed record LookupTable8 : LookupTable, IDerivedRecord<LookupTable, Loo
         /// <summary>Reverses the byte order of both fields in a <see cref="Header"/>.</summary>
         /// <param name="v">The value whose multi-byte fields are to be reversed.</param>
         /// <returns>A new header with each field reversed.</returns>
-        public static Header ReverseEndianness(Header v) => new()
+        public static Header ReverseEndianness(Header v)
         {
-            FirstGlyph = BinaryPrimitives.ReverseEndianness(v.FirstGlyph),
-            GlyphCount = BinaryPrimitives.ReverseEndianness(v.GlyphCount),
-        };
+            var span = MemoryMarshal.CreateSpan(ref v.FirstGlyph, 3);
+            BinaryPrimitives.ReverseEndianness(span, span);
+            return v;
+        }
     }
 }
 
@@ -814,12 +813,12 @@ public sealed record LookupTable10 : LookupTable, IDerivedRecord<LookupTable, Lo
         /// <summary>Reverses the byte order of every field in a <see cref="Header"/>.</summary>
         /// <param name="v">The value whose multi-byte fields are to be reversed.</param>
         /// <returns>A new header with each field reversed.</returns>
-        public static Header ReverseEndianness(Header v) => new()
+        public static Header ReverseEndianness(Header v)
         {
-            UnitSize = BinaryPrimitives.ReverseEndianness(v.UnitSize),
-            FirstGlyph = BinaryPrimitives.ReverseEndianness(v.FirstGlyph),
-            GlyphCount = BinaryPrimitives.ReverseEndianness(v.GlyphCount),
-        };
+            var span = MemoryMarshal.CreateSpan(ref v.UnitSize, 3);
+            BinaryPrimitives.ReverseEndianness(span, span);
+            return v;
+        }
     }
 }
 
@@ -859,13 +858,12 @@ public record struct StateHeader : IEndianReversibleStruct<StateHeader>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6Tables.html">TrueType Reference Manual: State Tables</seealso>
-    public static StateHeader ReverseEndianness(StateHeader v) => new()
+    public static StateHeader ReverseEndianness(StateHeader v)
     {
-        StateSize = BinaryPrimitives.ReverseEndianness(v.StateSize),
-        ClassTable = BinaryPrimitives.ReverseEndianness(v.ClassTable),
-        StateArray = BinaryPrimitives.ReverseEndianness(v.StateArray),
-        EntryTable = BinaryPrimitives.ReverseEndianness(v.EntryTable),
-    };
+        var span = MemoryMarshal.CreateSpan(ref v.StateSize, 4);
+        BinaryPrimitives.ReverseEndianness(span, span);
+        return v;
+    }
 }
 
 /// <summary>The <c>STXHeader</c> structure that introduces an extended Apple Advanced Typography state table.</summary>
@@ -903,13 +901,12 @@ public record struct STXHeader : IEndianReversibleStruct<STXHeader>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6Tables.html">TrueType Reference Manual: Extended State Tables</seealso>
-    public static STXHeader ReverseEndianness(STXHeader v) => new()
+    public static STXHeader ReverseEndianness(STXHeader v)
     {
-        ClassCount = BinaryPrimitives.ReverseEndianness(v.ClassCount),
-        ClassTableOffset = BinaryPrimitives.ReverseEndianness(v.ClassTableOffset),
-        StateArrayOffset = BinaryPrimitives.ReverseEndianness(v.StateArrayOffset),
-        EntryTableOffset = BinaryPrimitives.ReverseEndianness(v.EntryTableOffset),
-    };
+        var span = MemoryMarshal.CreateSpan(ref v.ClassCount, 4);
+        BinaryPrimitives.ReverseEndianness(span, span);
+        return v;
+    }
 }
 
 /// <summary>The header of a classic Apple Advanced Typography class subtable: the first glyph and glyph count that bound the class code array.</summary>
@@ -939,11 +936,12 @@ public record struct ClassTableHeader : IEndianReversibleStruct<ClassTableHeader
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}"/>
     /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6Tables.html">TrueType Reference Manual: Class Subtable</seealso>
-    public static ClassTableHeader ReverseEndianness(ClassTableHeader v) => new()
+    public static ClassTableHeader ReverseEndianness(ClassTableHeader v)
     {
-        FirstGlyph = BinaryPrimitives.ReverseEndianness(v.FirstGlyph),
-        GlyphCount = BinaryPrimitives.ReverseEndianness(v.GlyphCount),
-    };
+        var span = MemoryMarshal.CreateSpan(ref v.FirstGlyph, 3);
+        BinaryPrimitives.ReverseEndianness(span, span);
+        return v;
+    }
 }
 
 /// <summary>The predefined glyph classes and states that Apple Advanced Typography state tables reserve.</summary>

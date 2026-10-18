@@ -5,198 +5,203 @@ using Mubarrat.Fonts.Primitives;
 
 namespace Mubarrat.Fonts.Tables;
 
-/// <summary>The <c>acnt</c> table: the Apple Advanced Typography accent attachment table. Provides a space-efficient method of combining component glyphs into compound glyphs to form accents.</summary>
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// The 'acnt' table — AAT accent attachment
+//
+// Self-contained; no glyph count and no external context required.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>The <c>acnt</c> table: accent attachment data that describes how secondary accent glyphs attach to a primary base glyph.</summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>macOS and iOS do not support the table, and the specification text states that its use is discouraged. It is documented here for completeness and for round-tripping older fonts, not as a recommended way to build accented glyphs. Contextual accent composition in modern AAT fonts is expressed through the metamorphosis tables instead.</description></item>
-/// <item><description>The table describes accented glyphs as a primary component plus one or more secondary components, positioned by matching attachment points. Properties other than the outline — metrics, kerning values, PostScript names — are inherited from or derivable from the components.</description></item>
-/// <item><description>Accented glyph indices must be contiguous and start at an index greater than the highest regular glyph index. <see cref="FirstAccentGlyphIndex"/> and <see cref="LastAccentGlyphIndex"/> declare that range.</description></item>
-/// <item><description>A font may declare at most <see cref="MaxPrimaryComponents"/> primary components and at most <see cref="MaxSecondaryComponents"/> secondary components.</description></item>
-/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
+/// <item><description>Accented glyphs are a restricted subclass of compound glyphs: one primary component plus one or more secondary components, with all outline-independent properties inherited from the primary.</description></item>
+/// <item><description>Accented glyph indices must be contiguous and start above every regular glyph index, so the table addresses them by the inclusive range <see cref="FirstAccentGlyphIndex"/>..<see cref="LastAccentGlyphIndex"/>.</description></item>
+/// <item><description>Two description formats exist. Format 0 describes a base plus exactly one accent in 4 bytes. Format 1 describes a base plus two or more accents by pointing into a separate extension chain of 2-byte subentries.</description></item>
+/// <item><description>Secondary data is a flat array of 3-byte entries, one per distinct accent glyph; both description formats refer to an entry by its index rather than by offset.</description></item>
+/// <item><description>The table is not supported on macOS or iOS, and Apple discourages its use. The parser still reads it fully so a font can be inspected on any platform.</description></item>
+/// <item><description>All multi-byte reads use the sfnt default of big-endian.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html"><c>acnt</c> table</see> in the Apple TrueType Reference Manual.</description></item>
 /// </list>
 /// </remarks>
-/// <seealso cref="AcntGlyphDescription"/>
-/// <seealso cref="AcntSecondaryEntry"/>
-/// <seealso cref="AcntExtensionEntry"/>
-/// <seealso cref="GlyfTable"/>
+/// <seealso cref="AcntAccentedGlyph"/>
+/// <seealso cref="AcntSecondaryGlyph"/>
 /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
 public sealed record AcntTable : IFontTable<AcntTable>, IRecord<AcntTable>
 {
-    /// <summary>The version value for the only defined accent attachment table format, 1.0.</summary>
-    /// <value>The <see cref="Fixed"/> value whose raw bits are <c>0x00010000</c>.</value>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
-    public static readonly Fixed CurrentVersion = new(0x00010000);
+    /// <summary>The only version defined by the current specification, as a 16.16 <see cref="Fixed"/> value.</summary>
+    /// <value>The <see cref="Fixed"/> value 1.0, whose raw 32-bit representation is <c>0x00010000</c>.</value>
+    /// <seealso cref="Version"/>
+    public static readonly Fixed CurrentVersion = (Fixed)0x00010000;
 
-    /// <summary>The maximum number of accented glyphs a font may declare, 32 768.</summary>
-    /// <remarks>The limit is quoted by the specification and follows from the fifteen-bit <c>primaryGlyphIndex</c> field shared by both description formats.</remarks>
-    public const int MaxPrimaryComponents = 32768;
-
-    /// <summary>The maximum number of secondary components a font may declare, 255.</summary>
-    /// <remarks>The limit is quoted by the specification and follows from the seven-bit <c>secondaryInfoIndex</c> field of an extension entry.</remarks>
-    public const int MaxSecondaryComponents = 255;
+    /// <summary>The maximum number of secondary glyph entries the specification permits.</summary>
+    /// <value>The constant <c>255</c>. Valid secondary-info indices are therefore <c>0</c> through <c>254</c>.</value>
+    /// <seealso cref="SecondaryGlyphs"/>
+    public const int MaxSecondaryGlyphCount = 255;
 
     /// <inheritdoc/>
     public static Tag Tag => "acnt";
 
     /// <summary>Gets the table version.</summary>
-    /// <value>The <see cref="CurrentVersion"/> value for a conforming table.</value>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
+    /// <value>The 16.16 <see cref="Fixed"/> version read from the header. Always <see cref="CurrentVersion"/>; the parser rejects any other value.</value>
+    /// <seealso cref="CurrentVersion"/>
     public Fixed Version { get; init; }
 
     /// <summary>Gets the first accented glyph index.</summary>
-    /// <value>The lowest glyph index described by this table. Glyph indices for accented glyphs must be contiguous and must exceed the highest index of any regular glyph.</value>
+    /// <value>The glyph ID of the first accented glyph. Accented glyph IDs are contiguous and start above every regular glyph ID.</value>
     /// <seealso cref="LastAccentGlyphIndex"/>
-    /// <seealso cref="AccentGlyphCount"/>
+    /// <seealso cref="AccentedGlyphs"/>
     public ushort FirstAccentGlyphIndex { get; init; }
 
-    /// <summary>Gets the last accented glyph index, inclusive.</summary>
-    /// <value>The highest glyph index described by this table.</value>
+    /// <summary>Gets the last accented glyph index.</summary>
+    /// <value>The glyph ID of the last accented glyph, inclusive. The number of accented glyphs is <c>Last - First + 1</c>.</value>
     /// <seealso cref="FirstAccentGlyphIndex"/>
-    /// <seealso cref="AccentGlyphCount"/>
+    /// <seealso cref="AccentedGlyphs"/>
     public ushort LastAccentGlyphIndex { get; init; }
 
-    /// <summary>Gets the per-glyph description entries, indexed by <c>glyphId - <see cref="FirstAccentGlyphIndex"/></c>.</summary>
-    /// <value>An array of <see cref="AcntGlyphDescription"/> entries; entry <c>i</c> describes the glyph at index <c>FirstAccentGlyphIndex + i</c>.</value>
-    /// <seealso cref="AcntGlyphDescription"/>
-    /// <seealso cref="AcntSimpleDescription"/>
-    /// <seealso cref="AcntExtendedDescription"/>
-    public IReadOnlyList<AcntGlyphDescription> GlyphDescriptions { get; init; } = [];
+    /// <summary>Gets the accented glyph descriptions, in glyph-index order.</summary>
+    /// <value>Entry <c>i</c> describes the glyph at index <c>FirstAccentGlyphIndex + i</c>. Each entry is an <see cref="AcntAccentedGlyph"/>, whose runtime type discriminates the two on-disk formats.</value>
+    /// <seealso cref="GetAccentedGlyph(int)"/>
+    /// <seealso cref="TryGetAccentedGlyph(int, out AcntAccentedGlyph?)"/>
+    /// <seealso cref="AcntAccentedGlyph"/>
+    public required AcntAccentedGlyph[] AccentedGlyphs { get; init; }
 
-    /// <summary>Gets the secondary glyph entries, indexed by the secondary information index used in descriptions and extensions.</summary>
-    /// <value>An array of <see cref="AcntSecondaryEntry"/> entries, each naming a secondary glyph and its attachment point. The array length is bounded by <see cref="MaxSecondaryComponents"/>.</value>
-    /// <seealso cref="AcntSecondaryEntry"/>
-    /// <seealso cref="AcntSimpleDescription.SecondaryInfoIndex"/>
-    /// <seealso cref="AcntExtensionEntry.SecondaryInfoIndex"/>
-    public IReadOnlyList<AcntSecondaryEntry> SecondaryInfo { get; init; } = [];
+    /// <summary>Gets the secondary glyph entries that the accented glyph descriptions reference.</summary>
+    /// <value>Entry <c>i</c> is the accent glyph and attachment point selected by secondary-info index <c>i</c>. The array length is one greater than the highest index any description references.</value>
+    /// <seealso cref="GetSecondaryGlyph(int)"/>
+    /// <seealso cref="AcntSecondaryGlyph"/>
+    public required AcntSecondaryGlyph[] SecondaryGlyphs { get; init; }
 
     /// <summary>Gets the number of accented glyphs described by the table.</summary>
-    /// <value>Equal to <c><see cref="LastAccentGlyphIndex"/> - <see cref="FirstAccentGlyphIndex"/> + 1</c>.</value>
-    /// <seealso cref="FirstAccentGlyphIndex"/>
-    /// <seealso cref="LastAccentGlyphIndex"/>
-    /// <seealso cref="GlyphDescriptions"/>
-    public int AccentGlyphCount => LastAccentGlyphIndex - FirstAccentGlyphIndex + 1;
+    /// <value>The length of <see cref="AccentedGlyphs"/>; equal to <c>LastAccentGlyphIndex - FirstAccentGlyphIndex + 1</c>.</value>
+    /// <seealso cref="AccentedGlyphs"/>
+    public int AccentedGlyphCount => AccentedGlyphs.Length;
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the first byte of the <c>acnt</c> table.</param>
-    /// <param name="context">Unused. The table is self-contained and holds no offsets into other tables.</param>
-    /// <returns>The parsed <c>acnt</c> table with every description and extension entry materialized.</returns>
-    /// <exception cref="InvalidDataException">The version is not 1.0, an offset field is inconsistent with the table length, the declared glyph or secondary count exceeds the specification limits, or the secondary data region is not a whole number of entries.</exception>
-    /// <exception cref="EndOfStreamException">A description, extension sequence, or secondary entry extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The parse is eager: every description entry and every referenced extension sequence is materialized before the method returns.</description></item>
-    /// <item><description>The table carries three offset fields — <see cref="Header.DescriptionOffset"/>, <see cref="Header.ExtensionOffset"/>, and <see cref="Header.SecondaryOffset"/> — that locate the three data regions. The parser reads descriptions from the cursor, then reads extension data by absolute offset from the extension region, then reads the secondary array by absolute offset.</description></item>
-    /// <item><description>The number of secondary entries is not declared in the header; it is derived from the byte count between <see cref="Header.SecondaryOffset"/> and the end of the table, divided by the fixed entry size of <see cref="AcntSecondaryEntry"/>.</description></item>
-    /// <item><description>Extension sequences are bounded by the start of the secondary data region, since the specification lays the three regions out in that order.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="AcntGlyphContext"/>
-    /// <seealso cref="AcntExtensionEntry.ReadAll(Source, long, long)"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
+    /// <summary>Gets the number of secondary glyph entries in the table.</summary>
+    /// <value>The length of <see cref="SecondaryGlyphs"/>; never greater than <see cref="MaxSecondaryGlyphCount"/>.</value>
+    /// <seealso cref="SecondaryGlyphs"/>
+    public int SecondaryGlyphCount => SecondaryGlyphs.Length;
+
+    /// <summary>Gets the accented-glyph description for a glyph ID.</summary>
+    /// <param name="glyphId">The glyph ID to look up.</param>
+    /// <returns>The description when <paramref name="glyphId"/> lies in the accented range; otherwise <see langword="null"/>.</returns>
+    /// <seealso cref="TryGetAccentedGlyph(int, out AcntAccentedGlyph?)"/>
+    /// <seealso cref="AccentedGlyphs"/>
+    public AcntAccentedGlyph? GetAccentedGlyph(int glyphId) =>
+        TryGetAccentedGlyph(glyphId, out var glyph) ? glyph : null;
+
+    /// <summary>Attempts to get the accented-glyph description for a glyph ID.</summary>
+    /// <param name="glyphId">The glyph ID to look up.</param>
+    /// <param name="glyph">When this method returns <see langword="true"/>, contains the description; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when <paramref name="glyphId"/> lies in the accented range; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>The method distinguishes an absent glyph from a present description whose base glyph happens to be glyph <c>0</c>.</remarks>
+    /// <seealso cref="GetAccentedGlyph(int)"/>
+    /// <seealso cref="AccentedGlyphs"/>
+    public bool TryGetAccentedGlyph(int glyphId, out AcntAccentedGlyph? glyph)
+    {
+        int index = glyphId - FirstAccentGlyphIndex;
+        if ((uint)index < (uint)AccentedGlyphs.Length)
+        {
+            glyph = AccentedGlyphs[index];
+            return true;
+        }
+
+        glyph = null;
+        return false;
+    }
+
+    /// <summary>Gets the secondary glyph entry for a secondary-info index.</summary>
+    /// <param name="secondaryInfoIndex">The zero-based index into the secondary data array.</param>
+    /// <returns>The secondary glyph entry, or <see langword="null"/> when the index is outside the array.</returns>
+    /// <seealso cref="SecondaryGlyphs"/>
+    public AcntSecondaryGlyph? GetSecondaryGlyph(int secondaryInfoIndex) =>
+        (uint)secondaryInfoIndex < (uint)SecondaryGlyphs.Length ? SecondaryGlyphs[secondaryInfoIndex] : null;
+
     static AcntTable IRecord<AcntTable>.Parse(ref Cursor cursor, object? context)
     {
         Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != CurrentVersion)
+            throw new InvalidDataException($"'acnt'.version is 0x{(int)header.Version:X8}, expected 0x{(int)CurrentVersion:X8}.");
+
+        if (header.LastAccentGlyphIndex < header.FirstAccentGlyphIndex)
+            throw new InvalidDataException($"'acnt'.lastAccentGlyphIndex {header.LastAccentGlyphIndex} is less than firstAccentGlyphIndex {header.FirstAccentGlyphIndex}.");
+
+        int accentedGlyphCount = header.LastAccentGlyphIndex - header.FirstAccentGlyphIndex + 1;
+
+        AcntAccentedGlyph[] accentedGlyphs = cursor.Source.ReadEndianReversibleHeaderRecordArrayAt<AcntAccentedGlyph, AcntDescriptionEntry>(header.DescriptionOffset, accentedGlyphCount, new AcntAccentedGlyph.Context(cursor.Source, header.ExtensionOffset));
+
+        int maxSecondaryIndex = -1;
+        foreach (AcntAccentedGlyph glyph in accentedGlyphs)
         {
-            throw new InvalidDataException(
-                $"'acnt'.version is 0x{header.Version.Bits:X8}, expected 0x{CurrentVersion.Bits:X8}.");
+            int glyphMax = glyph.GetMaxSecondaryInfoIndex();
+            if (glyphMax > maxSecondaryIndex) maxSecondaryIndex = glyphMax;
         }
 
-        long tableLength = cursor.Source.Length;
-        long extensionStart = header.ExtensionOffset;
-        long secondaryStart = header.SecondaryOffset;
+        if (maxSecondaryIndex >= MaxSecondaryGlyphCount)
+            throw new InvalidDataException($"'acnt' references secondary-info index {maxSecondaryIndex}, but the specification permits at most {MaxSecondaryGlyphCount} entries.");
 
-        if (extensionStart > tableLength || secondaryStart > tableLength)
-        {
-            throw new InvalidDataException(
-                $"'acnt' offset fields exceed the table length of {tableLength} bytes.");
-        }
-
-        if (secondaryStart < extensionStart)
-        {
-            throw new InvalidDataException(
-                $"'acnt'.secondaryOffset {secondaryStart} precedes extensionOffset {extensionStart}.");
-        }
-
-        int glyphCount = header.LastAccentGlyphIndex - header.FirstAccentGlyphIndex + 1;
-        if (glyphCount > MaxPrimaryComponents)
-        {
-            throw new InvalidDataException(
-                $"'acnt' declares {glyphCount} accented glyphs, exceeding the limit of {MaxPrimaryComponents}.");
-        }
-
-        var descriptions = new AcntGlyphDescription[glyphCount];
-        var glyphContext = new AcntGlyphContext(header.ExtensionOffset, secondaryStart);
-        for (int i = 0; i < glyphCount; i++)
-            descriptions[i] = cursor.ReadRecord<AcntGlyphDescription>(glyphContext);
-
-        long secondaryBytes = tableLength - secondaryStart;
-        if (secondaryBytes % AcntSecondaryEntry.SizeInBytes != 0)
-        {
-            throw new InvalidDataException(
-                $"'acnt' secondary data region is {secondaryBytes} bytes, not a multiple of {AcntSecondaryEntry.SizeInBytes}.");
-        }
-
-        int secondaryCount = (int)(secondaryBytes / AcntSecondaryEntry.SizeInBytes);
-        if (secondaryCount > MaxSecondaryComponents)
-        {
-            throw new InvalidDataException(
-                $"'acnt' declares {secondaryCount} secondary entries, exceeding the limit of {MaxSecondaryComponents}.");
-        }
-
-        var secondaryCursor = cursor.Source.CreateCursor(secondaryStart);
-        var secondary = secondaryCursor.ReadEndianReversibleStructArray<AcntSecondaryEntry>(secondaryCount);
+        int secondaryCount = maxSecondaryIndex + 1;
+        AcntSecondaryGlyph[] secondaryGlyphs = secondaryCount > 0
+            ? cursor.Source.ReadEndianReversibleStructArrayAt<AcntSecondaryGlyph>(header.SecondaryOffset, secondaryCount)
+            : [];
 
         return new()
         {
             Version = header.Version,
             FirstAccentGlyphIndex = header.FirstAccentGlyphIndex,
             LastAccentGlyphIndex = header.LastAccentGlyphIndex,
-            GlyphDescriptions = descriptions,
-            SecondaryInfo = secondary,
+            AccentedGlyphs = accentedGlyphs,
+            SecondaryGlyphs = secondaryGlyphs,
         };
     }
 
-    /// <summary>The 20-byte accent attachment table header. Blittable, no padding.</summary>
+    /// <summary>The 20-byte <c>acnt</c> table header.</summary>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>The header is followed by the three data regions in an implementation-defined order, located by the three offset fields.</description></item>
-    /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
-    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
+    /// <item><description>The version is a 16.16 <see cref="Fixed"/> value; the two glyph indices are <c>UInt16</c>; the three section offsets are <c>UInt32</c>.</description></item>
+    /// <item><description>The three offsets are measured from the start of the table and point at the description, extension, and secondary regions in that order.</description></item>
+    /// <item><description>Consumed at parse time and not retained on <see cref="AcntTable"/>.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="AcntTable"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public record struct Header : IEndianReversibleStruct<Header>
     {
-        /// <summary>The table version at byte offset 0, as a <c>Fixed</c> (16.16) value.</summary>
-        /// <value>The <see cref="CurrentVersion"/> value for a conforming table.</value>
+        /// <summary>The table version, a 16.16 <see cref="Fixed"/> value, at byte offset 0.</summary>
+        /// <value>The constant <see cref="CurrentVersion"/>.</value>
+        /// <seealso cref="CurrentVersion"/>
+        /// <seealso cref="AcntTable.Version"/>
         public Fixed Version;                 // +0
 
         /// <summary>The first accented glyph index at byte offset 4.</summary>
+        /// <value>The lowest glyph ID in the accented range.</value>
         /// <seealso cref="AcntTable.FirstAccentGlyphIndex"/>
-        public ushort FirstAccentGlyphIndex;  // +4
+        public ushort FirstAccentGlyphIndex; // +4
 
-        /// <summary>The last accented glyph index, inclusive, at byte offset 6.</summary>
+        /// <summary>The last accented glyph index at byte offset 6.</summary>
+        /// <value>The highest glyph ID in the accented range, inclusive.</value>
         /// <seealso cref="AcntTable.LastAccentGlyphIndex"/>
-        public ushort LastAccentGlyphIndex;   // +6
+        public ushort LastAccentGlyphIndex;  // +6
 
-        /// <summary>The byte offset from the table start to the description data at byte offset 8.</summary>
-        public uint DescriptionOffset;        // +8
+        /// <summary>The table-relative byte offset of the description data at byte offset 8.</summary>
+        /// <value>The offset of the array of 4-byte <see cref="AcntDescriptionEntry"/> records.</value>
+        /// <seealso cref="AcntDescriptionEntry"/>
+        public uint DescriptionOffset;       // +8
 
-        /// <summary>The byte offset from the table start to the extension data at byte offset 12.</summary>
-        /// <seealso cref="AcntExtendedDescription.ExtensionOffset"/>
-        public uint ExtensionOffset;          // +12
+        /// <summary>The table-relative byte offset of the extension data at byte offset 12.</summary>
+        /// <value>The offset of the flat stream of 2-byte <see cref="AcntExtension"/> subentries.</value>
+        /// <seealso cref="AcntExtension"/>
+        public uint ExtensionOffset;         // +12
 
-        /// <summary>The byte offset from the table start to the secondary data at byte offset 16.</summary>
-        /// <seealso cref="AcntTable.SecondaryInfo"/>
-        public uint SecondaryOffset;          // +16
+        /// <summary>The table-relative byte offset of the secondary data at byte offset 16.</summary>
+        /// <value>The offset of the array of 3-byte <see cref="AcntSecondaryGlyph"/> entries.</value>
+        /// <seealso cref="AcntSecondaryGlyph"/>
+        public uint SecondaryOffset;         // +16
 
-        /// <inheritdoc/>
+        /// <summary>Reverses the byte order of every multi-byte field in a <see cref="Header"/>.</summary>
         /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
         /// <returns>A new header with each field reversed.</returns>
+        /// <remarks>The struct mixes 32-bit and 16-bit fields, so the reversal is field-by-field rather than a single word-span pass.</remarks>
         public static Header ReverseEndianness(Header value) => new()
         {
             Version = Fixed.ReverseEndianness(value.Version),
@@ -209,362 +214,267 @@ public sealed record AcntTable : IFontTable<AcntTable>, IRecord<AcntTable>
     }
 }
 
-/// <summary>Context threaded from the <c>acnt</c> table parser into the description dispatcher so a format 1 description can resolve its extension data.</summary>
-/// <param name="ExtensionOffset">The byte offset of the extension data region from the table start, from <see cref="AcntTable.Header.ExtensionOffset"/>.</param>
-/// <param name="ExtensionEnd">The exclusive byte offset at which the extension data region ends, equal to <see cref="AcntTable.Header.SecondaryOffset"/>.</param>
+/// <summary>A 4-byte wire description entry: a format discriminant with a 15-bit primary glyph index, followed by a format-dependent payload word.</summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><description>Only <see cref="AcntExtendedDescription"/> consumes the context; <see cref="AcntSimpleDescription"/> ignores it.</description></item>
-/// <item><description>The end offset bounds the extension entry sequence so a malformed entry list cannot read past the extension region into the secondary data.</description></item>
-/// <item><description>Declared as a <c>record</c>, so equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically.</description></item>
+/// <item><description>Bit 15 of <see cref="DescriptionWord"/> is the format discriminant: <c>0</c> for a single-accent description, <c>1</c> for a multi-accent description.</description></item>
+/// <item><description>Bits 0–14 of <see cref="DescriptionWord"/> are the primary glyph index, shared by both formats.</description></item>
+/// <item><description>For format 0, <see cref="Payload"/> holds an 8-bit primary attachment point in its high byte and an 8-bit secondary-info index in its low byte.</description></item>
+/// <item><description>For format 1, <see cref="Payload"/> holds the byte offset from the start of the extension data to the description's extension chain.</description></item>
+/// <item><description>Both fields are <c>UInt16</c>, so the reversal is a single word-span pass over the struct reinterpreted as two 16-bit words.</description></item>
+/// <item><description>Consumed at parse time and converted to an <see cref="AcntAccentedGlyph"/>; not retained on <see cref="AcntTable"/>.</description></item>
 /// </list>
 /// </remarks>
-/// <seealso cref="AcntExtendedDescription"/>
-/// <seealso cref="AcntTable.Header"/>
-public record AcntGlyphContext(uint ExtensionOffset, long ExtensionEnd);
-
-/// <summary>A per-glyph description entry in an <see cref="AcntTable"/>. Either a <see cref="AcntSimpleDescription"/> for a glyph formed from a primary and one secondary component, or an <see cref="AcntExtendedDescription"/> for a glyph formed from a primary and two or more secondary components.</summary>
-/// <remarks>
-/// <list type="bullet">
-/// <item><description>Both formats are four bytes. The dispatcher peeks at the high bit of the first <c>uint16</c>, which is the description format discriminant; the low fifteen bits are the <see cref="PrimaryGlyphIndex"/> in both formats.</description></item>
-/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
-/// </list>
-/// </remarks>
-/// <seealso cref="AcntSimpleDescription"/>
-/// <seealso cref="AcntExtendedDescription"/>
-/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
-public abstract record AcntGlyphDescription : IRecord<AcntGlyphDescription>, IBaseRecord<AcntGlyphDescription>
-{
-    /// <summary>Gets the primary glyph index for this accented glyph.</summary>
-    /// <value>The glyph index of the baseform glyph in the <c>glyf</c> table. The low fifteen bits of the shared leading word; the high bit is the format discriminant.</value>
-    /// <seealso cref="GlyfTable"/>
-    public ushort PrimaryGlyphIndex { get; init; }
-
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the first byte of the four-byte description entry.</param>
-    /// <param name="context">An <see cref="AcntGlyphContext"/> carrying the extension data bounds, or <see langword="null"/> when only the description is needed.</param>
-    /// <returns>An <see cref="AcntSimpleDescription"/> when the format bit is clear, or an <see cref="AcntExtendedDescription"/> when it is set.</returns>
-    /// <exception cref="InvalidOperationException">The dispatcher selected a format 1 entry and <paramref name="context"/> is not an <see cref="AcntGlyphContext"/>.</exception>
-    /// <exception cref="EndOfStreamException">The description or its extension data extends past the end of the table-scoped source.</exception>
-    /// <remarks>The dispatcher peeks at the leading word so both derived parsers can read the full four bytes themselves, extracting the shared <see cref="PrimaryGlyphIndex"/> from the same word the discriminant lives in.</remarks>
-    /// <seealso cref="AcntSimpleDescription"/>
-    /// <seealso cref="AcntExtendedDescription"/>
-    static AcntGlyphDescription IRecord<AcntGlyphDescription>.Parse(ref Cursor cursor, object? context)
-    {
-        ushort word = cursor.PeekUInt16();
-
-        return (word & 0x8000) != 0
-            ? IBaseRecord<AcntGlyphDescription>.Parse<AcntExtendedDescription>(ref cursor, context)
-            : IBaseRecord<AcntGlyphDescription>.Parse<AcntSimpleDescription>(ref cursor, context);
-    }
-}
-
-/// <summary>An <c>acnt</c> format 0 description: a glyph formed from a primary component and a single secondary component.</summary>
-/// <remarks>
-/// <list type="bullet">
-/// <item><description>The description names one point in the primary glyph and one entry in the secondary data table. The secondary data entry in turn names the accent glyph and its own attachment point.</description></item>
-/// <item><description>The two attachment points are aligned when the accented glyph is composed, which is the only positioning mechanism the format defines.</description></item>
-/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
-/// </list>
-/// </remarks>
-/// <seealso cref="AcntGlyphDescription"/>
-/// <seealso cref="AcntExtendedDescription"/>
-/// <seealso cref="AcntSecondaryEntry"/>
-/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
-public sealed record AcntSimpleDescription : AcntGlyphDescription, IDerivedRecord<AcntGlyphDescription, AcntSimpleDescription>
-{
-    /// <summary>Gets the primary attachment control point number.</summary>
-    /// <value>The index of the point in the primary glyph to which the secondary component is attached.</value>
-    /// <seealso cref="SecondaryInfoIndex"/>
-    /// <seealso cref="AcntSecondaryEntry.SecondaryGlyphAttachmentNumber"/>
-    public byte PrimaryAttachmentPoint { get; init; }
-
-    /// <summary>Gets the secondary information index.</summary>
-    /// <value>An index into <see cref="AcntTable.SecondaryInfo"/> naming the secondary glyph and its attachment point.</value>
-    /// <seealso cref="AcntTable.SecondaryInfo"/>
-    /// <seealso cref="PrimaryAttachmentPoint"/>
-    public byte SecondaryInfoIndex { get; init; }
-
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the first byte of the four-byte description entry.</param>
-    /// <param name="context">Ignored; a format 0 description is self-contained and has no extension data.</param>
-    /// <returns>The parsed format 0 description.</returns>
-    /// <exception cref="EndOfStreamException">The description extends past the end of the table-scoped source.</exception>
-    static AcntSimpleDescription IDerivedRecord<AcntGlyphDescription, AcntSimpleDescription>.Parse(ref Cursor cursor, object? context)
-    {
-        Header header = cursor.ReadEndianReversibleStruct<Header>();
-
-        return new()
-        {
-            PrimaryGlyphIndex = (ushort)(header.Description & 0x7FFF),
-            PrimaryAttachmentPoint = header.PrimaryAttachmentPoint,
-            SecondaryInfoIndex = header.SecondaryInfoIndex,
-        };
-    }
-
-    /// <summary>The 4-byte format 0 description entry. Blittable, no padding.</summary>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The leading <c>uint16</c> packs the format discriminant in its high bit and the fifteen-bit <see cref="AcntGlyphDescription.PrimaryGlyphIndex"/> in its low bits.</description></item>
-    /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
-    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="AcntSimpleDescription"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct Header : IEndianReversibleStruct<Header>
-    {
-        /// <summary>The packed description word at byte offset 0: the format bit and the fifteen-bit primary glyph index.</summary>
-        public ushort Description;              // +0
-
-        /// <summary>The primary attachment control point number at byte offset 2.</summary>
-        public byte PrimaryAttachmentPoint;     // +2
-
-        /// <summary>The secondary information index at byte offset 3.</summary>
-        public byte SecondaryInfoIndex;         // +3
-
-        /// <summary>Reverses the byte order of the packed word and copies the byte-only fields through.</summary>
-        /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
-        /// <returns>A new header with <see cref="Description"/> reversed.</returns>
-        public static Header ReverseEndianness(Header value) => new()
-        {
-            Description = BinaryPrimitives.ReverseEndianness(value.Description),
-            PrimaryAttachmentPoint = value.PrimaryAttachmentPoint,
-            SecondaryInfoIndex = value.SecondaryInfoIndex,
-        };
-    }
-}
-
-/// <summary>An <c>acnt</c> format 1 description: a glyph formed from a primary component and two or more secondary components.</summary>
-/// <remarks>
-/// <list type="bullet">
-/// <item><description>The description points at an entry in the extension data region. Each extension entry names an accent through <see cref="AcntExtensionEntry.SecondaryInfoIndex"/> and a point in the primary glyph through <see cref="AcntExtensionEntry.PrimaryAttachmentPoint"/>.</description></item>
-/// <item><description>The extension entry list is terminated by an entry whose <see cref="AcntExtensionEntry.IsLast"/> flag is set.</description></item>
-/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
-/// </list>
-/// </remarks>
-/// <seealso cref="AcntGlyphDescription"/>
-/// <seealso cref="AcntSimpleDescription"/>
-/// <seealso cref="AcntExtensionEntry"/>
-/// <seealso cref="AcntSecondaryEntry"/>
-/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
-public sealed record AcntExtendedDescription : AcntGlyphDescription, IDerivedRecord<AcntGlyphDescription, AcntExtendedDescription>
-{
-    /// <summary>Gets the byte offset from the start of the extension data region to this glyph's extension entries.</summary>
-    /// <value>A byte offset relative to <see cref="AcntTable.Header.ExtensionOffset"/>. The offset is not relative to the table start.</value>
-    /// <seealso cref="Accents"/>
-    public ushort ExtensionOffset { get; init; }
-
-    /// <summary>Gets the extension entries for this glyph, in attachment order.</summary>
-    /// <value>An array of <see cref="AcntExtensionEntry"/> entries; the final entry has <see cref="AcntExtensionEntry.IsLast"/> set.</value>
-    /// <remarks>The entries are materialized during parse so that consumers do not need to re-read the extension region.</remarks>
-    /// <seealso cref="AcntExtensionEntry"/>
-    /// <seealso cref="ExtensionOffset"/>
-    public IReadOnlyList<AcntExtensionEntry> Accents { get; init; } = [];
-
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the first byte of the four-byte description entry.</param>
-    /// <param name="context">An <see cref="AcntGlyphContext"/> carrying the extension data bounds.</param>
-    /// <returns>The parsed format 1 description with its extension entries materialized.</returns>
-    /// <exception cref="InvalidOperationException"><paramref name="context"/> is not an <see cref="AcntGlyphContext"/>.</exception>
-    /// <exception cref="InvalidDataException">The extension offset points outside the extension data region, or an entry sequence is unterminated.</exception>
-    /// <exception cref="EndOfStreamException">The description or its extension entries extend past the end of the table-scoped source.</exception>
-    static AcntExtendedDescription IDerivedRecord<AcntGlyphDescription, AcntExtendedDescription>.Parse(ref Cursor cursor, object? context)
-    {
-        if (context is not AcntGlyphContext ctx)
-        {
-            throw new InvalidOperationException(
-                $"{nameof(AcntExtendedDescription)} requires an {nameof(AcntGlyphContext)} to resolve its extension data.");
-        }
-
-        Header header = cursor.ReadEndianReversibleStruct<Header>();
-
-        long start = ctx.ExtensionOffset + header.ExtensionOffset;
-        if (start < ctx.ExtensionOffset || start >= ctx.ExtensionEnd)
-        {
-            throw new InvalidDataException(
-                $"'acnt' extension offset {header.ExtensionOffset} is outside the extension data region [{ctx.ExtensionOffset}, {ctx.ExtensionEnd}).");
-        }
-
-        return new()
-        {
-            PrimaryGlyphIndex = (ushort)(header.Description & 0x7FFF),
-            ExtensionOffset = header.ExtensionOffset,
-            Accents = AcntExtensionEntry.ReadAll(cursor.Source, start, ctx.ExtensionEnd),
-        };
-    }
-
-    /// <summary>The 4-byte format 1 description entry. Blittable, no padding.</summary>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The leading <c>uint16</c> packs the format discriminant in its high bit and the fifteen-bit <see cref="AcntGlyphDescription.PrimaryGlyphIndex"/> in its low bits.</description></item>
-    /// <item><description>The trailing <c>uint16</c> is a byte offset relative to the start of the extension data region, not to the table start.</description></item>
-    /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
-    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="AcntExtendedDescription"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct Header : IEndianReversibleStruct<Header>
-    {
-        /// <summary>The packed description word at byte offset 0: the format bit and the fifteen-bit primary glyph index.</summary>
-        public ushort Description;        // +0
-
-        /// <summary>The byte offset to the extension entries at byte offset 2, relative to the start of the extension data region.</summary>
-        public ushort ExtensionOffset;    // +2
-
-        /// <summary>Reverses the byte order of both fields in a <see cref="Header"/>.</summary>
-        /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
-        /// <returns>A new header with each field reversed.</returns>
-        public static Header ReverseEndianness(Header value) => new()
-        {
-            Description = BinaryPrimitives.ReverseEndianness(value.Description),
-            ExtensionOffset = BinaryPrimitives.ReverseEndianness(value.ExtensionOffset),
-        };
-    }
-}
-
-/// <summary>One extension entry in an <c>acnt</c> format 1 description: a reference to a secondary component and a point in the primary glyph.</summary>
-/// <remarks>
-/// <list type="bullet">
-/// <item><description>Each entry is two bytes. The first byte carries the seven-bit <see cref="SecondaryInfoIndex"/> in its low bits and the <see cref="IsLast"/> flag in its high bit; the second byte is <see cref="PrimaryAttachmentPoint"/>.</description></item>
-/// <item><description>Entries are read in sequence until one has <see cref="IsLast"/> set, which terminates the accent list for the glyph.</description></item>
-/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
-/// </list>
-/// </remarks>
-/// <seealso cref="AcntExtendedDescription"/>
-/// <seealso cref="AcntSecondaryEntry"/>
-/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
-public sealed record AcntExtensionEntry
-{
-    /// <summary>Gets the secondary information index.</summary>
-    /// <value>A seven-bit index into <see cref="AcntTable.SecondaryInfo"/> naming the secondary glyph and its attachment point.</value>
-    /// <seealso cref="AcntTable.SecondaryInfo"/>
-    /// <seealso cref="PrimaryAttachmentPoint"/>
-    /// <seealso cref="IsLast"/>
-    public byte SecondaryInfoIndex { get; init; }
-
-    /// <summary>Gets the primary attachment control point number.</summary>
-    /// <value>The index of the point in the primary glyph to which the secondary component is attached.</value>
-    /// <seealso cref="SecondaryInfoIndex"/>
-    public byte PrimaryAttachmentPoint { get; init; }
-
-    /// <summary>Gets a value indicating whether this is the last component of the glyph.</summary>
-    /// <value><see langword="true"/> when the entry terminates the extension sequence for its glyph.</value>
-    /// <remarks>The flag is documented as "components" in the specification's packed field list; the semantics are "there are more components" when clear and "this is the last" when set.</remarks>
-    /// <seealso cref="SecondaryInfoIndex"/>
-    public bool IsLast { get; init; }
-
-    /// <summary>Reads an extension entry sequence from <paramref name="start"/> up to but not including <paramref name="end"/>.</summary>
-    /// <param name="source">The table-scoped source.</param>
-    /// <param name="start">The absolute byte offset of the first entry.</param>
-    /// <param name="end">The exclusive upper bound of the extension data region.</param>
-    /// <returns>An array of extension entries; the final entry has <see cref="IsLast"/> set.</returns>
-    /// <exception cref="InvalidDataException">The sequence extends past <paramref name="end"/> without an entry whose <see cref="IsLast"/> flag is set.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The reader stops at the first entry with <see cref="IsLast"/> set; a well-formed sequence is terminated by exactly one such entry.</description></item>
-    /// <item><description>The <paramref name="end"/> bound prevents a malformed sequence from reading into the secondary data region that follows the extension data.</description></item>
-    /// <item><description>The read is eager: the entire sequence is materialized in a single pass over the source.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="AcntExtendedDescription.Accents"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
-    public static AcntExtensionEntry[] ReadAll(Source source, long start, long end)
-    {
-        var entries = new List<AcntExtensionEntry>();
-        var cursor = source.CreateCursor(start);
-
-        while (true)
-        {
-            if (cursor.Position + Header.SizeInBytes > end)
-            {
-                throw new InvalidDataException(
-                    $"'acnt' extension entry sequence at offset {start} is unterminated within the region ending at {end}.");
-            }
-
-            Header header = cursor.ReadStruct<Header>();
-
-            bool isLast = (header.Packed & 0x80) != 0;
-            entries.Add(new()
-            {
-                SecondaryInfoIndex = (byte)(header.Packed & 0x7F),
-                PrimaryAttachmentPoint = header.PrimaryAttachmentPoint,
-                IsLast = isLast,
-            });
-
-            if (isLast) break;
-        }
-
-        return [.. entries];
-    }
-
-    /// <summary>The 2-byte extension entry. Blittable, no padding. All fields are byte-width, so the struct requires no endianness conversion and does not implement <see cref="IEndianReversibleStruct{T}"/>.</summary>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The leading byte packs the <c>components</c> flag in its high bit and the seven-bit <c>secondaryInfoIndex</c> in its low bits.</description></item>
-    /// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
-    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="AcntExtensionEntry"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public record struct Header
-    {
-        /// <summary>The size of one extension entry header, in bytes.</summary>
-        /// <value>The constant <c>2</c>.</value>
-        public const int SizeInBytes = 2;
-
-        /// <summary>The packed byte at byte offset 0: the last-component flag and the seven-bit secondary information index.</summary>
-        public byte Packed;                 // +0
-
-        /// <summary>The primary attachment control point number at byte offset 1.</summary>
-        public byte PrimaryAttachmentPoint; // +1
-    }
-}
-
-/// <summary>One secondary component entry in an <c>acnt</c> table: the glyph index of the accent and the point in that glyph that attaches to the primary component.</summary>
-/// <remarks>
-/// <list type="bullet">
-/// <item><description>Each entry is three bytes and is indexed by the seven-bit <see cref="AcntSimpleDescription.SecondaryInfoIndex"/> or <see cref="AcntExtensionEntry.SecondaryInfoIndex"/> that references it.</description></item>
-/// <item><description>Accent placement is defined entirely by matching the secondary glyph's attachment point with the corresponding primary attachment point.</description></item>
-/// <item><description>Declared as a <c>record struct</c>, so value equality, <c>ToString</c>, and a compiler-generated <c>&lt;Clone&gt;$()</c> are supplied automatically. The <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline.</description></item>
-/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">accent attachment table</see> in the Apple TrueType Reference Manual.</description></item>
-/// </list>
-/// </remarks>
-/// <seealso cref="AcntTable.SecondaryInfo"/>
-/// <seealso cref="AcntSimpleDescription"/>
-/// <seealso cref="AcntExtensionEntry"/>
-/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">TrueType Reference Manual: The <c>acnt</c> table</seealso>
+/// <seealso cref="AcntAccentedGlyph"/>
+/// <seealso cref="AcntTable"/>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public record struct AcntSecondaryEntry : IEndianReversibleStruct<AcntSecondaryEntry>
+public record struct AcntDescriptionEntry : IEndianReversibleStruct<AcntDescriptionEntry>
 {
-    /// <summary>The size of one secondary entry, in bytes.</summary>
-    /// <value>The constant <c>3</c>.</value>
-    /// <remarks>The size is fixed; the count of secondary entries in the table is derived by dividing the secondary data region length by this constant.</remarks>
-    public const int SizeInBytes = 3;
+    /// <summary>The format discriminant and 15-bit primary glyph index at byte offset 0.</summary>
+    /// <value>Bit 15 is the format; bits 0–14 are the primary glyph index.</value>
+    /// <seealso cref="IsMultiAccent"/>
+    /// <seealso cref="PrimaryGlyphIndex"/>
+    public ushort DescriptionWord; // +0
 
-    /// <summary>The glyph index of the secondary component at byte offset 0.</summary>
-    /// <value>A glyph index in the <c>glyf</c> table.</value>
-    /// <seealso cref="SecondaryGlyphAttachmentNumber"/>
-    /// <seealso cref="GlyfTable"/>
-    public ushort SecondaryGlyphIndex;         // +0
+    /// <summary>The format-dependent payload word at byte offset 2.</summary>
+    /// <value>For format 0, the high byte is the primary attachment point and the low byte is the secondary-info index. For format 1, the whole word is the extension-data-relative offset of the description's extension chain.</value>
+    /// <seealso cref="IsMultiAccent"/>
+    public ushort Payload;         // +2
 
-    /// <summary>The attachment point index within the secondary glyph at byte offset 2.</summary>
-    /// <value>The index of the point in the secondary glyph that attaches to the primary component.</value>
-    /// <seealso cref="SecondaryGlyphIndex"/>
+    /// <summary>Gets a value indicating whether the description uses format 1.</summary>
+    /// <value><see langword="true"/> when bit 15 of <see cref="DescriptionWord"/> is set.</value>
+    /// <seealso cref="DescriptionWord"/>
+    public readonly bool IsMultiAccent => (DescriptionWord & 0x8000) != 0;
+
+    /// <summary>Gets the primary glyph index, shared by both formats.</summary>
+    /// <value>The low fifteen bits of <see cref="DescriptionWord"/>.</value>
+    /// <seealso cref="DescriptionWord"/>
+    public readonly ushort PrimaryGlyphIndex => (ushort)(DescriptionWord & 0x7FFF);
+
+    /// <summary>Reverses the byte order of both 16-bit fields in one pass.</summary>
+    /// <param name="value">The value whose fields are to be reversed.</param>
+    /// <returns>A new entry with both fields reversed.</returns>
+    /// <remarks>The entry is entirely <c>UInt16</c> fields, so it is reinterpreted as a span of two 16-bit words and reversed with a single <see cref="BinaryPrimitives.ReverseEndianness(ReadOnlySpan{ushort}, Span{ushort})"/> call.</remarks>
+    public static AcntDescriptionEntry ReverseEndianness(AcntDescriptionEntry value)
+    {
+        Span<ushort> words = MemoryMarshal.CreateSpan(ref value.DescriptionWord, 2);
+        BinaryPrimitives.ReverseEndianness(words, words);
+        return value;
+    }
+}
+
+/// <summary>A 2-byte extension subentry: one accent in a multi-accent description's extension chain.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>Bit 7 of <see cref="ComponentsAndSecondaryIndex"/> is the continuation flag: <c>0</c> means more subentries follow, <c>1</c> means this is the last one.</description></item>
+/// <item><description>Bits 0–6 of <see cref="ComponentsAndSecondaryIndex"/> are the secondary-info index, which is limited to <c>[0, 127]</c> by the field width.</description></item>
+/// <item><description><see cref="PrimaryAttachmentPoint"/> is the control point in the primary glyph to which this accent attaches.</description></item>
+/// <item><description>Both fields are single bytes, so the reversal is a no-op; the type still implements <see cref="IEndianReversibleStruct{T}"/> so it composes uniformly with the reader family.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="AcntMultiAccentGlyph"/>
+/// <seealso cref="AcntTable"/>
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public record struct AcntExtension : IEndianReversibleStruct<AcntExtension>
+{
+    /// <summary>The continuation flag and 7-bit secondary-info index at byte offset 0.</summary>
+    /// <value>Bit 7 is <c>0</c> when more subentries follow and <c>1</c> when this is the last subentry; bits 0–6 are the secondary-info index.</value>
+    /// <seealso cref="IsLast"/>
+    /// <seealso cref="SecondaryInfoIndex"/>
+    public byte ComponentsAndSecondaryIndex; // +0
+
+    /// <summary>The primary glyph attachment point at byte offset 1.</summary>
+    /// <value>The control point number in the primary glyph to which this accent attaches.</value>
+    public byte PrimaryAttachmentPoint;      // +1
+
+    /// <summary>Gets a value indicating whether this is the last subentry in the chain.</summary>
+    /// <value><see langword="true"/> when bit 7 of <see cref="ComponentsAndSecondaryIndex"/> is set.</value>
+    /// <seealso cref="ComponentsAndSecondaryIndex"/>
+    public readonly bool IsLast => (ComponentsAndSecondaryIndex & 0x80) != 0;
+
+    /// <summary>Gets the secondary-info index for this accent.</summary>
+    /// <value>The low seven bits of <see cref="ComponentsAndSecondaryIndex"/>, in <c>[0, 127]</c>.</value>
+    /// <seealso cref="ComponentsAndSecondaryIndex"/>
+    /// <seealso cref="AcntTable.GetSecondaryGlyph(int)"/>
+    public readonly byte SecondaryInfoIndex => (byte)(ComponentsAndSecondaryIndex & 0x7F);
+
+    /// <summary>Reverses the byte order of every multi-byte field in an <see cref="AcntExtension"/>.</summary>
+    /// <param name="value">The value to reverse.</param>
+    /// <returns>The same value, unchanged.</returns>
+    /// <remarks>Both fields are single bytes, which have no byte order; the method is a no-op and exists only so the type satisfies <see cref="IEndianReversibleStruct{T}"/>.</remarks>
+    public static AcntExtension ReverseEndianness(AcntExtension value) => value;
+}
+
+/// <summary>A 3-byte secondary glyph entry: an accent glyph index and the attachment point on that accent.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>The accent glyph index is <c>UInt16</c> and the attachment point is <c>UInt8</c>, giving a packed 3-byte record.</description></item>
+/// <item><description>A secondary glyph can have only one attachment point, which is why the entry stores a single point number rather than a list.</description></item>
+/// <item><description>The struct declares <c>Pack = 1</c> so its managed size is exactly three bytes; bulk reads over an array of entries rely on that size.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="AcntTable.SecondaryGlyphs"/>
+/// <seealso cref="AcntTable.GetSecondaryGlyph(int)"/>
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public record struct AcntSecondaryGlyph : IEndianReversibleStruct<AcntSecondaryGlyph>
+{
+    /// <summary>The accent glyph index at byte offset 0.</summary>
+    /// <value>The glyph ID of the accent that attaches to a primary glyph.</value>
+    public ushort SecondaryGlyphIndex;          // +0
+
+    /// <summary>The accent glyph attachment point number at byte offset 2.</summary>
+    /// <value>The control point number on the accent glyph that mates with the primary glyph's attachment point.</value>
     public byte SecondaryGlyphAttachmentNumber; // +2
 
-    /// <inheritdoc/>
+    /// <summary>Reverses the byte order of every multi-byte field in an <see cref="AcntSecondaryGlyph"/>.</summary>
     /// <param name="value">The value whose multi-byte fields are to be reversed.</param>
-    /// <returns>A new entry with each multi-byte field reversed.</returns>
-    public static AcntSecondaryEntry ReverseEndianness(AcntSecondaryEntry value) => new()
+    /// <returns>A new entry with the glyph index reversed and the attachment number unchanged.</returns>
+    /// <remarks>Only <see cref="SecondaryGlyphIndex"/> is multi-byte; the attachment number is a single byte and therefore has no byte order.</remarks>
+    public static AcntSecondaryGlyph ReverseEndianness(AcntSecondaryGlyph value) => new()
     {
         SecondaryGlyphIndex = BinaryPrimitives.ReverseEndianness(value.SecondaryGlyphIndex),
         SecondaryGlyphAttachmentNumber = value.SecondaryGlyphAttachmentNumber,
     };
+}
+
+/// <summary>Base for the two accented-glyph description formats: <see cref="AcntSingleAccentGlyph"/> and <see cref="AcntMultiAccentGlyph"/>.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>Every description begins with a 4-byte <see cref="AcntDescriptionEntry"/>; bit 15 of the entry's description word selects the format.</description></item>
+/// <item><description>Format 0 is self-contained; format 1 points into the table's extension-data region and requires the <see cref="Context"/> that carries the root source and the extension-data start.</description></item>
+/// <item><description>Declares <see cref="IBaseRecord{TBase}"/> and dispatches to the derived formats through its F-bounded <c>FromHeader</c> helper, so the base reads the 4-byte header exactly once and never asks a derived parser to re-read it.</description></item>
+/// <item><description>External callers use the F-bounded <see cref="IRecord{T}"/>-based helpers on <see cref="Cursor"/> and <see cref="Source"/>; the derived types are not directly parseable.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="AcntSingleAccentGlyph"/>
+/// <seealso cref="AcntMultiAccentGlyph"/>
+/// <seealso cref="AcntTable"/>
+public abstract record AcntAccentedGlyph : IEndianReversibleHeaderRecord<AcntAccentedGlyph, AcntDescriptionEntry>, IBaseRecord<AcntAccentedGlyph>
+{
+    /// <summary>Gets the description format discriminant.</summary>
+    /// <value><c>0</c> for a single-accent description; <c>1</c> for a multi-accent description.</value>
+    /// <seealso cref="AcntDescriptionEntry.IsMultiAccent"/>
+    public abstract int Format { get; }
+
+    /// <summary>Gets the primary glyph index that the accents attach to.</summary>
+    /// <value>The glyph ID of the base form, shared by both description formats.</value>
+    /// <seealso cref="AcntDescriptionEntry.PrimaryGlyphIndex"/>
+    public abstract ushort PrimaryGlyphIndex { get; init; }
+
+    static AcntAccentedGlyph IHeaderRecord<AcntAccentedGlyph, AcntDescriptionEntry>.FromHeader(in AcntDescriptionEntry header, object? context) => header.IsMultiAccent
+        ? IBaseRecord<AcntAccentedGlyph>.FromHeader<AcntMultiAccentGlyph, AcntDescriptionEntry>(in header, context)
+        : IBaseRecord<AcntAccentedGlyph>.FromHeader<AcntSingleAccentGlyph, AcntDescriptionEntry>(in header, context);
+
+    internal abstract int GetMaxSecondaryInfoIndex();
+
+    /// <summary>Context for parsing a multi-accent description: the root source and the source-relative start of the extension data.</summary>
+    /// <param name="RootSource">The source whose origin the extension-data start is measured from; typically the table-scoped source.</param>
+    /// <param name="ExtensionDataStart">The source-relative offset of the extension-data region, from which each description's own extension offset is measured.</param>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description>The root source is carried separately from the cursor's source so that a sliced table source still reaches the extension region through the same origin.</description></item>
+    /// <item><description>The context is required only for format 1; format 0 descriptions are self-contained and ignore it.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="AcntMultiAccentGlyph"/>
+    public sealed record Context(Source RootSource, long ExtensionDataStart);
+}
+
+/// <summary>A format 0 accented-glyph description: one primary glyph plus exactly one accent, described entirely within its 4-byte entry.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>The primary glyph's attachment point and the accent's secondary-info index are both single bytes packed into the entry's payload word.</description></item>
+/// <item><description>The accent glyph itself is resolved by indexing <see cref="AcntTable.SecondaryGlyphs"/> with <see cref="SecondaryInfoIndex"/>.</description></item>
+/// <item><description>Implements <see cref="IEndianReversibleHeaderDerivedRecord{TBase, TDerived, THeader}"/>; only <see cref="AcntAccentedGlyph"/> constructs it, and external callers reach it only by parsing the base type.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">format 0 description</see> section of the <c>acnt</c> table documentation.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="AcntAccentedGlyph"/>
+/// <seealso cref="AcntMultiAccentGlyph"/>
+/// <seealso cref="AcntTable"/>
+public sealed record AcntSingleAccentGlyph : AcntAccentedGlyph, IEndianReversibleHeaderDerivedRecord<AcntAccentedGlyph, AcntSingleAccentGlyph, AcntDescriptionEntry>
+{
+    /// <inheritdoc/>
+    public override int Format => 0;
+
+    /// <inheritdoc/>
+    public override ushort PrimaryGlyphIndex { get; init; }
+
+    /// <summary>Gets the control point number in the primary glyph to which the accent attaches.</summary>
+    /// <value>The attachment point on the primary glyph. Paired with the accent glyph's own attachment number from <see cref="AcntSecondaryGlyph"/>.</value>
+    /// <seealso cref="SecondaryInfoIndex"/>
+    public byte PrimaryAttachmentPoint { get; init; }
+
+    /// <summary>Gets the index of the accent entry in <see cref="AcntTable.SecondaryGlyphs"/>.</summary>
+    /// <value>The zero-based index of the <see cref="AcntSecondaryGlyph"/> that describes the accent glyph and its attachment point.</value>
+    /// <seealso cref="AcntTable.GetSecondaryGlyph(int)"/>
+    /// <seealso cref="AcntSecondaryGlyph"/>
+    public byte SecondaryInfoIndex { get; init; }
+
+    internal override int GetMaxSecondaryInfoIndex() => SecondaryInfoIndex;
+
+    static AcntSingleAccentGlyph IHeaderDerivedRecord<AcntAccentedGlyph, AcntSingleAccentGlyph, AcntDescriptionEntry>.FromHeader(in AcntDescriptionEntry header, object? context) => new()
+    {
+        PrimaryGlyphIndex = header.PrimaryGlyphIndex,
+        PrimaryAttachmentPoint = (byte)(header.Payload >> 8),
+        SecondaryInfoIndex = (byte)(header.Payload & 0xFF),
+    };
+}
+
+/// <summary>A format 1 accented-glyph description: one primary glyph plus two or more accents, whose attachments are stored in an extension chain.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>The entry stores the primary glyph index and an offset into the table's extension-data region; the extension chain at that offset lists each accent in order.</description></item>
+/// <item><description>The chain is a flat sequence of 2-byte <see cref="AcntExtension"/> subentries, terminated by the first subentry whose continuation flag is set.</description></item>
+/// <item><description>Each subentry carries its own primary attachment point and secondary-info index, so different accents can attach at different control points on the same primary glyph.</description></item>
+/// <item><description>Implements <see cref="IEndianReversibleHeaderDerivedRecord{TBase, TDerived, THeader}"/>; only <see cref="AcntAccentedGlyph"/> constructs it, and the extension chain is read from <see cref="AcntAccentedGlyph.Context.RootSource"/> at absolute offsets.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">format 1 description</see> and <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6acnt.html">extension format</see> sections of the <c>acnt</c> table documentation.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="AcntAccentedGlyph"/>
+/// <seealso cref="AcntSingleAccentGlyph"/>
+/// <seealso cref="AcntExtension"/>
+/// <seealso cref="AcntTable"/>
+public sealed record AcntMultiAccentGlyph : AcntAccentedGlyph, IEndianReversibleHeaderDerivedRecord<AcntAccentedGlyph, AcntMultiAccentGlyph, AcntDescriptionEntry>
+{
+    /// <inheritdoc/>
+    public override int Format => 1;
+
+    /// <inheritdoc/>
+    public override ushort PrimaryGlyphIndex { get; init; }
+
+    /// <summary>Gets the extension subentries that describe this glyph's accents, in attachment order.</summary>
+    /// <value>One <see cref="AcntExtension"/> per accent. The array includes the terminating subentry whose continuation flag is set.</value>
+    /// <seealso cref="AcntExtension"/>
+    public required AcntExtension[] Extensions { get; init; }
+
+    internal override int GetMaxSecondaryInfoIndex()
+    {
+        int max = -1;
+        foreach (AcntExtension extension in Extensions)
+            if (extension.SecondaryInfoIndex > max) max = extension.SecondaryInfoIndex;
+        return max;
+    }
+
+    static AcntMultiAccentGlyph IHeaderDerivedRecord<AcntAccentedGlyph, AcntMultiAccentGlyph, AcntDescriptionEntry>.FromHeader(in AcntDescriptionEntry header, object? context)
+    {
+        if (context is not Context ctx)
+            throw new InvalidDataException("'acnt' multi-accent description requires an AcntAccentedGlyph.Context carrying the root source and extension-data start.");
+
+        long position = ctx.ExtensionDataStart + header.Payload;
+        var extensions = new List<AcntExtension>();
+        while (true)
+        {
+            AcntExtension extension = ctx.RootSource.ReadEndianReversibleStructAt<AcntExtension>(position);
+            extensions.Add(extension);
+            position += 2;
+            if (extension.IsLast) break;
+        }
+
+        return new()
+        {
+            PrimaryGlyphIndex = header.PrimaryGlyphIndex,
+            Extensions = [.. extensions],
+        };
+    }
 }

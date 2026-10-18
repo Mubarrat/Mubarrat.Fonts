@@ -11,4 +11,8 @@
 		<AdditionalFiles Include="PublicAPI.Unshipped.txt" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.2" />
+	</ItemGroup>
+
 </Project>

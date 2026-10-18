@@ -112,9 +112,9 @@ public class VorgTableAnalyzer : IFontAnalyzer
             int numGlyphs = maxp.NumGlyphs;
 
             // Glyph indices must be in range.
-            for (int i = 0; i < vorg.VertOriginYMetrics.Count; i++)
+            for (int i = 0; i < vorg.VertOriginYMetrics.Length; i++)
             {
-                int glyphId = vorg.VertOriginYMetrics[i].GlyphIndex;
+                int glyphId = vorg.VertOriginYMetrics.Span[i].GlyphIndex;
                 if (glyphId >= numGlyphs)
                 {
                     bag.Add(GlyphIndexOutOfRange.Create(
@@ -125,7 +125,7 @@ public class VorgTableAnalyzer : IFontAnalyzer
             }
 
             // Density rules that need the glyph count.
-            int entries = vorg.VertOriginYMetrics.Count;
+            int entries = vorg.VertOriginYMetrics.Length;
             if (entries > 0 && numGlyphs > 0)
             {
                 if (entries == numGlyphs)
@@ -159,10 +159,10 @@ public class VorgTableAnalyzer : IFontAnalyzer
     private static void AnalyzeRecords(VorgTable vorg, Tag tag, DiagnosticBag bag)
     {
         var records = vorg.VertOriginYMetrics;
-        for (int i = 1; i < records.Count; i++)
+        for (int i = 1; i < records.Length; i++)
         {
-            int prev = records[i - 1].GlyphIndex;
-            int curr = records[i].GlyphIndex;
+            int prev = records.Span[i - 1].GlyphIndex;
+            int curr = records.Span[i].GlyphIndex;
             if (curr <= prev)
             {
                 bag.Add(RecordsNotIncreasing.Create(
@@ -183,14 +183,14 @@ public class VorgTableAnalyzer : IFontAnalyzer
 
         // Redundant entries: glyphs whose explicit value equals the default.
         int redundant = 0;
-        for (int i = 0; i < vorg.VertOriginYMetrics.Count; i++)
-            if (vorg.VertOriginYMetrics[i].VertOriginY == vorg.DefaultVertOriginY)
+        for (int i = 0; i < vorg.VertOriginYMetrics.Length; i++)
+            if (vorg.VertOriginYMetrics.Span[i].VertOriginY == vorg.DefaultVertOriginY)
                 redundant++;
 
         if (redundant > 0)
         {
             bag.Add(RedundantEntries.Create(
-                [redundant, vorg.VertOriginYMetrics.Count, vorg.DefaultVertOriginY],
+                [redundant, vorg.VertOriginYMetrics.Length, vorg.DefaultVertOriginY],
                 table: tag, field: nameof(VorgTable.VertOriginYMetrics)));
         }
     }
@@ -215,9 +215,9 @@ public class VorgTableAnalyzer : IFontAnalyzer
     {
         int numGlyphs = maxp.NumGlyphs;
 
-        for (int i = 0; i < vorg.VertOriginYMetrics.Count; i++)
+        for (int i = 0; i < vorg.VertOriginYMetrics.Length; i++)
         {
-            int glyphId = vorg.VertOriginYMetrics[i].GlyphIndex;
+            int glyphId = vorg.VertOriginYMetrics.Span[i].GlyphIndex;
             if (glyphId >= numGlyphs)
             {
                 bag.Add(GlyphIndexOutOfRange.Create(
@@ -228,7 +228,7 @@ public class VorgTableAnalyzer : IFontAnalyzer
         }
 
         // Density rules that need the glyph count.
-        int entries = vorg.VertOriginYMetrics.Count;
+        int entries = vorg.VertOriginYMetrics.Length;
         if (entries == 0 || numGlyphs == 0) return;
 
         if (entries == numGlyphs)

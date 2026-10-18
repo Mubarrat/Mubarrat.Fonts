@@ -102,16 +102,10 @@ public abstract record BslnTable : IRecord<BslnTable>, IBaseRecord<BslnTable>
         Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != CurrentVersion)
-        {
-            throw new InvalidDataException(
-                $"'bsln'.version is 0x{header.Version.Bits:X8}, expected 0x{CurrentVersion.Bits:X8}.");
-        }
+            throw new InvalidDataException($"'bsln'.version is 0x{header.Version.Bits:X8}, expected 0x{CurrentVersion.Bits:X8}.");
 
         if (header.DefaultBaseline > MaxBaselineValue)
-        {
-            throw new InvalidDataException(
-                $"'bsln'.defaultBaseline is {header.DefaultBaseline}, expected 0 through {MaxBaselineValue}.");
-        }
+            throw new InvalidDataException($"'bsln'.defaultBaseline is {header.DefaultBaseline}, expected 0 through {MaxBaselineValue}.");
 
         var formatContext = new BslnFormatContext(header.Version, (BaselineValue)header.DefaultBaseline);
 
@@ -294,12 +288,7 @@ public sealed record BslnFormat1 : BslnTable, IDerivedRecord<BslnTable, BslnForm
     /// <inheritdoc/>
     /// <param name="glyphIndex">The glyph index to classify.</param>
     /// <returns>The baseline value from the mapping when the lookup covers the glyph; otherwise <see cref="BslnTable.DefaultBaseline"/>.</returns>
-    public override BaselineValue GetBaseline(int glyphIndex)
-    {
-        if (Mapping.TryGetValue(glyphIndex, out uint value))
-            return (BaselineValue)(ushort)value;
-        return DefaultBaseline;
-    }
+    public override BaselineValue GetBaseline(int glyphIndex) => Mapping.TryGetValue(glyphIndex, out uint value) ? (BaselineValue)(ushort)value : DefaultBaseline;
 
     /// <inheritdoc/>
     /// <param name="cursor">The cursor positioned at the first byte of the format-specific part, immediately after the eight-byte header.</param>
@@ -411,12 +400,7 @@ public sealed record BslnFormat3 : BslnTable, IDerivedRecord<BslnTable, BslnForm
     /// <inheritdoc/>
     /// <param name="glyphIndex">The glyph index to classify.</param>
     /// <returns>The baseline value from the mapping when the lookup covers the glyph; otherwise <see cref="BslnTable.DefaultBaseline"/>.</returns>
-    public override BaselineValue GetBaseline(int glyphIndex)
-    {
-        if (Mapping.TryGetValue(glyphIndex, out uint value))
-            return (BaselineValue)(ushort)value;
-        return DefaultBaseline;
-    }
+    public override BaselineValue GetBaseline(int glyphIndex) => Mapping.TryGetValue(glyphIndex, out uint value) ? (BaselineValue)(ushort)value : DefaultBaseline;
 
     /// <inheritdoc/>
     /// <param name="cursor">The cursor positioned at the first byte of the format-specific part, immediately after the eight-byte header.</param>

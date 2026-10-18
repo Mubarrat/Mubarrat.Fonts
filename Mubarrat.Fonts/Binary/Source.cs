@@ -161,10 +161,10 @@ public abstract class Source : IDisposable
     public ushort ReadUInt16At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 2, out var span))
-            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt16BigEndian(span) : BinaryPrimitives.ReadUInt16LittleEndian(span);
+            return isLittleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(span) : BinaryPrimitives.ReadUInt16BigEndian(span);
         Span<byte> buffer = stackalloc byte[2];
         ReadAt(offset, buffer);
-        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt16BigEndian(buffer) : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(buffer) : BinaryPrimitives.ReadUInt16BigEndian(buffer);
     }
 
     /// <summary>Reads a 16-bit signed integer at an absolute offset in the requested wire byte order.</summary>
@@ -180,10 +180,10 @@ public abstract class Source : IDisposable
     public short ReadInt16At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 2, out var span))
-            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt16BigEndian(span) : BinaryPrimitives.ReadInt16LittleEndian(span);
+            return isLittleEndian ? BinaryPrimitives.ReadInt16LittleEndian(span) : BinaryPrimitives.ReadInt16BigEndian(span);
         Span<byte> buffer = stackalloc byte[2];
         ReadAt(offset, buffer);
-        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt16BigEndian(buffer) : BinaryPrimitives.ReadInt16LittleEndian(buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadInt16LittleEndian(buffer) : BinaryPrimitives.ReadInt16BigEndian(buffer);
     }
 
     // ───────────────────────── Scalar reads (24) ─────────────────────────
@@ -251,10 +251,10 @@ public abstract class Source : IDisposable
     public uint ReadUInt32At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 4, out var span))
-            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt32BigEndian(span) : BinaryPrimitives.ReadUInt32LittleEndian(span);
+            return isLittleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(span) : BinaryPrimitives.ReadUInt32BigEndian(span);
         Span<byte> buffer = stackalloc byte[4];
         ReadAt(offset, buffer);
-        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt32BigEndian(buffer) : BinaryPrimitives.ReadUInt32LittleEndian(buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(buffer) : BinaryPrimitives.ReadUInt32BigEndian(buffer);
     }
 
     /// <summary>Reads a 32-bit signed integer at an absolute offset in the requested wire byte order.</summary>
@@ -270,10 +270,10 @@ public abstract class Source : IDisposable
     public int ReadInt32At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 4, out var span))
-            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt32BigEndian(span) : BinaryPrimitives.ReadInt32LittleEndian(span);
+            return isLittleEndian ? BinaryPrimitives.ReadInt32LittleEndian(span) : BinaryPrimitives.ReadInt32BigEndian(span);
         Span<byte> buffer = stackalloc byte[4];
         ReadAt(offset, buffer);
-        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt32BigEndian(buffer) : BinaryPrimitives.ReadInt32LittleEndian(buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadInt32LittleEndian(buffer) : BinaryPrimitives.ReadInt32BigEndian(buffer);
     }
 
     // ───────────────────────── Scalar reads (64) ─────────────────────────
@@ -291,10 +291,10 @@ public abstract class Source : IDisposable
     public ulong ReadUInt64At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 8, out var span))
-            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt64BigEndian(span) : BinaryPrimitives.ReadUInt64LittleEndian(span);
+            return isLittleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(span) : BinaryPrimitives.ReadUInt64BigEndian(span);
         Span<byte> buffer = stackalloc byte[8];
         ReadAt(offset, buffer);
-        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadUInt64BigEndian(buffer) : BinaryPrimitives.ReadUInt64LittleEndian(buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(buffer) : BinaryPrimitives.ReadUInt64BigEndian(buffer);
     }
 
     /// <summary>Reads a 64-bit signed integer at an absolute offset in the requested wire byte order.</summary>
@@ -310,10 +310,10 @@ public abstract class Source : IDisposable
     public long ReadInt64At(long offset, bool isLittleEndian = false)
     {
         if (TryGetSpanAt(offset, 8, out var span))
-            return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt64BigEndian(span) : BinaryPrimitives.ReadInt64LittleEndian(span);
+            return isLittleEndian ? BinaryPrimitives.ReadInt64LittleEndian(span) : BinaryPrimitives.ReadInt64BigEndian(span);
         Span<byte> buffer = stackalloc byte[8];
         ReadAt(offset, buffer);
-        return BitConverter.IsLittleEndian != isLittleEndian ? BinaryPrimitives.ReadInt64BigEndian(buffer) : BinaryPrimitives.ReadInt64LittleEndian(buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadInt64LittleEndian(buffer) : BinaryPrimitives.ReadInt64BigEndian(buffer);
     }
 
     // ───────────────────────── Semantic scalars ─────────────────────────
@@ -748,8 +748,7 @@ public abstract class Source : IDisposable
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
         if (BitConverter.IsLittleEndian != isLittleEndian)
-            for (int i = 0; i < destination.Length; i++)
-                destination[i] = UInt24.ReverseEndianness(destination[i]);
+            UInt24.ReverseEndianness(destination, destination);
     }
 
     /// <summary>Reads an array of 24-bit signed integers at an absolute offset in the requested wire byte order.</summary>
@@ -766,8 +765,7 @@ public abstract class Source : IDisposable
     {
         ReadAt(offset, MemoryMarshal.AsBytes(destination));
         if (BitConverter.IsLittleEndian != isLittleEndian)
-            for (int i = 0; i < destination.Length; i++)
-                destination[i] = Int24.ReverseEndianness(destination[i]);
+            Int24.ReverseEndianness(destination, destination);
     }
 
     /// <summary>Reads <paramref name="count"/> 24-bit unsigned integers at an absolute offset in the requested wire byte order.</summary>

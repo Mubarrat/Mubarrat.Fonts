@@ -230,18 +230,10 @@ public sealed record GcidTable : IFontTable<GcidTable>, IRecord<GcidTable>
         Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != CurrentVersion)
-        {
-            throw new InvalidDataException(
-                $"'gcid'.version is {header.Version}, expected {CurrentVersion}.");
-        }
+            throw new InvalidDataException($"'gcid'.version is {header.Version}, expected {CurrentVersion}.");
 
         if (header.Format != CurrentFormat)
-        {
-            throw new InvalidDataException(
-                $"'gcid'.format is {header.Format}, expected {CurrentFormat}.");
-        }
-
-        ushort[] cids = cursor.ReadUInt16Array(header.Count);
+            throw new InvalidDataException($"'gcid'.format is {header.Format}, expected {CurrentFormat}.");
 
         return new()
         {
@@ -253,7 +245,7 @@ public sealed record GcidTable : IFontTable<GcidTable>, IRecord<GcidTable>
             Order = header.Order,
             OrderName = DecodeAscii(header.OrderName.AsSpan()),
             SupplementVersion = header.SupplementVersion,
-            Cids = cids,
+            Cids = cursor.ReadUInt16Array(header.Count),
         };
     }
 
@@ -268,35 +260,29 @@ public sealed record GcidTable : IFontTable<GcidTable>, IRecord<GcidTable>
     /// </remarks>
     private static string DecodeAscii(ReadOnlySpan<byte> bytes)
     {
-        int end = 0;
-        while (end < bytes.Length && bytes[end] != 0)
-            end++;
-
+        int end = bytes.IndexOf((byte)0);
+        if (end < 0) end = bytes.Length;
         return end == 0 ? string.Empty : Encoding.ASCII.GetString(bytes[..end]);
     }
+}
 
-    /// <summary>A 64-byte fixed buffer used for the <c>registryName</c> and <c>orderName</c> fields of the <c>gcid</c> table.</summary>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The buffer holds an ASCII C string. Unused bytes should be set to zero.</description></item>
-    /// <item><description>The type exists because C# has no first-class fixed-size array in a <c>record struct</c> that composes with <see cref="StructLayoutAttribute"/> and <see cref="Cursor.ReadEndianReversibleStruct{T}"/>.</description></item>
-    /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">glyph-to-CID mapping table</see> in the Apple TrueType Reference Manual.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="GcidTable"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
-    [StructLayout(LayoutKind.Sequential, Size = MaxNameLength, Pack = 1)]
-    public unsafe struct FixedBuffer64
-    {
-        /// <summary>The first byte of the fixed buffer.</summary>
-        public byte First;
+/// <summary>A 64-byte fixed buffer used for the <c>registryName</c> and <c>orderName</c> fields of the <c>gcid</c> table.</summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item><description>The buffer holds an ASCII C string. Unused bytes should be set to zero.</description></item>
+/// <item><description>The type exists because C# has no first-class fixed-size array in a <c>record struct</c> that composes with <see cref="StructLayoutAttribute"/> and <see cref="Cursor.ReadEndianReversibleStruct{T}"/>.</description></item>
+/// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">glyph-to-CID mapping table</see> in the Apple TrueType Reference Manual.</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="GcidTable"/>
+/// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6gcid.html">TrueType Reference Manual: The <c>gcid</c> table</seealso>
+[StructLayout(LayoutKind.Sequential, Size = 64, Pack = 1)]
+public struct FixedBuffer64
+{
+    /// <summary>The first byte of the fixed buffer.</summary>
+    public byte First;
 
-        /// <summary>Gets the buffer contents as a span.</summary>
-        /// <returns>A span covering the full sixty-four bytes.</returns>
-        public readonly Span<byte> AsSpan()
-        {
-            fixed (byte* p = &First)
-                return new Span<byte>(p, MaxNameLength);
-        }
-    }
+    /// <summary>Gets the buffer contents as a span.</summary>
+    /// <returns>A span covering the full sixty-four bytes.</returns>
+    public Span<byte> AsSpan() => MemoryMarshal.CreateSpan(ref First, 64);
 }

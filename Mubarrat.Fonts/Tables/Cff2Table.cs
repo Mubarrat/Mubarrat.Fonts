@@ -1018,16 +1018,16 @@ public sealed class Cff2Interpreter
         for (int i = 0; i < regionIndexes.Count; i++)
         {
             int regionIdx = regionIndexes[i];
-            if ((uint)regionIdx >= (uint)regionList.Regions.Count)
+            if ((uint)regionIdx >= (uint)regionList.Regions.Length)
                 continue;
 
-            VariationRegion region = regionList.Regions[regionIdx];
+            VariationRegion region = regionList.Regions.Span[regionIdx];
             double scalar = 1.0;
-            int axes = Math.Min(region.Axes.Count, NormalizedCoords.Count);
+            int axes = Math.Min(region.Axes.Length, NormalizedCoords.Count);
 
             for (int a = 0; a < axes; a++)
             {
-                AxisRegionCoordinates coords = region.Axes[a];
+                AxisRegionCoordinates coords = region.Axes.Span[a];
                 double start = coords.Start.Value;
                 double peak = coords.Peak.Value;
                 double end = coords.End.Value;

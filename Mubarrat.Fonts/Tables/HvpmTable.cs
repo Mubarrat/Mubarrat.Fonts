@@ -1,5 +1,4 @@
 ﻿using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Mubarrat.Fonts.Binary;
 using Mubarrat.Fonts.Primitives;
@@ -112,13 +111,11 @@ public sealed record HvpmTable : IFontTable<HvpmTable>, IRecord<HvpmTable>
         if (count > int.MaxValue)
             throw new InvalidDataException($"'hvpm'.map.count is {count}, which exceeds the supported maximum.");
 
-        PartRange[] ranges = cursor.ReadEndianReversibleStructArray<PartRange>((int)count, isLittleEndian: true);
-
         return new()
         {
             Version = header.Version,
             Flags = header.Flags,
-            Ranges = ranges,
+            Ranges = cursor.ReadEndianReversibleStructArray<PartRange>((int)count, isLittleEndian: true),
         };
     }
 
@@ -181,7 +178,7 @@ public sealed record HvpmTable : IFontTable<HvpmTable>, IRecord<HvpmTable>
         /// <remarks>The range is entirely <c>UInt32</c> fields, so it is reinterpreted as a span of three 32-bit words and reversed with a single <see cref="BinaryPrimitives.ReverseEndianness(ReadOnlySpan{uint}, Span{uint})"/> call.</remarks>
         public static PartRange ReverseEndianness(PartRange value)
         {
-            Span<uint> words = MemoryMarshal.CreateSpan(ref Unsafe.As<PartRange, uint>(ref value), 3);
+            Span<uint> words = MemoryMarshal.CreateSpan(ref value.Start, 3);
             BinaryPrimitives.ReverseEndianness(words, words);
             return value;
         }

@@ -101,15 +101,15 @@ public class VmtxTableAnalyzer : IFontAnalyzer
     private static void AnalyzeAdvanceHeights(VmtxTable vmtx, Tag tag, DiagnosticBag bag)
     {
         var heights = vmtx.AdvanceHeights;
-        if (heights.Count == 0) return;
+        if (heights.Length == 0) return;
 
         bool allZero = true;
         bool allEqual = true;
-        ushort firstValue = heights[0];
+        ushort firstValue = heights.Span[0];
 
-        for (int i = 0; i < heights.Count; i++)
+        for (int i = 0; i < heights.Length; i++)
         {
-            ushort v = heights[i];
+            ushort v = heights.Span[i];
             if (v != 0) allZero = false;
             if (v != firstValue) allEqual = false;
         }
@@ -117,9 +117,9 @@ public class VmtxTableAnalyzer : IFontAnalyzer
         if (allZero)
         {
             bag.Add(AllAdvanceHeightsZero.Create(
-                [heights.Count],
+                [heights.Length],
                 table: tag, field: nameof(VmtxTable.AdvanceHeights),
-                span: new SourceSpan(0, heights.Count * 4)));
+                span: new SourceSpan(0, heights.Length * 4)));
             return;   // uniform-advances would also fire on all-zero; skip.
         }
 
@@ -127,28 +127,28 @@ public class VmtxTableAnalyzer : IFontAnalyzer
             bag.Add(UniformAdvanceHeights.Create(
                 [vmtx.NumGlyphs, firstValue],
                 table: tag, field: nameof(VmtxTable.AdvanceHeights),
-                span: new SourceSpan(0, heights.Count * 4)));
+                span: new SourceSpan(0, heights.Length * 4)));
     }
 
     private static void AnalyzeTopSideBearings(VmtxTable vmtx, Tag tag, DiagnosticBag bag)
     {
         var tsbs = vmtx.TopSideBearings;
-        if (tsbs.Count == 0) return;
+        if (tsbs.Length == 0) return;
 
         bool allZero = true;
-        for (int i = 0; i < tsbs.Count; i++)
+        for (int i = 0; i < tsbs.Length; i++)
         {
-            if (tsbs[i] != 0) { allZero = false; break; }
+            if (tsbs.Span[i] != 0) { allZero = false; break; }
         }
 
         if (!allZero) return;
 
         // Skip when all advances are also zero — the all-advance-heights rule already
         // covers that case and both diagnostics on one font would be noise.
-        if (AreAllAdvanceHeightsZero(vmtx.AdvanceHeights)) return;
+        if (AreAllAdvanceHeightsZero(vmtx.AdvanceHeights.Span)) return;
 
         bag.Add(AllTopSideBearingsZero.Create(
-            [tsbs.Count],
+            [tsbs.Length],
             table: tag, field: nameof(VmtxTable.TopSideBearings),
             span: new SourceSpan(vmtx.NumberOfVMetrics * 4L, 2)));
     }
@@ -187,7 +187,7 @@ public class VmtxTableAnalyzer : IFontAnalyzer
         }
 
         // Top side bearings are a full array, one per glyph. Min is over the whole array.
-        short actualMinTsb = MinTopSideBearing(vmtx.TopSideBearings);
+        short actualMinTsb = MinTopSideBearing(vmtx.TopSideBearings.Span);
         if (vhea.MinTopSideBearing != actualMinTsb)
         {
             bag.Add(MinTopSideBearingMismatch.Create(
@@ -198,9 +198,9 @@ public class VmtxTableAnalyzer : IFontAnalyzer
 
     // ─────────────────────── Helpers ───────────────────────
 
-    private static bool AreAllAdvanceHeightsZero(IReadOnlyList<ushort> heights)
+    private static bool AreAllAdvanceHeightsZero(ReadOnlySpan<ushort> heights)
     {
-        for (int i = 0; i < heights.Count; i++)
+        for (int i = 0; i < heights.Length; i++)
             if (heights[i] != 0) return false;
         return true;
     }
@@ -208,28 +208,28 @@ public class VmtxTableAnalyzer : IFontAnalyzer
     private static ushort MaxEffectiveAdvanceHeight(VmtxTable vmtx)
     {
         var heights = vmtx.AdvanceHeights;
-        if (heights.Count == 0) return 0;
+        if (heights.Length == 0) return 0;
 
         ushort max = 0;
-        for (int i = 0; i < heights.Count; i++)
-            if (heights[i] > max) max = heights[i];
+        for (int i = 0; i < heights.Length; i++)
+            if (heights.Span[i] > max) max = heights.Span[i];
 
         // Glyphs past NumberOfVMetrics reuse the last advance height. If that last
         // value is larger than anything in the array, it's the effective maximum.
         if (vmtx.NumGlyphs > vmtx.NumberOfVMetrics)
         {
-            ushort reused = heights[heights.Count - 1];
+            ushort reused = heights.Span[heights.Length - 1];
             if (reused > max) max = reused;
         }
 
         return max;
     }
 
-    private static short MinTopSideBearing(IReadOnlyList<short> tsbs)
+    private static short MinTopSideBearing(ReadOnlySpan<short> tsbs)
     {
-        if (tsbs.Count == 0) return 0;
+        if (tsbs.Length == 0) return 0;
         short min = tsbs[0];
-        for (int i = 1; i < tsbs.Count; i++)
+        for (int i = 1; i < tsbs.Length; i++)
             if (tsbs[i] < min) min = tsbs[i];
         return min;
     }

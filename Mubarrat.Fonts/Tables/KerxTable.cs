@@ -59,10 +59,10 @@ public sealed record KerxTable : IFontTable<KerxTable>, IRecord<KerxTable>
     public uint NumberOfSubtables { get; init; }
 
     /// <summary>Gets the positioning subtables, in table order.</summary>
-    /// <value>One <see cref="KerxSubtable"/> per declared subtable. Because subtables are additive, the order does not affect the final kerning result.</value>
+    /// <value>A read-only view over the <see cref="KerxSubtable"/> instances, one per declared subtable. Because subtables are additive, the order does not affect the final kerning result.</value>
     /// <seealso cref="KerxSubtable"/>
     /// <seealso cref="NumberOfSubtables"/>
-    public required KerxSubtable[] Subtables { get; init; }
+    public required IReadOnlyList<KerxSubtable> Subtables { get; init; }
 
     /// <summary>Gets the subtable glyph coverage table, or <see langword="null"/> when the version predates it.</summary>
     /// <value>The parsed <see cref="KerxGlyphCoverageTable"/> when <see cref="Version"/> is 3 or greater; otherwise <see langword="null"/>.</value>
@@ -77,58 +77,27 @@ public sealed record KerxTable : IFontTable<KerxTable>, IRecord<KerxTable>
     /// <seealso cref="CoverageTableVersion"/>
     public bool HasCoverageTable => Version >= CoverageTableVersion;
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the first byte of the <c>kerx</c> table.</param>
-    /// <param name="context">An <see cref="SfntFontFace"/> used to obtain the glyph count, which the subtable coverage bitfields and format-0 lookups require.</param>
-    /// <returns>The parsed <c>kerx</c> table.</returns>
-    /// <exception cref="InvalidDataException">The version is unsupported, or <paramref name="context"/> is not an <see cref="SfntFontFace"/>.</exception>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The header is read via <c>ReadEndianReversibleStruct</c> and consumed locally.</description></item>
-    /// <item><description>Each subtable is parsed by <see cref="KerxSubtable.Parse(ref Cursor, object?)"/>, which dispatches on the low byte of the subtable coverage word.</description></item>
-    /// <item><description>When the version is 3 or greater, the subtable glyph coverage table follows the last subtable and is parsed with the glyph count and subtable count as its context.</description></item>
-    /// <item><description>The font's glyph count is required by format-0 lookups inside subtables and by the coverage bitfield size; it is obtained from the font face in <paramref name="context"/>.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso cref="Header"/>
-    /// <seealso cref="KerxSubtable.Parse(ref Cursor, object?)"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerxTable IRecord<KerxTable>.Parse(ref Cursor cursor, object? context)
     {
-        long tableStart = cursor.Position;
         Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version < MinVersion || header.Version > MaxVersion)
-        {
-            throw new InvalidDataException(
-                $"'kerx'.version is {header.Version}, expected {MinVersion}, {CoverageTableVersion}, or {MaxVersion}.");
-        }
+            throw new InvalidDataException($"'kerx'.version is {header.Version}, expected {MinVersion}, {CoverageTableVersion}, or {MaxVersion}.");
 
         int numGlyphs = context is SfntFontFace face
             ? face.GetTable<MaxpTable>().NumGlyphs
-            : throw new InvalidDataException(
-                "'kerx' requires an SFNT font face context to obtain the glyph count.");
-
-        var subtableContext = new KerxSubtable.Context(numGlyphs, header.Version);
-        var subtables = new KerxSubtable[header.NTables];
-        for (int i = 0; i < subtables.Length; i++)
-            subtables[i] = cursor.ReadRecord<KerxSubtable>(subtableContext);
-
-        KerxGlyphCoverageTable? coverage = null;
-        if (header.Version >= CoverageTableVersion)
-        {
-            coverage = cursor.ReadRecord<KerxGlyphCoverageTable>(
-                new KerxGlyphCoverageTable.Context(numGlyphs, (int)header.NTables));
-        }
+            : throw new InvalidDataException("'kerx' requires an SFNT font face context to obtain the glyph count.");
 
         return new()
         {
             Version = header.Version,
             NumberOfSubtables = header.NTables,
-            Subtables = subtables,
-            Coverage = coverage,
+            Subtables = Array.AsReadOnly(cursor.ReadRecordArray<KerxSubtable>(
+                checked((int)header.NTables),
+                new KerxSubtable.Context(numGlyphs, header.Version))),
+            Coverage = header.Version >= CoverageTableVersion
+                ? cursor.ReadRecord<KerxGlyphCoverageTable>(new KerxGlyphCoverageTable.Context(numGlyphs, (int)header.NTables))
+                : null,
         };
     }
 
@@ -157,7 +126,7 @@ public sealed record KerxTable : IFontTable<KerxTable>, IRecord<KerxTable>
 
         /// <summary>The number of positioning subtables at byte offset 4.</summary>
         /// <value>The <c>nTables</c> field; the count of subtables that follow the header.</value>
-        /// <seealso cref="KerxTable.NumberOfSubtables"/>
+        /// <seealso cref="NumberOfSubtables"/>
         public uint NTables;     // +4
 
         /// <summary>Reverses the byte order of every multi-byte field in a <see cref="Header"/>.</summary>
@@ -180,7 +149,7 @@ public sealed record KerxTable : IFontTable<KerxTable>, IRecord<KerxTable>
 /// <list type="bullet">
 /// <item><description>Every subtable begins with a 12-byte common header: a <c>length</c>, a <c>coverage</c> word, and a <c>tupleCount</c>.</description></item>
 /// <item><description>The low byte of the coverage word is the format discriminant; the remaining bits describe how the subtable's adjustments apply.</description></item>
-/// <item><description>Dispatch happens in <see cref="Parse(ref Cursor, object?)"/> via <see cref="IBaseRecord{TBase}"/>, mirroring the pattern used by <c>Coverage</c> and the GSUB/GPOS lookup subtable formats.</description></item>
+/// <item><description>Dispatch happens in <see cref="IRecord{T}.Parse(ref Cursor, object?)"/> via <see cref="IBaseRecord{TBase}"/>, mirroring the pattern used by <c>Coverage</c> and the GSUB/GPOS lookup subtable formats.</description></item>
 /// <item><description>Formats 3, 5, and 7 through 255 are reserved for future use; the parser rejects them as malformed.</description></item>
 /// </list>
 /// <para>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">positioning subtable formats</see> section of the <c>kerx</c> table description.</para>
@@ -256,31 +225,9 @@ public abstract record KerxSubtable : IRecord<KerxSubtable>, IBaseRecord<KerxSub
     /// <seealso cref="Coverage"/>
     public bool ProcessDirection => (Coverage & 0x10000000u) != 0;
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the subtable's first byte.</param>
-    /// <param name="context">A <see cref="Context"/> carrying the font's glyph count and the enclosing table's version.</param>
-    /// <returns>The parsed subtable, typed as the matching derived record.</returns>
-    /// <exception cref="InvalidDataException">The format discriminant is not one of 0, 1, 2, 4, or 6.</exception>
-    /// <exception cref="EndOfStreamException">The subtable extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The dispatcher peeks the coverage word at byte offset 4, extracts the low byte, and forwards to the matching derived parser.</description></item>
-    /// <item><description>The coverage word is peeked by seeking and restoring, so the derived parser sees the whole subtable from byte 0.</description></item>
-    /// <item><description>An unrecognized format discriminant is rejected; the specification defines exactly five formats and reserves the rest.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso cref="IBaseRecord{TBase}"/>
-    /// <seealso cref="Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
-    public static KerxSubtable Parse(ref Cursor cursor, object? context = null)
+    static KerxSubtable IRecord<KerxSubtable>.Parse(ref Cursor cursor, object? context)
     {
-        long start = cursor.Position;
-        cursor.Position = start + 4;
-        uint coverage = cursor.ReadUInt32();
-        cursor.Position = start;
-
-        int format = (int)(coverage & 0xFFu);
+        int format = (int)(cursor.Source.ReadUInt32At(4) & 0xFFu);
         return format switch
         {
             0 => IBaseRecord<KerxSubtable>.Parse<KerxFormat0Subtable>(ref cursor, context),
@@ -311,7 +258,7 @@ public abstract record KerxSubtable : IRecord<KerxSubtable>, IBaseRecord<KerxSub
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>The format discriminant is the low byte of <see cref="Coverage"/>; the remaining coverage bits describe the subtable's applicability.</description></item>
-    /// <item><description>All three fields are <c>UInt32</c>, so the reversal is a single pass over the struct reinterpreted as three 32-bit words — no field-by-field code is needed.</description></item>
+    /// <item><description>All three fields are <c>UInt32</c>, so the reversal is a single pass over the struct reinterpreted as three 32-bit words.</description></item>
     /// <item><description>Consumed at parse time and not retained on <see cref="KerxSubtable"/>; its field values are exposed through the semantic record's properties.</description></item>
     /// </list>
     /// </remarks>
@@ -346,7 +293,7 @@ public abstract record KerxSubtable : IRecord<KerxSubtable>, IBaseRecord<KerxSub
         /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}(bool)"/>
         public static SubtableHeader ReverseEndianness(SubtableHeader value)
         {
-            Span<uint> words = MemoryMarshal.CreateSpan(ref Unsafe.As<SubtableHeader, uint>(ref value), 3);
+            Span<uint> words = MemoryMarshal.CreateSpan(ref value.Length, 3);
             BinaryPrimitives.ReverseEndianness(words, words);
             return value;
         }
@@ -381,61 +328,37 @@ public sealed record KerxFormat0Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     public required LookupTable LeftGlyphToPairList { get; init; }
 
     /// <summary>Gets the pair lists referenced by the lookup, keyed by their byte offset from the start of this subtable.</summary>
-    /// <value>One entry per distinct referenced list. Multiple left-hand glyphs may share the same list and thus share one <see cref="KerningPair"/> array.</value>
+    /// <value>One entry per distinct referenced list. Multiple left-hand glyphs may share the same list and thus share one <see cref="KerningPair"/> collection.</value>
     /// <seealso cref="GetPairs(int)"/>
     /// <seealso cref="KerningPair"/>
-    public required IReadOnlyDictionary<ushort, KerningPair[]> PairsByOffset { get; init; }
+    public required IReadOnlyDictionary<ushort, IReadOnlyList<KerningPair>> PairsByOffset { get; init; }
 
     /// <summary>Gets the kerning-pair list that applies to a left-hand glyph.</summary>
     /// <param name="leftGlyph">The left-hand glyph ID.</param>
-    /// <returns>The kerning-pair list for the glyph, or an empty array when the glyph's lookup value is zero, exceeds <see cref="ushort"/> range, or points to no list.</returns>
+    /// <returns>The kerning-pair list for the glyph, or an empty list when the glyph's lookup value is zero, exceeds <see cref="ushort"/> range, or points to no list.</returns>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>A lookup value of zero means the glyph has no kerning pairs; the caller can iterate the returned empty array without a null check.</description></item>
-    /// <item><description>The method returns an empty array rather than throwing when a malformed table contains a lookup value that is not a valid list offset.</description></item>
+    /// <item><description>A lookup value of zero means the glyph has no kerning pairs; the caller can iterate the returned empty list without a null check.</description></item>
+    /// <item><description>The method returns an empty list rather than throwing when a malformed table contains a lookup value that is not a valid list offset.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="LeftGlyphToPairList"/>
     /// <seealso cref="PairsByOffset"/>
     /// <seealso cref="KerningPair"/>
-    public KerningPair[] GetPairs(int leftGlyph)
-    {
-        if (!LeftGlyphToPairList.TryGetValue(leftGlyph, out uint raw) || raw == 0 || raw > ushort.MaxValue)
-            return [];
+    public IReadOnlyList<KerningPair> GetPairs(int leftGlyph) =>
+        !LeftGlyphToPairList.TryGetValue(leftGlyph, out uint raw) || raw == 0 || raw > ushort.MaxValue
+            ? []
+            : PairsByOffset.TryGetValue((ushort)raw, out var pairs) ? pairs : [];
 
-        return PairsByOffset.TryGetValue((ushort)raw, out var pairs) ? pairs : [];
-    }
-
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the subtable's common header.</param>
-    /// <param name="context">A <see cref="KerxSubtable.Context"/> carrying the font's glyph count and the enclosing table's version.</param>
-    /// <returns>The parsed subtable.</returns>
-    /// <exception cref="InvalidDataException"><paramref name="context"/> is not a <see cref="KerxSubtable.Context"/>.</exception>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The common header and the lookup are read from the front of the subtable; the pair lists are visited afterward by seeking to each distinct referenced offset.</description></item>
-    /// <item><description>Each pair list is read sequentially until the sentinel; the sentinel itself is not stored.</description></item>
-    /// <item><description>The parser carries the tuple count into <see cref="KerningPair.Context"/> so that variation pairs are read with the correct value width.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IDerivedRecord{TBase, TDerived}"/>
-    /// <seealso cref="KerxSubtable.Context"/>
-    /// <seealso cref="KerningPair.Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerxFormat0Subtable IDerivedRecord<KerxSubtable, KerxFormat0Subtable>.Parse(ref Cursor cursor, object? context)
     {
-        if (context is not KerxSubtable.Context ctx)
-        {
-            throw new InvalidDataException(
-                "'kerx' format 0 subtable requires a glyph-count and version context.");
-        }
+        if (context is not Context ctx)
+            throw new InvalidDataException("'kerx' format 0 subtable requires a glyph-count and version context.");
 
-        long subtableStart = cursor.Position;
         SubtableHeader header = cursor.ReadEndianReversibleStruct<SubtableHeader>();
         LookupTable lookup = cursor.ReadRecord<LookupTable>(new LookupTable.Context(ctx.GlyphCount));
 
-        var pairsByOffset = new Dictionary<ushort, KerningPair[]>();
+        var pairsByOffset = new Dictionary<ushort, IReadOnlyList<KerningPair>>();
         var pairContext = new KerningPair.Context(header.TupleCount);
 
         foreach (uint raw in DistinctReferencedOffsets(lookup, ctx.GlyphCount))
@@ -443,8 +366,8 @@ public sealed record KerxFormat0Subtable : KerxSubtable, IDerivedRecord<KerxSubt
             if (raw == 0 || raw > ushort.MaxValue)
                 continue;
 
-            cursor.Position = subtableStart + raw;
-            pairsByOffset[(ushort)raw] = ReadPairList(ref cursor, pairContext);
+            cursor.Position = raw;
+            pairsByOffset[(ushort)raw] = Array.AsReadOnly(ReadPairList(ref cursor, pairContext));
         }
 
         return new()
@@ -457,19 +380,6 @@ public sealed record KerxFormat0Subtable : KerxSubtable, IDerivedRecord<KerxSubt
         };
     }
 
-    /// <summary>Reads a kerning-pair list up to but not including its sentinel terminator.</summary>
-    /// <param name="cursor">The cursor positioned at the first pair of the list.</param>
-    /// <param name="context">The tuple-count context shared by every pair in the list.</param>
-    /// <returns>The pair array, without the sentinel entry.</returns>
-    /// <exception cref="EndOfStreamException">The list extends past the end of the table-scoped source without a sentinel.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>Pairs are read sequentially; each is inspected for the <c>0xFFFF / 0xFFFF</c> sentinel that terminates the list.</description></item>
-    /// <item><description>The list is returned as a new array rather than a span, because its length is not known until the sentinel is reached.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="KerningPair"/>
-    /// <seealso cref="KerningPair.IsEndOfList"/>
     private static KerningPair[] ReadPairList(ref Cursor cursor, KerningPair.Context context)
     {
         var pairs = new List<KerningPair>();
@@ -484,12 +394,6 @@ public sealed record KerxFormat0Subtable : KerxSubtable, IDerivedRecord<KerxSubt
         return [.. pairs];
     }
 
-    /// <summary>Enumerates the distinct non-zero offsets referenced by a lookup's values across the font's glyph range.</summary>
-    /// <param name="lookup">The lookup whose values are to be inspected.</param>
-    /// <param name="glyphCount">The number of glyphs in the font.</param>
-    /// <returns>Each distinct non-zero lookup value once, in encounter order.</returns>
-    /// <remarks>The helper collapses the per-glyph lookup into the set of pair-list offsets the subtable actually contains.</remarks>
-    /// <seealso cref="KerxFormat0Subtable.PairsByOffset"/>
     private static IEnumerable<uint> DistinctReferencedOffsets(LookupTable lookup, int glyphCount)
     {
         var seen = new HashSet<uint>();
@@ -513,7 +417,6 @@ public sealed record KerxFormat0Subtable : KerxSubtable, IDerivedRecord<KerxSubt
 /// </list>
 /// </remarks>
 /// <seealso cref="KerxFormat0Subtable"/>
-/// <seealso cref="KerxFormat4Subtable"/>
 /// <seealso cref="IRecord{T}"/>
 /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
 public sealed record KerningPair : IRecord<KerningPair>
@@ -535,7 +438,7 @@ public sealed record KerningPair : IRecord<KerningPair>
     /// <remarks>Each element is the raw 16-bit <c>F2Dot14</c> representation; the caller interprets it as a signed 2.14 fixed-point value.</remarks>
     /// <seealso cref="KernValue"/>
     /// <seealso cref="IsVariation"/>
-    public required short[] TupleValues { get; init; }
+    public required ReadOnlyMemory<short> TupleValues { get; init; }
 
     /// <summary>Gets the left-hand glyph index.</summary>
     /// <value>The glyph index on the left or preceding side of the pair. Value <c>0xFFFF</c> marks the end-of-list sentinel.</value>
@@ -559,31 +462,12 @@ public sealed record KerningPair : IRecord<KerningPair>
     /// <value><see langword="true"/> when <see cref="TupleValues"/> is non-empty.</value>
     /// <seealso cref="KernValue"/>
     /// <seealso cref="TupleValues"/>
-    public bool IsVariation => TupleValues.Length > 0;
+    public bool IsVariation => !TupleValues.IsEmpty;
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the pair's first byte.</param>
-    /// <param name="context">A <see cref="Context"/> carrying the subtable's tuple count.</param>
-    /// <returns>The parsed pair.</returns>
-    /// <exception cref="InvalidDataException"><paramref name="context"/> is not a <see cref="Context"/>.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>When the tuple count is zero, the value field is a single <c>Int32</c>; otherwise it is an array of <c>tupleCount</c> <c>Int16</c> values.</description></item>
-    /// <item><description>Both <see cref="Left"/> and <see cref="Right"/> are read after the value field, regardless of which value layout was used.</description></item>
-    /// <item><description>The value's byte order is <c>F2Dot14</c> when read as tuple values; the field is stored as <c>Int16</c>, which matches the F2Dot14 representation.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso cref="Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerningPair IRecord<KerningPair>.Parse(ref Cursor cursor, object? context)
     {
         if (context is not Context ctx)
-        {
-            throw new InvalidDataException(
-                "'kerx' kerning pair requires a tuple-count context.");
-        }
+            throw new InvalidDataException("'kerx' kerning pair requires a tuple-count context.");
 
         if (ctx.TupleCount == 0)
         {
@@ -593,23 +477,17 @@ public sealed record KerningPair : IRecord<KerningPair>
             return new()
             {
                 KernValue = kernValue,
-                TupleValues = [],
+                TupleValues = ReadOnlyMemory<short>.Empty,
                 Left = left,
                 Right = right,
             };
         }
 
-        short[] tupleValues = new short[ctx.TupleCount];
-        for (int i = 0; i < tupleValues.Length; i++)
-            tupleValues[i] = cursor.ReadInt16();
-
-        ushort leftV = cursor.ReadUInt16();
-        ushort rightV = cursor.ReadUInt16();
         return new()
         {
-            TupleValues = tupleValues,
-            Left = leftV,
-            Right = rightV,
+            TupleValues = cursor.ReadInt16Array(checked((int)ctx.TupleCount)),
+            Left = cursor.ReadUInt16(),
+            Right = cursor.ReadUInt16(),
         };
     }
 
@@ -657,22 +535,17 @@ public sealed record KerxFormat1Subtable : KerxSubtable, IDerivedRecord<KerxSubt
 
     /// <summary>Gets the flat state array.</summary>
     /// <value>One <c>UInt16</c> index per <c>(state, class)</c> pair, laid out row-major: entry <c>state × StateSize + class</c> holds the index into <see cref="Entries"/> for that transition.</value>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The state array length is derived from the distance between the state-header's state-array and entry-table offsets; the number of states is <see cref="StateCount"/>.</description></item>
-    /// <item><description>Each <c>UInt16</c> is an index into <see cref="Entries"/>, not a byte offset; the extended state-table format replaced the classic form's byte offsets with indices.</description></item>
-    /// </list>
-    /// </remarks>
+    /// <remarks>Each <c>UInt16</c> is an index into <see cref="Entries"/>, not a byte offset; the extended state-table format replaced the classic form's byte offsets with indices.</remarks>
     /// <seealso cref="StateSize"/>
     /// <seealso cref="StateCount"/>
     /// <seealso cref="Step(int, int)"/>
-    public required ushort[] StateArray { get; init; }
+    public required ReadOnlyMemory<ushort> StateArray { get; init; }
 
     /// <summary>Gets the entry array.</summary>
-    /// <value>Each entry carries a next state, an action flags word, and one kerning value per class (or a tuple vector per class when the subtable is a variation subtable).</value>
+    /// <value>A read-only view over the <see cref="KerxStateEntry"/> records. Each entry carries a next state, an action flags word, and one kerning value per class (or a tuple vector per class when the subtable is a variation subtable).</value>
     /// <seealso cref="KerxStateEntry"/>
     /// <seealso cref="Step(int, int)"/>
-    public required KerxStateEntry[] Entries { get; init; }
+    public required IReadOnlyList<KerxStateEntry> Entries { get; init; }
 
     /// <summary>Gets the number of states in the state machine.</summary>
     /// <value>Derived as <see cref="StateArray"/>.Length divided by <see cref="StateSize"/>.</value>
@@ -699,7 +572,7 @@ public sealed record KerxFormat1Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <list type="bullet">
     /// <item><description>The returned entry's <see cref="KerxStateEntry.NewStateIndex"/> is the next state to feed back into the method.</description></item>
     /// <item><description>A consumer that honours <see cref="KerxStateEntry.DontAdvance"/> stays on the current glyph before consuming the next one.</description></item>
-    /// <item><description>The kerning value applied at the transition is <c>entry.KerningValues[glyphClass]</c>; a consumer that uses the state machine should read that slot after each step.</description></item>
+    /// <item><description>The kerning value applied at the transition is <c>entry.KerningValues.Span[glyphClass]</c>; a consumer that uses the state machine should read that slot after each step.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="ClassifyGlyph(int)"/>
@@ -709,49 +582,17 @@ public sealed record KerxFormat1Subtable : KerxSubtable, IDerivedRecord<KerxSubt
         ArgumentOutOfRangeException.ThrowIfNegative(stateIndex);
         ArgumentOutOfRangeException.ThrowIfNegative(glyphClass);
         if (stateIndex >= StateCount)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(stateIndex), stateIndex,
-                $"State index {stateIndex} is out of range [0, {StateCount}).");
-        }
+            throw new ArgumentOutOfRangeException(nameof(stateIndex), stateIndex, $"State index {stateIndex} is out of range [0, {StateCount}).");
         if (glyphClass >= StateSize)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(glyphClass), glyphClass,
-                $"Glyph class {glyphClass} is out of range [0, {StateSize}).");
-        }
-
-        ushort entryIndex = StateArray[stateIndex * StateSize + glyphClass];
-        return Entries[entryIndex];
+            throw new ArgumentOutOfRangeException(nameof(glyphClass), glyphClass, $"Glyph class {glyphClass} is out of range [0, {StateSize}).");
+        return Entries[StateArray.Span[stateIndex * StateSize + glyphClass]];
     }
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the subtable's common header.</param>
-    /// <param name="context">A <see cref="KerxSubtable.Context"/> carrying the font's glyph count and the enclosing table's version.</param>
-    /// <returns>The parsed subtable.</returns>
-    /// <exception cref="InvalidDataException"><paramref name="context"/> is not a <see cref="KerxSubtable.Context"/>.</exception>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The common header and the extended state header are read as single structs; the class table follows immediately after as an AAT lookup.</description></item>
-    /// <item><description>The state array length is derived from the distance between the state-array and entry-table offsets; the number of states follows by dividing by the class count.</description></item>
-    /// <item><description>Entries are variable-length when the subtable is a variation subtable: each carries either one or <c>tupleCount</c> kerning values per class. The entry count is derived from the remaining subtable bytes divided by entry size.</description></item>
-    /// <item><description>Each entry is parsed via <see cref="IRecord{T}.Parse(ref Cursor, object?)"/> with the class count and tuple count threaded through its context.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IDerivedRecord{TBase, TDerived}"/>
-    /// <seealso cref="KerxSubtable.Context"/>
-    /// <seealso cref="KerxStateEntry.Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerxFormat1Subtable IDerivedRecord<KerxSubtable, KerxFormat1Subtable>.Parse(ref Cursor cursor, object? context)
     {
-        if (context is not KerxSubtable.Context ctx)
-        {
-            throw new InvalidDataException(
-                "'kerx' format 1 subtable requires a glyph-count and version context.");
-        }
+        if (context is not Context ctx)
+            throw new InvalidDataException("'kerx' format 1 subtable requires a glyph-count and version context.");
 
-        long subtableStart = cursor.Position;
         SubtableHeader header = cursor.ReadEndianReversibleStruct<SubtableHeader>();
         long stateHeaderStart = cursor.Position;
         STXHeader state = cursor.ReadEndianReversibleStruct<STXHeader>();
@@ -765,15 +606,8 @@ public sealed record KerxFormat1Subtable : KerxSubtable, IDerivedRecord<KerxSubt
         ushort[] stateArray = cursor.ReadUInt16Array(stateArrayLength);
 
         cursor.Position = stateHeaderStart + state.EntryTableOffset;
-        long subtableEnd = subtableStart + header.Length;
-        long entryBytesRemaining = subtableEnd - cursor.Position;
-        int entrySizeShorts = 2 + classCount * (header.TupleCount == 0 ? 1 : (int)header.TupleCount);
-        int entryCount = checked((int)(entryBytesRemaining / (entrySizeShorts * 2)));
-
-        var entryContext = new KerxStateEntry.Context(classCount, header.TupleCount);
-        var entries = new KerxStateEntry[entryCount];
-        for (int i = 0; i < entryCount; i++)
-            entries[i] = cursor.ReadRecord<KerxStateEntry>(entryContext);
+        int entryCount = checked((int)((header.Length - cursor.Position) / ((2 + classCount * (header.TupleCount == 0 ? 1 : (int)header.TupleCount)) * 2)));
+        KerxStateEntry[] entries = cursor.ReadRecordArray<KerxStateEntry>(entryCount, new KerxStateEntry.Context(classCount, header.TupleCount));
 
         return new()
         {
@@ -783,7 +617,7 @@ public sealed record KerxFormat1Subtable : KerxSubtable, IDerivedRecord<KerxSubt
             ClassTable = classTable,
             StateSize = classCount,
             StateArray = stateArray,
-            Entries = entries,
+            Entries = Array.AsReadOnly(entries),
         };
     }
 }
@@ -818,13 +652,13 @@ public sealed record KerxStateEntry : IRecord<KerxStateEntry>
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>For a non-variation subtable the array length is <c>StateSize</c>; the value for class <c>c</c> is at index <c>c</c>.</description></item>
-    /// <item><description>For a variation subtable the array length is <c>StateSize × TupleCount</c>; the vector for class <c>c</c> is <c>KerningValues[c * TupleCount .. (c + 1) * TupleCount]</c>.</description></item>
+    /// <item><description>For a variation subtable the array length is <c>StateSize × TupleCount</c>; the vector for class <c>c</c> is <c>KerningValues.Span[(c * TupleCount) .. ((c + 1) * TupleCount)]</c>.</description></item>
     /// <item><description>The tuple values are stored as <c>Int16</c> in the F2Dot14 wire representation; the caller interprets each as a signed 2.14 fixed-point value.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="KerxFormat1Subtable.StateSize"/>
     /// <seealso cref="KerxSubtable.TupleCount"/>
-    public required short[] KerningValues { get; init; }
+    public required ReadOnlyMemory<short> KerningValues { get; init; }
 
     /// <summary>Gets a value indicating whether the kerning value for the current class is pushed.</summary>
     /// <value><see langword="true"/> when bit <c>0x8000</c> of <see cref="Flags"/> is set.</value>
@@ -837,41 +671,15 @@ public sealed record KerxStateEntry : IRecord<KerxStateEntry>
     /// <seealso cref="Flags"/>
     public bool DontAdvance => (Flags & 0x4000) != 0;
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the entry's first byte.</param>
-    /// <param name="context">A <see cref="Context"/> carrying the class count and the enclosing subtable's tuple count.</param>
-    /// <returns>The parsed entry.</returns>
-    /// <exception cref="InvalidDataException"><paramref name="context"/> is not a <see cref="Context"/>.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The next-state and flags fields are read as two <c>UInt16</c> values; the kerning-value array follows.</description></item>
-    /// <item><description>For a non-variation subtable, the array is read as <c>classCount</c> <c>Int16</c> values in one bulk call.</description></item>
-    /// <item><description>For a variation subtable, the array is read as <c>classCount × tupleCount</c> <c>Int16</c> values, preserving the class-major layout so a consumer can index into it with the same convention the specification uses.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso cref="Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerxStateEntry IRecord<KerxStateEntry>.Parse(ref Cursor cursor, object? context)
     {
         if (context is not Context ctx)
-        {
-            throw new InvalidDataException(
-                "'kerx' state entry requires a class-count and tuple-count context.");
-        }
-
-        ushort newState = cursor.ReadUInt16();
-        ushort flags = cursor.ReadUInt16();
-
-        int valueCount = ctx.ClassCount * (ctx.TupleCount == 0 ? 1 : (int)ctx.TupleCount);
-        short[] kerningValues = cursor.ReadInt16Array(valueCount);
-
+            throw new InvalidDataException("'kerx' state entry requires a class-count and tuple-count context.");
         return new()
         {
-            NewStateIndex = newState,
-            Flags = flags,
-            KerningValues = kerningValues,
+            NewStateIndex = cursor.ReadUInt16(),
+            Flags = cursor.ReadUInt16(),
+            KerningValues = cursor.ReadInt16Array(ctx.ClassCount * (ctx.TupleCount == 0 ? 1 : (int)ctx.TupleCount)),
         };
     }
 
@@ -926,7 +734,7 @@ public sealed record KerxFormat2Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <seealso cref="RowWidthInBytes"/>
     /// <seealso cref="GetKernValue(int, int)"/>
     /// <seealso cref="GetTupleValues(int, int)"/>
-    public required short[] KerningValues { get; init; }
+    public required ReadOnlyMemory<short> KerningValues { get; init; }
 
     /// <summary>Gets the number of bytes in each row of the value array.</summary>
     /// <value>The on-disk <c>rowWidth</c> field. The row for left class <c>L</c> begins at flat short index <c>L × RowWidthInBytes / 2</c>.</value>
@@ -958,13 +766,8 @@ public sealed record KerxFormat2Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <seealso cref="GetTupleValues(int, int)"/>
     /// <seealso cref="LeftClassTable"/>
     /// <seealso cref="RightClassTable"/>
-    public int GetKernValue(int leftGlyph, int rightGlyph)
-    {
-        if (!TryGetValueIndex(leftGlyph, rightGlyph, out int index))
-            return 0;
-
-        return KerningValues[index];
-    }
+    public int GetKernValue(int leftGlyph, int rightGlyph) =>
+        !TryGetValueIndex(leftGlyph, rightGlyph, out int index) ? 0 : KerningValues.Span[index];
 
     /// <summary>Gets the tuple vector that applies to a glyph pair.</summary>
     /// <param name="leftGlyph">The left-hand glyph ID.</param>
@@ -977,28 +780,12 @@ public sealed record KerxFormat2Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     {
         if (!TryGetValueIndex(leftGlyph, rightGlyph, out int index))
             return [];
-
         int size = ElementSizeInShorts;
-        if (index + size > KerningValues.Length)
-            return [];
-
-        return KerningValues.AsSpan(index, size).ToArray();
+        return index + size > KerningValues.Length
+            ? []
+            : KerningValues.Span.Slice(index, size).ToArray();
     }
 
-    /// <summary>Computes the flat short index for a glyph pair's value array element.</summary>
-    /// <param name="leftGlyph">The left-hand glyph ID.</param>
-    /// <param name="rightGlyph">The right-hand glyph ID.</param>
-    /// <param name="index">When this method returns <see langword="true"/>, contains the flat index into <see cref="KerningValues"/>.</param>
-    /// <returns><see langword="true"/> when the index is within the array bounds; otherwise, <see langword="false"/>.</returns>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The left and right glyphs are classified through the class tables; glyphs the tables do not cover classify to class 0.</description></item>
-    /// <item><description>The row stride is <see cref="RowWidthInBytes"/> converted to shorts; the column stride is <see cref="ElementSizeInShorts"/>.</description></item>
-    /// <item><description>When the resulting index would fall outside the array, the method returns <see langword="false"/> rather than throwing; the callers translate that to a zero or empty result.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="LeftClassTable"/>
-    /// <seealso cref="RightClassTable"/>
     private bool TryGetValueIndex(int leftGlyph, int rightGlyph, out int index)
     {
         int leftClass = (int)LeftClassTable.GetValue(leftGlyph);
@@ -1006,51 +793,22 @@ public sealed record KerxFormat2Subtable : KerxSubtable, IDerivedRecord<KerxSubt
 
         int rowWidthShorts = checked((int)(RowWidthInBytes / 2));
         index = leftClass * rowWidthShorts + rightClass * ElementSizeInShorts;
-
         return index >= 0 && index < KerningValues.Length;
     }
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the subtable's common header.</param>
-    /// <param name="context">A <see cref="KerxSubtable.Context"/> carrying the font's glyph count and the enclosing table's version.</param>
-    /// <returns>The parsed subtable.</returns>
-    /// <exception cref="InvalidDataException"><paramref name="context"/> is not a <see cref="KerxSubtable.Context"/>.</exception>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The common header and the three subtable offsets are read as single structs; the class lookups are parsed against the font's glyph count.</description></item>
-    /// <item><description>The value array is read as a single flat <c>Int16</c> buffer sized by the distance from the array offset to the subtable end.</description></item>
-    /// <item><description>The row width and the tuple count together define the array's row-major layout; both are stored on the record so that <see cref="GetKernValue(int, int)"/> and <see cref="GetTupleValues(int, int)"/> can index into the flat buffer without re-deriving them.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IDerivedRecord{TBase, TDerived}"/>
-    /// <seealso cref="KerxSubtable.Context"/>
-    /// <seealso cref="LookupTable.Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerxFormat2Subtable IDerivedRecord<KerxSubtable, KerxFormat2Subtable>.Parse(ref Cursor cursor, object? context)
     {
-        if (context is not KerxSubtable.Context ctx)
-        {
-            throw new InvalidDataException(
-                "'kerx' format 2 subtable requires a glyph-count and version context.");
-        }
+        if (context is not Context ctx)
+            throw new InvalidDataException("'kerx' format 2 subtable requires a glyph-count and version context.");
 
-        long subtableStart = cursor.Position;
         SubtableHeader header = cursor.ReadEndianReversibleStruct<SubtableHeader>();
         Format2Header format = cursor.ReadEndianReversibleStruct<Format2Header>();
 
-        cursor.Position = subtableStart + format.LeftClassTable;
-        LookupTable leftClasses = cursor.ReadRecord<LookupTable>(new LookupTable.Context(ctx.GlyphCount));
+        LookupTable leftClasses = cursor.Source.ParseRecordAt<LookupTable>(format.LeftClassTable, new LookupTable.Context(ctx.GlyphCount));
+        LookupTable rightClasses = cursor.Source.ParseRecordAt<LookupTable>(format.RightClassTable, new LookupTable.Context(ctx.GlyphCount));
 
-        cursor.Position = subtableStart + format.RightClassTable;
-        LookupTable rightClasses = cursor.ReadRecord<LookupTable>(new LookupTable.Context(ctx.GlyphCount));
-
-        long arrayStart = subtableStart + format.Array;
-        long subtableEnd = subtableStart + header.Length;
-        int arrayShortCount = checked((int)((subtableEnd - arrayStart) / 2));
-
-        cursor.Position = arrayStart;
-        short[] kerningValues = cursor.ReadInt16Array(arrayShortCount);
+        long arrayStart = format.Array;
+        short[] kerningValues = cursor.Source.ReadInt16ArrayAt(arrayStart, checked((int)((header.Length - arrayStart) / 2)));
 
         return new()
         {
@@ -1070,13 +828,15 @@ public sealed record KerxFormat2Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <list type="bullet">
     /// <item><description>All four fields are <c>UInt32</c>, so the reversal is a single pass over the struct reinterpreted as four 32-bit words.</description></item>
     /// <item><description>The three offsets are relative to the start of the subtable, not to this struct.</description></item>
-    /// <item><description>Consumed at parse time and not retained on <see cref="KerxFormat2Subtable"/>.</description></item>
+    /// <item><description>Declared as a mutable <c>record struct</c> with <see cref="StructLayoutAttribute"/> so its fields honour the wire layout; the <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
+    /// <item><description>Public because a writer fills the struct in memory, reverses it, and writes the bytes by blittable cast.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="KerxFormat2Subtable"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
+    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal record struct Format2Header : IEndianReversibleStruct<Format2Header>
+    public record struct Format2Header : IEndianReversibleStruct<Format2Header>
     {
         /// <summary>The number of bytes in each row of the value array at byte offset 0.</summary>
         /// <value>The byte stride between consecutive left-class rows.</value>
@@ -1106,7 +866,7 @@ public sealed record KerxFormat2Subtable : KerxSubtable, IDerivedRecord<KerxSubt
         /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}(bool)"/>
         public static Format2Header ReverseEndianness(Format2Header value)
         {
-            Span<uint> words = MemoryMarshal.CreateSpan(ref Unsafe.As<Format2Header, uint>(ref value), 4);
+            Span<uint> words = MemoryMarshal.CreateSpan(ref value.RowWidth, 4);
             BinaryPrimitives.ReverseEndianness(words, words);
             return value;
         }
@@ -1151,13 +911,13 @@ public sealed record KerxFormat4Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <seealso cref="StateSize"/>
     /// <seealso cref="StateCount"/>
     /// <seealso cref="Step(int, int)"/>
-    public required ushort[] StateArray { get; init; }
+    public required ReadOnlyMemory<ushort> StateArray { get; init; }
 
     /// <summary>Gets the entry array.</summary>
-    /// <value>Each entry carries a next state, an action flags word, and one kerning-index slot per class.</value>
+    /// <value>A read-only view over the <see cref="KerxFormat4StateEntry"/> records. Each entry carries a next state, an action flags word, and one kerning-index slot per class.</value>
     /// <seealso cref="KerxFormat4StateEntry"/>
     /// <seealso cref="Step(int, int)"/>
-    public required KerxFormat4StateEntry[] Entries { get; init; }
+    public required IReadOnlyList<KerxFormat4StateEntry> Entries { get; init; }
 
     /// <summary>Gets the shared kerning value array.</summary>
     /// <value>The flat <c>Int16</c> array at the end of the subtable. Each state entry's per-class index selects an element (or a tuple vector) from this array.</value>
@@ -1171,7 +931,7 @@ public sealed record KerxFormat4Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <seealso cref="GetKernValue"/>
     /// <seealso cref="GetTupleValues"/>
     /// <seealso cref="KerxFormat4StateEntry"/>
-    public required short[] KernValues { get; init; }
+    public required ReadOnlyMemory<short> KernValues { get; init; }
 
     /// <summary>Gets the number of states in the state machine.</summary>
     /// <value>Derived as <see cref="StateArray"/>.Length divided by <see cref="StateSize"/>.</value>
@@ -1195,7 +955,7 @@ public sealed record KerxFormat4Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <remarks>
     /// <list type="bullet">
     /// <item><description>The returned entry's <see cref="KerxFormat4StateEntry.NewStateIndex"/> is the next state to feed back into the method.</description></item>
-    /// <item><description>The kerning index applied at the transition is <c>entry.KerningIndices[glyphClass]</c>; the value at that index in <see cref="KernValues"/> is the amount to apply. An index of <c>0xFFFF</c> means no kerning.</description></item>
+    /// <item><description>The kerning index applied at the transition is <c>entry.KerningIndices.Span[glyphClass]</c>; the value at that index in <see cref="KernValues"/> is the amount to apply. An index of <c>0xFFFF</c> means no kerning.</description></item>
     /// <item><description>A consumer that honours <see cref="KerxFormat4StateEntry.DontAdvance"/> stays on the current glyph before consuming the next one.</description></item>
     /// </list>
     /// </remarks>
@@ -1207,20 +967,10 @@ public sealed record KerxFormat4Subtable : KerxSubtable, IDerivedRecord<KerxSubt
         ArgumentOutOfRangeException.ThrowIfNegative(stateIndex);
         ArgumentOutOfRangeException.ThrowIfNegative(glyphClass);
         if (stateIndex >= StateCount)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(stateIndex), stateIndex,
-                $"State index {stateIndex} is out of range [0, {StateCount}).");
-        }
+            throw new ArgumentOutOfRangeException(nameof(stateIndex), stateIndex, $"State index {stateIndex} is out of range [0, {StateCount}).");
         if (glyphClass >= StateSize)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(glyphClass), glyphClass,
-                $"Glyph class {glyphClass} is out of range [0, {StateSize}).");
-        }
-
-        ushort entryIndex = StateArray[stateIndex * StateSize + glyphClass];
-        return Entries[entryIndex];
+            throw new ArgumentOutOfRangeException(nameof(glyphClass), glyphClass, $"Glyph class {glyphClass} is out of range [0, {StateSize}).");
+        return Entries[StateArray.Span[stateIndex * StateSize + glyphClass]];
     }
 
     /// <summary>Gets the kerning value that applies at a transition to the current glyph class.</summary>
@@ -1231,13 +981,8 @@ public sealed record KerxFormat4Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <seealso cref="GetTupleValues(KerxFormat4StateEntry, int)"/>
     /// <seealso cref="KerxFormat4StateEntry.KerningIndices"/>
     /// <seealso cref="KernValues"/>
-    public int GetKernValue(KerxFormat4StateEntry entry, int glyphClass)
-    {
-        if (!TryGetValueIndex(entry, glyphClass, out int index))
-            return 0;
-
-        return KernValues[index];
-    }
+    public int GetKernValue(KerxFormat4StateEntry entry, int glyphClass) =>
+        !TryGetValueIndex(entry, glyphClass, out int index) ? 0 : KernValues.Span[index];
 
     /// <summary>Gets the tuple vector that applies at a transition to the current glyph class.</summary>
     /// <param name="entry">The state entry the machine just stepped into.</param>
@@ -1250,99 +995,50 @@ public sealed record KerxFormat4Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     {
         if (!TryGetValueIndex(entry, glyphClass, out int flatIndex))
             return [];
-
         int size = TupleCount == 0 ? 1 : checked((int)TupleCount);
-        if (flatIndex + size > KernValues.Length)
-            return [];
-
-        return KernValues.AsSpan(flatIndex, size).ToArray();
+        return flatIndex + size > KernValues.Length
+            ? []
+            : KernValues.Span.Slice(flatIndex, size).ToArray();
     }
 
-    /// <summary>Resolves the flat value-array index that a state entry and glyph class select.</summary>
-    /// <param name="entry">The state entry the machine just stepped into.</param>
-    /// <param name="glyphClass">The class of the current glyph.</param>
-    /// <param name="index">When this method returns <see langword="true"/>, contains the flat index into <see cref="KernValues"/>.</param>
-    /// <returns><see langword="true"/> when the entry has a kerning index at <paramref name="glyphClass"/> that lies within <see cref="KernValues"/>; otherwise, <see langword="false"/>.</returns>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>An entry index of <c>0xFFFF</c> signals no kerning, and the method returns <see langword="false"/> without consulting the array.</description></item>
-    /// <item><description>For a variation subtable the entry index is a logical value index; the method converts it to a flat index by multiplying by <see cref="KerxSubtable.TupleCount"/>.</description></item>
-    /// <item><description>The result is checked against <see cref="KernValues"/>'s length so a malformed table yields no kerning rather than an out-of-range access.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="GetKernValue(KerxFormat4StateEntry, int)"/>
-    /// <seealso cref="GetTupleValues(KerxFormat4StateEntry, int)"/>
     private bool TryGetValueIndex(KerxFormat4StateEntry entry, int glyphClass, out int index)
     {
         index = 0;
         if ((uint)glyphClass >= (uint)entry.KerningIndices.Length)
             return false;
 
-        ushort logicalIndex = entry.KerningIndices[glyphClass];
+        ushort logicalIndex = entry.KerningIndices.Span[glyphClass];
         if (logicalIndex == KerxFormat4StateEntry.NoKerning)
             return false;
 
         int elementSize = TupleCount == 0 ? 1 : checked((int)TupleCount);
         index = logicalIndex * elementSize;
-
         return index >= 0 && index < KernValues.Length;
     }
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the subtable's common header.</param>
-    /// <param name="context">A <see cref="KerxSubtable.Context"/> carrying the font's glyph count and the enclosing table's version.</param>
-    /// <returns>The parsed subtable.</returns>
-    /// <exception cref="InvalidDataException"><paramref name="context"/> is not a <see cref="KerxSubtable.Context"/>.</exception>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The common header and the extended state header are read as single structs; the class table follows as an AAT lookup.</description></item>
-    /// <item><description>The state array length is derived from the distance between the state-array and entry-table offsets; the number of states follows by dividing by the class count.</description></item>
-    /// <item><description>Entries are variable-length when the subtable is a variation subtable: each carries one index per class regardless of tuple count, so the entry size is fixed at <c>2 + 2 + classCount × 2</c> bytes.</description></item>
-    /// <item><description>The kerning value array follows the entry table and extends to the end of the subtable; the array length depends on the tuple count when the subtable is a variation subtable.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IDerivedRecord{TBase, TDerived}"/>
-    /// <seealso cref="KerxSubtable.Context"/>
-    /// <seealso cref="KerxFormat4StateEntry.Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerxFormat4Subtable IDerivedRecord<KerxSubtable, KerxFormat4Subtable>.Parse(ref Cursor cursor, object? context)
     {
-        if (context is not KerxSubtable.Context ctx)
-        {
-            throw new InvalidDataException(
-                "'kerx' format 4 subtable requires a glyph-count and version context.");
-        }
+        if (context is not Context ctx)
+            throw new InvalidDataException("'kerx' format 4 subtable requires a glyph-count and version context.");
 
-        long subtableStart = cursor.Position;
         SubtableHeader header = cursor.ReadEndianReversibleStruct<SubtableHeader>();
         long stateHeaderStart = cursor.Position;
         STXHeader state = cursor.ReadEndianReversibleStruct<STXHeader>();
 
-        cursor.Position = stateHeaderStart + state.ClassTableOffset;
-        LookupTable classTable = cursor.ReadRecord<LookupTable>(new LookupTable.Context(ctx.GlyphCount));
+        LookupTable classTable = cursor.Source.ParseRecordAt<LookupTable>(
+            stateHeaderStart + state.ClassTableOffset,
+            new LookupTable.Context(ctx.GlyphCount));
 
         int classCount = checked((int)state.ClassCount);
-        cursor.Position = stateHeaderStart + state.StateArrayOffset;
-        int stateArrayLength = checked((int)((state.EntryTableOffset - state.StateArrayOffset) / 2));
-        ushort[] stateArray = cursor.ReadUInt16Array(stateArrayLength);
+        ushort[] stateArray = cursor.Source.ReadUInt16ArrayAt(
+            stateHeaderStart + state.StateArrayOffset,
+            checked((int)((state.EntryTableOffset - state.StateArrayOffset) / 2)));
 
         cursor.Position = stateHeaderStart + state.EntryTableOffset;
-        long subtableEnd = subtableStart + header.Length;
-
-        int entrySizeBytes = 2 + 2 + classCount * 2;
-        long entryTableEnd = subtableEnd;
-        long entryTableStart = cursor.Position;
-        int entryCount = checked((int)((entryTableEnd - entryTableStart) / entrySizeBytes));
-
-        var entryContext = new KerxFormat4StateEntry.Context(classCount);
-        var entries = new KerxFormat4StateEntry[entryCount];
-        for (int i = 0; i < entries.Length; i++)
-            entries[i] = cursor.ReadRecord<KerxFormat4StateEntry>(entryContext);
-
-        long valueArrayStart = cursor.Position;
-        int valueArrayShortCount = checked((int)((subtableEnd - valueArrayStart) / 2));
-        short[] kernValues = cursor.ReadInt16Array(valueArrayShortCount);
+        KerxFormat4StateEntry[] entries = cursor.ReadRecordArray<KerxFormat4StateEntry>(
+            checked((int)((header.Length - cursor.Position) / (2 + 2 + classCount * 2))),
+            new KerxFormat4StateEntry.Context(classCount));
+        short[] kernValues = cursor.ReadInt16Array(checked((int)((header.Length - cursor.Position) / 2)));
 
         return new()
         {
@@ -1352,7 +1048,7 @@ public sealed record KerxFormat4Subtable : KerxSubtable, IDerivedRecord<KerxSubt
             ClassTable = classTable,
             StateSize = classCount,
             StateArray = stateArray,
-            Entries = entries,
+            Entries = Array.AsReadOnly(entries),
             KernValues = kernValues,
         };
     }
@@ -1400,7 +1096,7 @@ public sealed record KerxFormat4StateEntry : IRecord<KerxFormat4StateEntry>
     /// <seealso cref="KerxFormat4Subtable.StateSize"/>
     /// <seealso cref="NoKerning"/>
     /// <seealso cref="KerxFormat4Subtable.KernValues"/>
-    public required ushort[] KerningIndices { get; init; }
+    public required ReadOnlyMemory<ushort> KerningIndices { get; init; }
 
     /// <summary>Gets a value indicating whether the kerning value for the current class is pushed.</summary>
     /// <value><see langword="true"/> when bit <c>0x8000</c> of <see cref="Flags"/> is set.</value>
@@ -1412,33 +1108,15 @@ public sealed record KerxFormat4StateEntry : IRecord<KerxFormat4StateEntry>
     /// <seealso cref="Flags"/>
     public bool DontAdvance => (Flags & 0x4000) != 0;
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the entry's first byte.</param>
-    /// <param name="context">A <see cref="Context"/> carrying the class count.</param>
-    /// <returns>The parsed entry.</returns>
-    /// <exception cref="InvalidDataException"><paramref name="context"/> is not a <see cref="Context"/>.</exception>
-    /// <exception cref="EndOfStreamException">The read extends past the end of the table-scoped source.</exception>
-    /// <remarks>The next-state and flags fields are read as two <c>UInt16</c> values; the kerning-index array follows as a single bulk call.</remarks>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso cref="Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerxFormat4StateEntry IRecord<KerxFormat4StateEntry>.Parse(ref Cursor cursor, object? context)
     {
         if (context is not Context ctx)
-        {
-            throw new InvalidDataException(
-                "'kerx' format 4 state entry requires a class-count context.");
-        }
-
-        ushort newState = cursor.ReadUInt16();
-        ushort flags = cursor.ReadUInt16();
-        ushort[] indices = cursor.ReadUInt16Array(ctx.ClassCount);
-
+            throw new InvalidDataException("'kerx' format 4 state entry requires a class-count context.");
         return new()
         {
-            NewStateIndex = newState,
-            Flags = flags,
-            KerningIndices = indices,
+            NewStateIndex = cursor.ReadUInt16(),
+            Flags = cursor.ReadUInt16(),
+            KerningIndices = cursor.ReadUInt16Array(ctx.ClassCount),
         };
     }
 
@@ -1454,7 +1132,7 @@ public sealed record KerxFormat4StateEntry : IRecord<KerxFormat4StateEntry>
 /// <list type="bullet">
 /// <item><description>Like format 2, but the row and column selectors are per-glyph indices in a trimmed range rather than class codes in a dense space.</description></item>
 /// <item><description>Two AAT lookups, one for the left glyph and one for the right, map each glyph to its row and column. Glyphs the lookups do not cover select row or column zero.</description></item>
-/// <item><description>The value array is row-major with <see cref="Format6Header.ColumnCount"/> entries per row; the element for <c>(leftRow, rightColumn)</c> is at flat index <c>leftRow × ColumnCount + rightColumn</c>.</description></item>
+/// <item><description>The value array is row-major with <see cref="ColumnCount"/> entries per row; the element for <c>(leftRow, rightColumn)</c> is at flat index <c>leftRow × ColumnCount + rightColumn</c>.</description></item>
 /// <item><description>The element size is two bytes for a non-variation subtable, and <c>2 × tupleCount</c> bytes for a variation subtable.</description></item>
 /// <item><description>See the <see href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">format 6</see> section of the <c>kerx</c> table description.</description></item>
 /// </list>
@@ -1511,7 +1189,7 @@ public sealed record KerxFormat6Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <seealso cref="ColumnCount"/>
     /// <seealso cref="GetKernValue(int, int)"/>
     /// <seealso cref="GetTupleValues(int, int)"/>
-    public required short[] KerningValues { get; init; }
+    public required ReadOnlyMemory<short> KerningValues { get; init; }
 
     /// <summary>Gets the number of <c>Int16</c> slots per value array element.</summary>
     /// <value><c>1</c> when the subtable is not a variation subtable; <c>TupleCount</c> when it is.</value>
@@ -1532,13 +1210,8 @@ public sealed record KerxFormat6Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <seealso cref="GetTupleValues(int, int)"/>
     /// <seealso cref="RowIndexTable"/>
     /// <seealso cref="ColumnIndexTable"/>
-    public int GetKernValue(int leftGlyph, int rightGlyph)
-    {
-        if (!TryGetValueIndex(leftGlyph, rightGlyph, out int index))
-            return 0;
-
-        return KerningValues[index];
-    }
+    public int GetKernValue(int leftGlyph, int rightGlyph) =>
+        !TryGetValueIndex(leftGlyph, rightGlyph, out int index) ? 0 : KerningValues.Span[index];
 
     /// <summary>Gets the tuple vector that applies to a glyph pair.</summary>
     /// <param name="leftGlyph">The left-hand glyph ID.</param>
@@ -1551,28 +1224,12 @@ public sealed record KerxFormat6Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     {
         if (!TryGetValueIndex(leftGlyph, rightGlyph, out int index))
             return [];
-
         int size = ElementSizeInShorts;
-        if (index + size > KerningValues.Length)
-            return [];
-
-        return KerningValues.AsSpan(index, size).ToArray();
+        return index + size > KerningValues.Length
+            ? []
+            : KerningValues.Span.Slice(index, size).ToArray();
     }
 
-    /// <summary>Computes the flat short index for a glyph pair's value array element.</summary>
-    /// <param name="leftGlyph">The left-hand glyph ID.</param>
-    /// <param name="rightGlyph">The right-hand glyph ID.</param>
-    /// <param name="index">When this method returns <see langword="true"/>, contains the flat index into <see cref="KerningValues"/>.</param>
-    /// <returns><see langword="true"/> when the index is within the array bounds; otherwise, <see langword="false"/>.</returns>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The left and right glyphs are resolved through the row and column lookups; glyphs the lookups do not cover select row or column zero.</description></item>
-    /// <item><description>The row stride is <see cref="ColumnCount"/> converted to shorts; the column stride is <see cref="ElementSizeInShorts"/>.</description></item>
-    /// <item><description>Row and column selections beyond the declared counts are clamped out by the bounds check, so a malformed table yields no kerning rather than an out-of-range access.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="RowIndexTable"/>
-    /// <seealso cref="ColumnIndexTable"/>
     private bool TryGetValueIndex(int leftGlyph, int rightGlyph, out int index)
     {
         index = 0;
@@ -1586,58 +1243,23 @@ public sealed record KerxFormat6Subtable : KerxSubtable, IDerivedRecord<KerxSubt
         return index >= 0 && index < KerningValues.Length;
     }
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the subtable's common header.</param>
-    /// <param name="context">A <see cref="KerxSubtable.Context"/> carrying the font's glyph count and the enclosing table's version.</param>
-    /// <returns>The parsed subtable.</returns>
-    /// <exception cref="InvalidDataException"><paramref name="context"/> is not a <see cref="KerxSubtable.Context"/>.</exception>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The common header and the format 6 body header are read as single structs; the two index lookups are parsed against the font's glyph count.</description></item>
-    /// <item><description>The value array is read as a single flat <c>Int16</c> buffer sized by the distance from the array offset to the subtable end.</description></item>
-    /// <item><description>The row and column counts are stored on the record so the accessors can bound their indexing without re-deriving them from the array length.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IDerivedRecord{TBase, TDerived}"/>
-    /// <seealso cref="KerxSubtable.Context"/>
-    /// <seealso cref="LookupTable.Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerxFormat6Subtable IDerivedRecord<KerxSubtable, KerxFormat6Subtable>.Parse(ref Cursor cursor, object? context)
     {
-        if (context is not KerxSubtable.Context ctx)
-        {
-            throw new InvalidDataException(
-                "'kerx' format 6 subtable requires a glyph-count and version context.");
-        }
+        if (context is not Context ctx)
+            throw new InvalidDataException("'kerx' format 6 subtable requires a glyph-count and version context.");
 
-        long subtableStart = cursor.Position;
         SubtableHeader header = cursor.ReadEndianReversibleStruct<SubtableHeader>();
         Format6Header format = cursor.ReadEndianReversibleStruct<Format6Header>();
-
-        cursor.Position = subtableStart + format.RowIndexTable;
-        LookupTable rowIndexTable = cursor.ReadRecord<LookupTable>(new LookupTable.Context(ctx.GlyphCount));
-
-        cursor.Position = subtableStart + format.ColumnIndexTable;
-        LookupTable columnIndexTable = cursor.ReadRecord<LookupTable>(new LookupTable.Context(ctx.GlyphCount));
-
-        long arrayStart = subtableStart + format.KerningArray;
-        long subtableEnd = subtableStart + header.Length;
-        int arrayShortCount = checked((int)((subtableEnd - arrayStart) / 2));
-
-        cursor.Position = arrayStart;
-        short[] kerningValues = cursor.ReadInt16Array(arrayShortCount);
-
         return new()
         {
             Length = header.Length,
             Coverage = header.Coverage,
             TupleCount = header.TupleCount,
-            RowIndexTable = rowIndexTable,
-            ColumnIndexTable = columnIndexTable,
+            RowIndexTable = cursor.Source.ParseRecordAt<LookupTable>(format.RowIndexTable, new LookupTable.Context(ctx.GlyphCount)),
+            ColumnIndexTable = cursor.Source.ParseRecordAt<LookupTable>(format.ColumnIndexTable, new LookupTable.Context(ctx.GlyphCount)),
             RowCount = format.RowCount,
             ColumnCount = format.ColumnCount,
-            KerningValues = kerningValues,
+            KerningValues = cursor.Source.ReadInt16ArrayAt(format.KerningArray, checked((int)((header.Length - (long)format.KerningArray) / 2))),
         };
     }
 
@@ -1646,13 +1268,14 @@ public sealed record KerxFormat6Subtable : KerxSubtable, IDerivedRecord<KerxSubt
     /// <list type="bullet">
     /// <item><description>The row and column counts are 16-bit, and the three offsets are 32-bit; reversal is field-by-field because the struct is not uniform-width.</description></item>
     /// <item><description>The three offsets are relative to the start of the subtable, not to this struct.</description></item>
-    /// <item><description>Consumed at parse time and not retained on <see cref="KerxFormat6Subtable"/>.</description></item>
+    /// <item><description>Declared as a mutable <c>record struct</c> with <see cref="StructLayoutAttribute"/> so its fields honour the wire layout; the <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
+    /// <item><description>Public because a writer fills the struct in memory, reverses it, and writes the bytes by blittable cast.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="KerxFormat6Subtable"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal record struct Format6Header : IEndianReversibleStruct<Format6Header>
+    public record struct Format6Header : IEndianReversibleStruct<Format6Header>
     {
         /// <summary>The number of rows in the value array at byte offset 0.</summary>
         /// <value>The row stride count; bounds the row index selected by the row index lookup.</value>
@@ -1746,29 +1369,10 @@ public sealed record KerxGlyphCoverageTable : IRecord<KerxGlyphCoverageTable>
         return (field[byteIndex] & (1 << bitIndex)) != 0;
     }
 
-    /// <inheritdoc/>
-    /// <param name="cursor">The cursor positioned at the coverage table's first byte.</param>
-    /// <param name="context">A <see cref="Context"/> carrying the font's glyph count and the subtable count declared in the enclosing table's header.</param>
-    /// <returns>The parsed coverage table.</returns>
-    /// <exception cref="InvalidDataException"><paramref name="context"/> is not a <see cref="Context"/>.</exception>
-    /// <exception cref="EndOfStreamException">A read extends past the end of the table-scoped source.</exception>
-    /// <remarks>
-    /// <list type="bullet">
-    /// <item><description>The header is read as a single struct; the per-glyph bitfields follow as a flat <c>byte</c> array of length <c>glyphCount × bytesPerGlyph</c>.</description></item>
-    /// <item><description>Each glyph's bitfield occupies a contiguous run of <c>bytesPerGlyph</c> bytes; the parser slices the flat buffer into per-glyph arrays so the semantic record can be indexed by glyph ID directly.</description></item>
-    /// <item><description>The declared <c>bitfieldCount</c> is preserved on the record; the parser does not cross-check it against the enclosing table's subtable count, leaving that to a diagnostics analyzer.</description></item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="IRecord{T}"/>
-    /// <seealso cref="Context"/>
-    /// <seealso href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6kerx.html">TrueType Reference Manual: The <c>kerx</c> table</seealso>
     static KerxGlyphCoverageTable IRecord<KerxGlyphCoverageTable>.Parse(ref Cursor cursor, object? context)
     {
         if (context is not Context ctx)
-        {
-            throw new InvalidDataException(
-                "'kerx' glyph coverage table requires a glyph-count and subtable-count context.");
-        }
+            throw new InvalidDataException("'kerx' glyph coverage table requires a glyph-count and subtable-count context.");
 
         Header header = cursor.ReadEndianReversibleStruct<Header>();
         int bitfieldCount = checked((int)header.BitfieldCount);
@@ -1799,13 +1403,14 @@ public sealed record KerxGlyphCoverageTable : IRecord<KerxGlyphCoverageTable>
     /// <list type="bullet">
     /// <item><description>Both fields are <c>UInt32</c>, so the reversal is a single word-span pass over the struct reinterpreted as two 32-bit words.</description></item>
     /// <item><description>The <c>version</c> field is defined as zero by the specification; the parser preserves the value but does not reject non-zero.</description></item>
-    /// <item><description>Consumed at parse time and not retained on <see cref="KerxGlyphCoverageTable"/>.</description></item>
+    /// <item><description>Declared as a mutable <c>record struct</c> with <see cref="StructLayoutAttribute"/> so its fields honour the wire layout; the <c>&lt;Clone&gt;$()</c> method must be declared in the public-API baseline — see <c>PublicAPI.Shipped.txt</c>.</description></item>
+    /// <item><description>Public because a writer fills the struct in memory, reverses it, and writes the bytes by blittable cast.</description></item>
     /// </list>
     /// </remarks>
     /// <seealso cref="KerxGlyphCoverageTable"/>
     /// <seealso cref="IEndianReversibleStruct{T}"/>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal record struct Header : IEndianReversibleStruct<Header>
+    public record struct Header : IEndianReversibleStruct<Header>
     {
         /// <summary>The coverage table version at byte offset 0, defined as zero.</summary>
         /// <value>The raw <c>version</c> field; the parser preserves it for round-tripping and diagnostics.</value>
@@ -1824,7 +1429,7 @@ public sealed record KerxGlyphCoverageTable : IRecord<KerxGlyphCoverageTable>
         /// <seealso cref="Cursor.ReadEndianReversibleStruct{T}(bool)"/>
         public static Header ReverseEndianness(Header value)
         {
-            Span<uint> words = MemoryMarshal.CreateSpan(ref Unsafe.As<Header, uint>(ref value), 2);
+            Span<uint> words = MemoryMarshal.CreateSpan(ref value.Version, 2);
             BinaryPrimitives.ReverseEndianness(words, words);
             return value;
         }
