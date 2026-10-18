@@ -380,7 +380,7 @@ Mubarrat.Fonts.Binary.ParentContext.ParentContext(Mubarrat.Fonts.Binary.ParentCo
 Mubarrat.Fonts.Binary.ParentContext.ParentContext(Mubarrat.Fonts.Binary.Source! ParentSource) -> void
 Mubarrat.Fonts.Binary.ParentContext.ParentSource.get -> Mubarrat.Fonts.Binary.Source!
 Mubarrat.Fonts.Binary.ParentContext.ParentSource.init -> void
-Mubarrat.Fonts.Binary.ReadOnlyMemoryExtensions
+Mubarrat.Fonts.Binary.MemoryExtensions
 Mubarrat.Fonts.Binary.SliceSource
 Mubarrat.Fonts.Binary.SliceSource.IsIsolated.get -> bool
 Mubarrat.Fonts.Binary.SliceSource.Outer.get -> Mubarrat.Fonts.Binary.Source!
@@ -9397,12 +9397,12 @@ static Mubarrat.Fonts.Binary.BinaryExtensions.ToRecords<T, THeader>(this System.
 static Mubarrat.Fonts.Binary.FileSource.Open(string! path) -> Mubarrat.Fonts.Binary.FileSource!
 static Mubarrat.Fonts.Binary.ParentContext.operator !=(Mubarrat.Fonts.Binary.ParentContext? left, Mubarrat.Fonts.Binary.ParentContext? right) -> bool
 static Mubarrat.Fonts.Binary.ParentContext.operator ==(Mubarrat.Fonts.Binary.ParentContext? left, Mubarrat.Fonts.Binary.ParentContext? right) -> bool
-static Mubarrat.Fonts.Binary.ReadOnlyMemoryExtensions.AsList<T>(this CommunityToolkit.HighPerformance.Memory2D<T> memory) -> System.Collections.Generic.IList<T>!
-static Mubarrat.Fonts.Binary.ReadOnlyMemoryExtensions.AsList<T>(this System.Memory<T> memory) -> System.Collections.Generic.IList<T>!
-static Mubarrat.Fonts.Binary.ReadOnlyMemoryExtensions.AsReadOnlyList<T>(this CommunityToolkit.HighPerformance.Memory2D<T> memory) -> System.Collections.Generic.IReadOnlyList<T>!
-static Mubarrat.Fonts.Binary.ReadOnlyMemoryExtensions.AsReadOnlyList<T>(this CommunityToolkit.HighPerformance.ReadOnlyMemory2D<T> memory) -> System.Collections.Generic.IReadOnlyList<T>!
-static Mubarrat.Fonts.Binary.ReadOnlyMemoryExtensions.AsReadOnlyList<T>(this System.Memory<T> memory) -> System.Collections.Generic.IReadOnlyList<T>!
-static Mubarrat.Fonts.Binary.ReadOnlyMemoryExtensions.AsReadOnlyList<T>(this System.ReadOnlyMemory<T> memory) -> System.Collections.Generic.IReadOnlyList<T>!
+static Mubarrat.Fonts.Binary.MemoryExtensions.AsList<T>(this CommunityToolkit.HighPerformance.Memory2D<T> memory) -> System.Collections.Generic.IList<T>!
+static Mubarrat.Fonts.Binary.MemoryExtensions.AsList<T>(this System.Memory<T> memory) -> System.Collections.Generic.IList<T>!
+static Mubarrat.Fonts.Binary.MemoryExtensions.AsReadOnlyList<T>(this CommunityToolkit.HighPerformance.Memory2D<T> memory) -> System.Collections.Generic.IReadOnlyList<T>!
+static Mubarrat.Fonts.Binary.MemoryExtensions.AsReadOnlyList<T>(this CommunityToolkit.HighPerformance.ReadOnlyMemory2D<T> memory) -> System.Collections.Generic.IReadOnlyList<T>!
+static Mubarrat.Fonts.Binary.MemoryExtensions.AsReadOnlyList<T>(this System.Memory<T> memory) -> System.Collections.Generic.IReadOnlyList<T>!
+static Mubarrat.Fonts.Binary.MemoryExtensions.AsReadOnlyList<T>(this System.ReadOnlyMemory<T> memory) -> System.Collections.Generic.IReadOnlyList<T>!
 static Mubarrat.Fonts.Binary.SliceSource.Available(Mubarrat.Fonts.Binary.Source! outer, long shift) -> long
 static Mubarrat.Fonts.Binary.SliceSource.RemainingAfter(long existingLength, long shift) -> long
 static Mubarrat.Fonts.Binary.TagContext.operator !=(Mubarrat.Fonts.Binary.TagContext? left, Mubarrat.Fonts.Binary.TagContext? right) -> bool

@@ -9,7 +9,7 @@ namespace Mubarrat.Fonts.Binary;
 /// <remarks>
 /// The returned collections are views over the supplied memory, not independent copies. Changes made through other writable references to the underlying storage remain observable through these views. The collection interfaces do not expose the underlying memory's contiguity or dimensionality.
 /// </remarks>
-public static class ReadOnlyMemoryExtensions
+public static class MemoryExtensions
 {
     /// <summary>
     /// Exposes a <see cref="ReadOnlyMemory{T}"/> as an <see cref="IReadOnlyList{T}"/> without copying its elements.
