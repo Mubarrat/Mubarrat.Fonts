@@ -41,7 +41,7 @@ public sealed record HvpmTable : IFontTable<HvpmTable>, IRecord<HvpmTable>
     /// <value>One <see cref="PartRange"/> per contiguous span of part IDs. Valid tables have ranges in ascending order by start with no overlap.</value>
     /// <remarks>The array length is the mapping subtable's declared count; the parser reads exactly that many entries and does not pad or truncate.</remarks>
     /// <seealso cref="PartRange"/>
-    public required PartRange[] Ranges { get; init; }
+    public required ReadOnlyMemory<PartRange> Ranges { get; init; }
 
     /// <summary>Applies the remapping to <paramref name="partId"/>.</summary>
     /// <param name="partId">The part ID to remap.</param>
@@ -70,7 +70,7 @@ public sealed record HvpmTable : IFontTable<HvpmTable>, IRecord<HvpmTable>
         while (lo <= hi)
         {
             int mid = lo + ((hi - lo) >> 1);
-            PartRange range = Ranges[mid];
+            PartRange range = Ranges.Span[mid];
             if (partId < range.Start)
                 hi = mid - 1;
             else if (partId > range.End)

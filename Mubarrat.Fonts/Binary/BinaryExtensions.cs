@@ -379,4 +379,53 @@ public static class BinaryExtensions
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType specification: Data Types</seealso>
     public static void PeekEnumArray<TEnum>(this ref Cursor cursor, Span<TEnum> destination, bool isLittleEndian = false) where TEnum : unmanaged, Enum =>
         cursor.Source.ReadEnumArrayAt(cursor.Position, destination, isLittleEndian);
+
+    /// <summary>
+    /// Gets a writable reference to the compatible header storage
+    /// associated with the specified instance.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The reference type whose instance contains the header storage.
+    /// </typeparam>
+    /// <typeparam name="THeader">
+    /// The unmanaged structure representing the header.
+    /// </typeparam>
+    /// <param name="instance">
+    /// The instance whose header storage is to be accessed.
+    /// </param>
+    /// <returns>
+    /// A writable reference to the instance's compatible header storage.
+    /// </returns>
+    /// <remarks>
+    /// Use this method only when you own the specified instance and are
+    /// authorized to modify its header storage. Do not use this method on
+    /// instances owned or managed by other code, as modifications through
+    /// the returned reference directly affect the underlying storage and
+    /// may violate the owner's invariants or interfere with concurrent access.
+    /// </remarks>
+    public static ref THeader GetWritableHeader<T, THeader>(this T instance) where T : class, ICompatibleHeader<T, THeader> where THeader : unmanaged => ref T.GetWritableReference(instance);
+
+    /// <summary>
+    /// Gets a read-only reference to the compatible header storage
+    /// associated with the specified instance.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The reference type whose instance contains the header storage.
+    /// </typeparam>
+    /// <typeparam name="THeader">
+    /// The unmanaged structure representing the header.
+    /// </typeparam>
+    /// <param name="instance">
+    /// The instance whose header storage is to be accessed.
+    /// </param>
+    /// <returns>
+    /// A read-only reference to the instance's compatible header storage.
+    /// </returns>
+    /// <remarks>
+    /// The returned reference does not permit modification through that
+    /// reference, although the underlying storage may still be modified
+    /// through other references. Use this method when you only need to read
+    /// the header and do not need ownership of the instance.
+    /// </remarks>
+    public static ref readonly THeader GetReadOnlyHeader<T, THeader>(this T instance) where T : class, ICompatibleHeader<T, THeader> where THeader : unmanaged => ref T.GetReadOnlyReference(instance);
 }

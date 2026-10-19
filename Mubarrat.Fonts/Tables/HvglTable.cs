@@ -1,5 +1,4 @@
 ﻿using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Mubarrat.Fonts.Binary;
 using Mubarrat.Fonts.Primitives;
@@ -106,25 +105,9 @@ public sealed record HvglTable : IFontTable<HvglTable>, IRecord<HvglTable>
         Header header = cursor.ReadEndianReversibleStruct<Header>(isLittleEndian: true);
 
         if (header.MajorVersion != CurrentMajorVersion || header.MinorVersion != CurrentMinorVersion)
-        {
-            throw new InvalidDataException(
-                $"'hvgl'.version is {header.MajorVersion}.{header.MinorVersion}, expected {CurrentMajorVersion}.{CurrentMinorVersion}.");
-        }
+            throw new InvalidDataException($"'hvgl'.version is {header.MajorVersion}.{header.MinorVersion}, expected {CurrentMajorVersion}.{CurrentMinorVersion}.");
         if (header.NumberOfParts > int.MaxValue)
-        {
-            throw new InvalidDataException(
-                $"'hvgl'.numberOfParts is {header.NumberOfParts}, which exceeds the supported maximum.");
-        }
-
-        // Part-index offsets are measured from the start of the part index, not
-        // from the start of the table. Slice the source there and read the offset
-        // array from position 0; each value then resolves as a slice-relative
-        // offset, matching the specification. The trailing sentinel entry is
-        // intentionally not read: it points at the end of the last part's data
-        // and carries no part.
-        HvglPart[] parts = cursor.Source
-            .WithOffset(header.PartIndexOffset)
-            .ReadOffset32ArrayParseRecordAt<HvglPart>(0, (int)header.NumberOfParts, isLittleEndian: true);
+            throw new InvalidDataException($"'hvgl'.numberOfParts is {header.NumberOfParts}, which exceeds the supported maximum.");
 
         return new()
         {
@@ -133,7 +116,15 @@ public sealed record HvglTable : IFontTable<HvglTable>, IRecord<HvglTable>
             FormatFlags = header.FormatFlags,
             NumberOfParts = header.NumberOfParts,
             NumberOfGlyphs = header.NumberOfGlyphs,
-            Parts = Array.AsReadOnly(parts),
+
+            // Part-index offsets are measured from the start of the part index, not
+            // from the start of the table. Slice the source there and read the offset
+            // array from position 0; each value then resolves as a slice-relative
+            // offset, matching the specification. The trailing sentinel entry is
+            // intentionally not read: it points at the end of the last part's data
+            // and carries no part.
+            Parts = Array.AsReadOnly(cursor.Source.WithOffset(header.PartIndexOffset)
+                .ReadOffset32ArrayParseRecordAt<HvglPart>(0, (int)header.NumberOfParts, isLittleEndian: true)),
         };
     }
 

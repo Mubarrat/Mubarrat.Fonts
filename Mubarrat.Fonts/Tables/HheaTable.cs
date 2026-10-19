@@ -8,7 +8,8 @@ namespace Mubarrat.Fonts.Tables;
 /// <summary>Represents the OpenType <c>hhea</c> table containing horizontal header metrics and the number of horizontal metric records.</summary>
 /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea">The table provides horizontal layout metrics and determines how many <c>longHorMetric</c> records are present in <c>hmtx</c>.</see> <list type="bullet"><item><description><see cref="NumberOfHMetrics"/> determines the number of full horizontal metric records in <c>hmtx</c>.</description></item><item><description><see cref="Ascender"/>, <see cref="Descender"/>, and <see cref="LineGap"/> are primarily associated with Apple's horizontal layout model.</description></item><item><description>The minimum sidebearing and extent fields describe glyph metrics and ignore glyphs without contours.</description></item></list></remarks>
 /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea">OpenType <c>hhea</c> table specification</seealso>
-public sealed record HheaTable : IFontTable<HheaTable>, IEndianReversibleHeaderRecord<HheaTable, HheaTable.Header>
+[StructLayout(LayoutKind.Explicit, Pack = 1)]
+public sealed record HheaTable : IFontTable<HheaTable>, IEndianReversibleHeaderRecord<HheaTable, HheaTable.Header>, ICompatibleHeader<HheaTable, HheaTable.Header>
 {
     /// <summary>Gets the OpenType table tag.</summary>
     /// <value>The tag <c>hhea</c>.</value>
@@ -16,101 +17,105 @@ public sealed record HheaTable : IFontTable<HheaTable>, IEndianReversibleHeaderR
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea">OpenType <c>hhea</c> table specification</seealso>
     public static Tag Tag => "hhea";
 
+    [field: FieldOffset(0)]
+    private Header _header;
+
     /// <summary>Gets the version of the <c>hhea</c> table.</summary>
     /// <value>The required value is <c>0x00010000</c>.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#version">The field is a 16.16 fixed-point version value.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#version">OpenType <c>version</c></seealso>
+    [field: FieldOffset(0)]
     public uint Version { get; init; }
 
     /// <summary>Gets the typographic ascent.</summary>
     /// <value>The distance from the baseline to the highest ascender, in font design units.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#ascender">The field defines the typographic ascender used by the horizontal header metrics.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#ascender">OpenType <c>ascender</c></seealso>
+    [field: FieldOffset(4)]
     public short Ascender { get; init; }
 
     /// <summary>Gets the typographic descent.</summary>
     /// <value>The distance from the baseline to the lowest descender, in font design units.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#descender">The field defines the typographic descender used by the horizontal header metrics.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#descender">OpenType <c>descender</c></seealso>
+    [field: FieldOffset(6)]
     public short Descender { get; init; }
 
     /// <summary>Gets the typographic line gap.</summary>
     /// <value>The additional vertical space between lines, in font design units.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#linegap">Negative values are treated as zero by some historical Apple and Windows systems.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#linegap">OpenType <c>lineGap</c></seealso>
+    [field: FieldOffset(8)]
     public short LineGap { get; init; }
 
     /// <summary>Gets the maximum advance width.</summary>
     /// <value>The maximum advance width among the horizontal metrics, in font design units.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#advancewidthmax">The value is the maximum advance width represented in the <c>hmtx</c> table.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#advancewidthmax">OpenType <c>advanceWidthMax</c></seealso>
+    [field: FieldOffset(10)]
     public ushort AdvanceWidthMax { get; init; }
 
     /// <summary>Gets the minimum left sidebearing.</summary>
     /// <value>The minimum left sidebearing among glyphs with contours, in font design units.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#minleftsidebearing">The value is the minimum left sidebearing represented by the glyph metrics.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#minleftsidebearing">OpenType <c>minLeftSideBearing</c></seealso>
+    [field: FieldOffset(12)]
     public short MinLeftSideBearing { get; init; }
 
     /// <summary>Gets the minimum right sidebearing.</summary>
     /// <value>The minimum value of <c>advanceWidth - lsb - (xMax - xMin)</c>, in font design units.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#minrightsidebearing">The value is calculated from the advance width, left sidebearing, and glyph bounding box.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#minrightsidebearing">OpenType <c>minRightSideBearing</c></seealso>
+    [field: FieldOffset(14)]
     public short MinRightSideBearing { get; init; }
 
     /// <summary>Gets the maximum horizontal extent.</summary>
     /// <value>The maximum value of <c>lsb + (xMax - xMin)</c>, in font design units.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#xmaxextent">The value represents the maximum horizontal extent of glyphs with contours.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#xmaxextent">OpenType <c>xMaxExtent</c></seealso>
+    [field: FieldOffset(16)]
     public short XMaxExtent { get; init; }
 
     /// <summary>Gets the numerator of the cursor slope.</summary>
     /// <value>The rise component of the cursor slope expressed as <c>rise/run</c>.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#caretsloperise">A value of 1 is used for a vertical cursor.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#caretsloperise">OpenType <c>caretSlopeRise</c></seealso>
+    [field: FieldOffset(18)]
     public short CaretSlopeRise { get; init; }
 
     /// <summary>Gets the denominator of the cursor slope.</summary>
     /// <value>The run component of the cursor slope expressed as <c>rise/run</c>.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#caretsloperun">A value of 0 is used for a vertical cursor.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#caretsloperun">OpenType <c>caretSlopeRun</c></seealso>
+    [field: FieldOffset(20)]
     public short CaretSlopeRun { get; init; }
 
     /// <summary>Gets the cursor offset.</summary>
     /// <value>The horizontal offset applied to a slanted text cursor.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#caretoffset">The value is normally zero for non-slanted fonts.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#caretoffset">OpenType <c>caretOffset</c></seealso>
+    [field: FieldOffset(22)]
     public short CaretOffset { get; init; }
 
     /// <summary>Gets the metric data format.</summary>
     /// <value>The required value is <c>0</c> for the current format.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#metricdataformat">The field is reserved for future use and must be zero for the current format.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#metricdataformat">OpenType <c>metricDataFormat</c></seealso>
+    [field: FieldOffset(32)]
     public short MetricDataFormat { get; init; }
 
     /// <summary>Gets the number of <c>longHorMetric</c> records in the <c>hmtx</c> table.</summary>
     /// <value>The number of full horizontal metric records.</value>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#numberofhmetrics">If the value is less than the number of glyphs, the advance width of the final full metric record applies to all remaining glyphs.</see></remarks>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea#numberofhmetrics">OpenType <c>numberOfHMetrics</c></seealso>
+    [field: FieldOffset(34)]
     public ushort NumberOfHMetrics { get; init; }
 
-    /// <inheritdoc/>
-    static HheaTable IHeaderRecord<HheaTable, Header>.FromHeader(in Header header, object? context) => new()
-    {
-        Version = header.Version,
-        Ascender = header.Ascender,
-        Descender = header.Descender,
-        LineGap = header.LineGap,
-        AdvanceWidthMax = header.AdvanceWidthMax,
-        MinLeftSideBearing = header.MinLeftSideBearing,
-        MinRightSideBearing = header.MinRightSideBearing,
-        XMaxExtent = header.XMaxExtent,
-        CaretSlopeRise = header.CaretSlopeRise,
-        CaretSlopeRun = header.CaretSlopeRun,
-        CaretOffset = header.CaretOffset,
-        MetricDataFormat = header.MetricDataFormat,
-        NumberOfHMetrics = header.NumberOfHMetrics,
-    };
+    static HheaTable IHeaderRecord<HheaTable, Header>.FromHeader(in Header header, object? context) => new() { _header = header };
+
+    static ref Header ICompatibleHeader<HheaTable, Header>.GetWritableReference(HheaTable instance) => ref instance._header;
+
+    static ref readonly Header ICompatibleHeader<HheaTable, Header>.GetReadOnlyReference(HheaTable instance) => ref instance._header;
 
     /// <summary>Represents the 36-byte big-endian wire representation of the <c>hhea</c> table.</summary>
     /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/hhea">The structure is packed with no padding and follows the OpenType field layout exactly.</see> <list type="bullet"><item><description>Bytes 0-3 contain <see cref="Version"/>.</description></item><item><description>Bytes 4-23 contain horizontal metrics and caret slope values.</description></item><item><description>Bytes 24-31 contain four reserved fields that must be zero.</description></item><item><description>Bytes 32-35 contain <see cref="MetricDataFormat"/> and <see cref="NumberOfHMetrics"/>.</description></item></list></remarks>
@@ -208,25 +213,12 @@ public sealed record HheaTable : IFontTable<HheaTable>, IEndianReversibleHeaderR
         /// <returns>A record with every multi-byte field converted to the opposite byte order.</returns>
         /// <remarks><see href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType scalar fields are stored in big-endian byte order.</see></remarks>
         /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/otff#data-types">OpenType data types</seealso>
-        public static Header ReverseEndianness(Header v) => new()
+        public static Header ReverseEndianness(Header v)
         {
-            Version = BinaryPrimitives.ReverseEndianness(v.Version),
-            Ascender = BinaryPrimitives.ReverseEndianness(v.Ascender),
-            Descender = BinaryPrimitives.ReverseEndianness(v.Descender),
-            LineGap = BinaryPrimitives.ReverseEndianness(v.LineGap),
-            AdvanceWidthMax = BinaryPrimitives.ReverseEndianness(v.AdvanceWidthMax),
-            MinLeftSideBearing = BinaryPrimitives.ReverseEndianness(v.MinLeftSideBearing),
-            MinRightSideBearing = BinaryPrimitives.ReverseEndianness(v.MinRightSideBearing),
-            XMaxExtent = BinaryPrimitives.ReverseEndianness(v.XMaxExtent),
-            CaretSlopeRise = BinaryPrimitives.ReverseEndianness(v.CaretSlopeRise),
-            CaretSlopeRun = BinaryPrimitives.ReverseEndianness(v.CaretSlopeRun),
-            CaretOffset = BinaryPrimitives.ReverseEndianness(v.CaretOffset),
-            Reserved1 = BinaryPrimitives.ReverseEndianness(v.Reserved1),
-            Reserved2 = BinaryPrimitives.ReverseEndianness(v.Reserved2),
-            Reserved3 = BinaryPrimitives.ReverseEndianness(v.Reserved3),
-            Reserved4 = BinaryPrimitives.ReverseEndianness(v.Reserved4),
-            MetricDataFormat = BinaryPrimitives.ReverseEndianness(v.MetricDataFormat),
-            NumberOfHMetrics = BinaryPrimitives.ReverseEndianness(v.NumberOfHMetrics),
-        };
+            v.Version = BinaryPrimitives.ReverseEndianness(v.Version);
+            var span = MemoryMarshal.CreateSpan(ref v.Ascender, 16);
+            BinaryPrimitives.ReverseEndianness(span, span); // short and ushort have the same byte order reversal, so we can treat them as a span of shorts
+            return v;
+        }
     }
 }

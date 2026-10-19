@@ -54,12 +54,10 @@ public sealed record MortTable : IFontTable<MortTable>, IRecord<MortTable>
         Header header = cursor.ReadEndianReversibleStruct<Header>();
 
         if (header.Version != CurrentVersion)
-            throw new InvalidDataException(
-                $"'mort'.version is 0x{header.Version:X8}, expected 0x{CurrentVersion:X8}.");
+            throw new InvalidDataException($"'mort'.version is 0x{header.Version:X8}, expected 0x{CurrentVersion:X8}.");
 
         if (header.ChainCount > int.MaxValue)
-            throw new InvalidDataException(
-                $"'mort'.nChains is {header.ChainCount}, which exceeds the supported maximum.");
+            throw new InvalidDataException($"'mort'.nChains is {header.ChainCount}, which exceeds the supported maximum.");
 
         int chainCount = (int)header.ChainCount;
         var chains = new MortChain[chainCount];
@@ -146,26 +144,21 @@ public sealed record MortChain : IRecord<MortChain>
     {
         int numGlyphs = context is SfntFontFace face
             ? face.GetTable<MaxpTable>().NumGlyphs
-            : throw new InvalidDataException(
-                "'mort' requires an SFNT font face context to obtain the glyph count.");
+            : throw new InvalidDataException("'mort' requires an SFNT font face context to obtain the glyph count.");
 
-        long chainStart = cursor.Position;
         ChainHeader header = cursor.ReadEndianReversibleStruct<ChainHeader>();
-        long chainEnd = chainStart + header.ChainLength;
-
-        MortFeatureEntry[] featureEntries = cursor.ReadEndianReversibleStructArray<MortFeatureEntry>(
-            header.FeatureEntryCount);
+        MortFeatureEntry[] featureEntries = cursor.ReadEndianReversibleStructArray<MortFeatureEntry>(header.FeatureEntryCount);
 
         var subtableContext = new MortSubtable.Context(numGlyphs);
         var subtables = new MortSubtable[header.SubtableCount];
         for (int i = 0; i < subtables.Length; i++)
         {
             long subtableStart = cursor.Position;
-            subtables[i] = cursor.ReadRecord<MortSubtable>(subtableContext);
+            subtables[i] = cursor.PeekRecord<MortSubtable>(subtableContext);
             cursor.Position = (subtableStart + subtables[i].Length + 3) & ~3L;
         }
 
-        cursor.Position = chainEnd;
+        cursor.Position = header.ChainLength;
 
         return new()
         {
@@ -358,8 +351,7 @@ public abstract record MortSubtable : IRecord<MortSubtable>, IBaseRecord<MortSub
 
     static MortSubtable IRecord<MortSubtable>.Parse(ref Cursor cursor, object? context)
     {
-        long start = cursor.Position;
-        int type = cursor.Source.ReadUInt16At(start + 2) & 0x7;
+        int type = cursor.Source.ReadUInt16At(2) & 0x7;
         return type switch
         {
             0 => IBaseRecord<MortSubtable>.Parse<MortIndicRearrangementSubtable>(ref cursor, context),
@@ -367,8 +359,7 @@ public abstract record MortSubtable : IRecord<MortSubtable>, IBaseRecord<MortSub
             2 => IBaseRecord<MortSubtable>.Parse<MortLigatureSubstitutionSubtable>(ref cursor, context),
             4 => IBaseRecord<MortSubtable>.Parse<MortNonContextualSubstitutionSubtable>(ref cursor, context),
             5 => IBaseRecord<MortSubtable>.Parse<MortInsertionSubtable>(ref cursor, context),
-            _ => throw new InvalidDataException(
-                $"'mort' subtable type {type} is not one of 0, 1, 2, 4, or 5."),
+            _ => throw new InvalidDataException($"'mort' subtable type {type} is not one of 0, 1, 2, 4, or 5."),
         };
     }
 
@@ -481,17 +472,9 @@ public sealed record MortStateMachine
         ArgumentOutOfRangeException.ThrowIfNegative(stateIndex);
         ArgumentOutOfRangeException.ThrowIfNegative(glyphClass);
         if (stateIndex >= StateCount)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(stateIndex), stateIndex,
-                $"State index {stateIndex} is out of range [0, {StateCount}).");
-        }
+            throw new ArgumentOutOfRangeException(nameof(stateIndex), stateIndex, $"State index {stateIndex} is out of range [0, {StateCount}).");
         if (glyphClass >= StateSize)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(glyphClass), glyphClass,
-                $"Glyph class {glyphClass} is out of range [0, {StateSize}).");
-        }
+            throw new ArgumentOutOfRangeException(nameof(glyphClass), glyphClass, $"Glyph class {glyphClass} is out of range [0, {StateSize}).");
 
         return StateArray.Span[stateIndex, glyphClass];
     }
@@ -503,12 +486,11 @@ public sealed record MortStateMachine
         byte[] classArray = cursor.ReadUInt8Array(classHeader.GlyphCount);
 
         cursor.Position = stateHeaderStart + state.StateArray;
-        int stateArrayLength = state.EntryTable - state.StateArray;
-        byte[] stateArray = cursor.ReadUInt8Array(stateArrayLength);
+        byte[] stateArray = cursor.ReadUInt8Array(state.EntryTable - state.StateArray);
 
         return new()
         {
-            StateArray = new(stateArray, stateArrayLength / state.StateSize, state.StateSize),
+            StateArray = new(stateArray, stateArray.Length / state.StateSize, state.StateSize),
             ClassHeader = classHeader,
             ClassArray = classArray,
         };
@@ -552,11 +534,7 @@ public sealed record MortIndicRearrangementSubtable : MortSubtable, IDerivedReco
     /// <item><description>A consumer that honours <see cref="MortIndicRearrangementEntry.DontAdvance"/> stays on the current glyph before consuming the next one.</description></item>
     /// </list>
     /// </remarks>
-    public MortIndicRearrangementEntry Step(int stateIndex, int glyphClass)
-    {
-        int entryIndex = StateMachine.GetEntryIndex(stateIndex, glyphClass);
-        return Entries.Span[entryIndex];
-    }
+    public MortIndicRearrangementEntry Step(int stateIndex, int glyphClass) => Entries.Span[StateMachine.GetEntryIndex(stateIndex, glyphClass)];
 
     static MortIndicRearrangementSubtable IDerivedRecord<MortSubtable, MortIndicRearrangementSubtable>.Parse(ref Cursor cursor, object? context)
     {
@@ -573,9 +551,7 @@ public sealed record MortIndicRearrangementSubtable : MortSubtable, IDerivedReco
         MortStateMachine stateMachine = MortStateMachine.Parse(ref cursor, stateHeaderStart, state);
 
         long subtableEnd = subtableStart + header.Length;
-        int entryCount = checked((int)((subtableEnd - cursor.Position) / 4));
-        MortIndicRearrangementEntry[] entries =
-            cursor.ReadEndianReversibleStructArray<MortIndicRearrangementEntry>(entryCount);
+        MortIndicRearrangementEntry[] entries = cursor.ReadEndianReversibleStructArray<MortIndicRearrangementEntry>(checked((int)((subtableEnd - cursor.Position) / 4)));
 
         cursor.Position = subtableEnd;
 
